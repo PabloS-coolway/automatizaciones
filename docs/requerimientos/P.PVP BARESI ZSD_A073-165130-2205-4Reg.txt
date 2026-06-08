@@ -1,0 +1,7 @@
+[ID variantes]	[Texto de variante]	KSCHL	KOTABN	MATNR	VRKME	KBETR	KONWA	KPEIN	DATAB	DATBI	KOTABNR	VKORG	VTWEG	KMEIN
+-->	Textos parámetro	Clase de condición	Tabla	Material	Un.medida venta	Importe condición	Moneda condición	Cantidad base	Inicio validez	Fin validez	Tabla	Organización ventas	Canal distribución	Unidad de medida
+-->	Valores de propuesta		&KOTABN&				EUR							
+*** Modificaciones en los valores propuesta arr.visualizadas sin efecto
+		VKP0		76035500	PAA	80,00	EUR	1	01.06.2020	31.12.9999	73	1000	01	PAA
+		VKP0		86039550	PAA	80,00	EUR	1	01.06.2020	31.12.9999	73	1000	01	PAA
+		
