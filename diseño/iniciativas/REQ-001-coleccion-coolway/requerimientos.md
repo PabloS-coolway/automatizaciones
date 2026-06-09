@@ -53,7 +53,7 @@ El epic se entrega en 4 fases dependientes. Esta spec **detalla la Fase 1 (etiqu
 ### 2.2 Reglas de negocio (deterministas — codificar con tests)
 | ID | Prioridad | Regla |
 |---|---|---|
-| **RN-01** | 🅼 | **Ref. del PDF = ref. SAP**; la que necesitamos en la salida es la **ref. YORGA (SKU)** del maestro. Mapear SAP→YORGA ignorando el 3er dígito (color) como pista de modelo (ej. SAP `76033980200S36` → NILO `7623398`). |
+| **RN-01** | 🅼 | **Ref. del PDF = ref. SAP**; la de la salida es la **ref. YORGA** del maestro, que se **busca por `(STYLE, COLOR, SIZE, GÉNERO 76/86)`** y se lee fila a fila — NO se reconstruye desde la ref SAP. El 3er dígito de la ref YORGA es el **color** (no 0). ⚠️ La ref puede **cambiar por talla** dentro del mismo color (validado: BARESI FUX 36-41=`7693164`, 42=`7693169`; NILO BRW real=`7643398`, no `7623398` como decía el correo). |
 | **RN-02** | 🅼 | **CODE128 = ref. YORGA + `00000` + talla** (ej. BARESI GRY 36 → `76835550000036`). |
 | **RN-03** | 🅼 | **Surtido DEI = tallas 37 a 42** (no 36–41). |
 | **RN-04** | 🅼 | Surtidos **I/KR → ref. 76 (chica)**; surtidos **Z/P → ref. 86 (chico)**. No mezclar referencias dentro de una misma talla. |
@@ -86,10 +86,22 @@ El epic se entrega en 4 fases dependientes. Esta spec **detalla la Fase 1 (etiqu
 
 ## 4. Dependencias bloqueantes (a cerrar con negocio/IT antes de implementar)
 
-| ID | Bloquea | Pregunta |
+| ID | Estado | Respuesta de Silvia |
 |---|---|---|
-| **DEP-01** | RD-05 | **¿Quién es el dueño canónico del código de barra: Prepedidos o SAP?** (causa raíz del descuadre). |
-| **DEP-02** | RD-01, RF-01 | **Acceso:** ¿leemos/escribimos el Drive por API? ¿SAP/Prepedidos dan API o solo PDF/exports manuales? |
-| **DEP-03** | RNF-03 | **Volumen/frecuencia:** ¿cuántas colecciones y pedidos al mes? → ¿script asistido o servicio? |
-| **DEP-04** | RN-06 | Cuando una talla cae en dos surtidos del mismo pedido, ¿las QTY se **suman** o se separan por caja? |
-| **DEP-05** | generalización | **Multi-marca:** ¿Ulanka/Musse usan el mismo flujo Prepedidos/SAP que Coolway? |
+| **DEP-01** | ✅ Resuelta | Autoridad = **maestro del Drive** (códigos de Prepedidos, generados antes de la colección; los pedidos de compra llegan 1-2 meses después). |
+| **DEP-02** | ✅ Resuelta | Maestro = **Excel en Drive**, mantenido **a mano** por Silvia ([copia](https://docs.google.com/spreadsheets/d/11ncixa3TJAHVzyE0y9qZsm7EjN9CS_u2/edit)). Riesgo: otros departamentos borran códigos. **Congelación** tras enviar muestrarios + plantillas (luego solo se añaden modelos/colores nuevos). API/extracción → ver con Tomás (IT). |
+| **DEP-03** | ✅ Resuelta | **2 temporadas/año**, ~**285 pedidos**/temporada, **todos** necesitan etiquetas. Trabaja en **bloques** (mismo código + mismo cliente) → conviene **modo batch**. |
+| **DEP-04** | ✅ Resuelta | Mismo SKU → 1 línea sumando; chica(76) vs chico(86) → 2 líneas. **Coincide con RN-06 ya implementada.** |
+| **DEP-05** | ✅ Resuelta | Musse & Cloud = mismo flujo. Ulanka = solo modelos comercializados (mismo flujo); resto de compras de tienda Ulanka NO entran en Drive/SAP. |
+| **DEP-06** | ✅ Resuelta | Formato = el **simplificado** (`style, color, ref., talla, SKU, QTY, ean13, upc` + `code128` según variante + `importado por`). Es el que ya genera nuestro writer. PROVIDER y ORDER **no se usan**. La etiquetadora se acopla a lo que le mandemos. |
+| **DEP-A6** | ✅ Resuelta | El **PDF de SAP tiene siempre la misma estructura**. |
+
+## 5. Requerimientos nuevos (tras respuestas de Silvia)
+
+| ID | Prioridad | Requerimiento |
+|---|---|---|
+| **RF-13** | 🅼 | **Columna `importado por`** en la salida: `VANYOR` (pedidos a Valencia/tiendas), `COOLWAY USA` (USA), o el **cliente/país** en distribuidores (ej. "Australia", "Italia"). Es un dato de **destino del pedido** (entrada del operador o derivado). |
+| **RF-14** | 🅼 | **Preset destino → variante** (decide Yorga, a veces el cliente): Valencia/tiendas = **CODE128+EAN**; USA = **UPC+EAN**; Australia = **UPC**; Italia/UK/Costa Rica = **EAN**. |
+| **RF-15** | 🆂 | **Modo batch:** procesar varios pedidos de golpe por **mismo cliente/variante** (bloques), no de uno en uno. |
+| **RF-16** | ✅ | N/A con el formato simplificado: no incluimos columna de precio/ORDER ni PROVIDER. La salida solo lleva las columnas útiles (DEP-06). |
+| **RF-17** | ✅ | **Bulto FUERA DE ALCANCE (confirmado Pablo 2026-06-09).** Las etiquetas de bulto van siempre CODE128 y se mantienen en SAP. El barcode del bulto embebe pedido + codificación SAP de color/surtido (ej. `017`+`4603187`+`7603425`+`0201`+`I`), no reproducible desde el maestro YORGA. El motor genera solo el **fichero de par**. |
