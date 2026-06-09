@@ -16,6 +16,9 @@ venv/
 
 # Node (futuras apps)
 node_modules/
+dist/
+.turbo/
+*.tsbuildinfo
 
 # Temporales de Office
 ~$*

@@ -1,0 +1,21 @@
+{
+  "name": "yorga-automatizaciones",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Monorepo de automatizaciones del Grupo Yorga.",
+  "packageManager": "npm@10.9.7",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "dev": "turbo run dev"
+  },
+  "devDependencies": {
+    "turbo": "^2.1.0"
+  }
+}

@@ -30,6 +30,6 @@ Todo el contexto vive en [`diseño/`](diseño/):
 
 ## Estado
 
-- **En curso:** REQ-001 Coolway — Fase 1 (fichero de etiquetas). App en [`apps/etiquetas-coolway/`](apps/etiquetas-coolway/), funcionando y validada contra ficheros reales. Ver [CHANGELOG](CHANGELOG.md).
+- **En curso:** REQ-001 Coolway — Fase 1 (fichero de etiquetas). **Monorepo** (npm workspaces + Turbo): API en [`apps/etiquetas-coolway-api/`](apps/etiquetas-coolway-api/) (funcionando, validada contra ficheros reales), front en `apps/etiquetas-coolway-web/` (en construcción), tipos compartidos en [`packages/contracts/`](packages/contracts/). Ver [CHANGELOG](CHANGELOG.md).
 - **Próximo hito:** validar variantes restantes con Silvia y demo; luego fases 2-4 (BD maestra, ficheros SAP, plantillas).
 - Pendiente transversal: completar `diseño/01-mapa-tecnologico.md` (mapeo de infraestructura).
