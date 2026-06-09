@@ -19,3 +19,7 @@ node_modules/
 
 # Temporales de Office
 ~$*
+
+# Skills instalados (gestionados por skills-lock.json; reinstalar con `npx skills`)
+.agents/
+.claude/skills/

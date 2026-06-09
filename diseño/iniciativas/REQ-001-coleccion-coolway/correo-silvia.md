@@ -24,6 +24,8 @@ Para arrancar con buen pie necesito que me confirmes unas cosas:
 
 6. **Detalle de las etiquetas.** Las variantes (SOLO EAN / SOLO UPC / CODE128+EAN / UPC+EAN), ¿quién decide cuál se usa en cada pedido, el cliente? ¿El PDF del pedido de compra de SAP tiene siempre la misma estructura? Y si puedes, **mándame 2–3 pedidos más con su fichero de etiquetas correcto** —a poder ser alguno de cajas surtidas además de pares sueltos—; me sirven para validar.
 
+7. **Formato del fichero final.** Veo dos formatos distintos en lo que me pasaste: el que sale de prepedidos (con columnas EAN, CODE128, REF, PROVIDER, ORDER…) y el más sencillo que te devolvió la IA (ref, talla, SKU, ean13, upc). **¿Cuál es el que de verdad necesita la etiquetadora / el cliente?** Y en el de prepedidos, ¿de dónde sale el PROVIDER (ej. 995) y el ORDER, y cómo se forma el código de barras del bulto?
+
 Hay un par de cosas más técnicas (por qué Prepedidos y SAP generan códigos distintos, y si los sistemas tienen forma de extraer datos automáticamente) que prefiero ver directamente con los informáticos del 400/SAP; si me dices con quién hablo, me organizo.
 
 Mientras tanto voy avanzando con los ficheros que ya me pasaste, para enseñarte cuanto antes un primer prototipo funcionando.

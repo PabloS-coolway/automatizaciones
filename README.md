@@ -30,5 +30,6 @@ Todo el contexto vive en [`diseño/`](diseño/):
 
 ## Estado
 
-- **Fase actual:** descubrimiento / mapeo de infraestructura.
-- **Próximo hito:** completar `diseño/01-mapa-tecnologico.md` para tener visión real del punto de partida.
+- **En curso:** REQ-001 Coolway — Fase 1 (fichero de etiquetas). App en [`apps/etiquetas-coolway/`](apps/etiquetas-coolway/), funcionando y validada contra ficheros reales. Ver [CHANGELOG](CHANGELOG.md).
+- **Próximo hito:** validar variantes restantes con Silvia y demo; luego fases 2-4 (BD maestra, ficheros SAP, plantillas).
+- Pendiente transversal: completar `diseño/01-mapa-tecnologico.md` (mapeo de infraestructura).
