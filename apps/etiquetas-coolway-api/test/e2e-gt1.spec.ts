@@ -52,4 +52,14 @@ describe('E2E GT-1 (ficheros reales)', () => {
       ean13: '8433852623431', upc: '843385231078', importadoPor: 'COOLWAY USA',
     });
   });
+
+  it('parsea un pedido grande de CAJAS SURTIDAS (4603187): total de pedido = 8444 pares', async () => {
+    const order = await new PdfOrderReader().read(join(DOCS, 'validaciones', 'UPDATE Order 4603187- (1).pdf'));
+    const master = new MasterIndex(await new ExcelMasterReader().read(MASTER));
+    const { rows } = buildLabels(order, master, 'CODE128_EAN', 'VANYOR S.A.U');
+    const rec = reconcile(order, rows);
+    // El total del PEDIDO (cajas × surtido) debe cuadrar con lo declarado por Silvia (8444).
+    expect(rec.orderPairs).toBe(8444);
+    expect(order.lines.length).toBeGreaterThan(100); // captura todas las líneas (antes se cortaba en la 9)
+  });
 });
