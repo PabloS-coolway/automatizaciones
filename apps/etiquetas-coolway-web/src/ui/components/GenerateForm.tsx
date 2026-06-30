@@ -18,6 +18,7 @@ export function GenerateForm({ markets, loading, onGenerate }: Props) {
   const [importadoPor, setImportadoPor] = useState('');
 
   const selected = markets.find((m) => m.code === market);
+  const ready = master.length > 0 && orders.length > 0;
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -83,7 +84,7 @@ export function GenerateForm({ markets, loading, onGenerate }: Props) {
             <Form.Text muted>Sobrescribe el valor por defecto del destino.</Form.Text>
           </Form.Group>
 
-          <Button type="submit" className="btn-brand w-100 py-2" disabled={loading}>
+          <Button type="submit" className="btn-brand w-100 py-2" disabled={loading || !ready}>
             {loading ? (
               <>
                 <Spinner as="span" size="sm" animation="border" className="me-2" />
@@ -91,11 +92,16 @@ export function GenerateForm({ markets, loading, onGenerate }: Props) {
               </>
             ) : (
               <>
-                <Tags className="me-2" />
+                <Tags className="me-2" aria-hidden="true" />
                 Generar etiquetas{orders.length ? ` · ${orders.length} pedido${orders.length > 1 ? 's' : ''}` : ''}
               </>
             )}
           </Button>
+          {!ready && !loading && (
+            <div className="text-center text-secondary small mt-2">
+              Sube el <strong>Excel maestro</strong> y al menos un <strong>PDF de pedido</strong> para continuar.
+            </div>
+          )}
         </Form>
       </Card.Body>
     </Card>
