@@ -32,6 +32,10 @@ export function downloadFile(downloader: FileDownloader, file: GeneratedFileDto)
   downloader.download(file.fileName, file.fileBase64);
 }
 
-export function downloadAll(downloader: FileDownloader, files: GeneratedFileDto[]): void {
-  files.forEach((f) => downloader.download(f.fileName, f.fileBase64));
+/** Descarga todos los ficheros en un único ZIP. */
+export function downloadAll(downloader: FileDownloader, files: GeneratedFileDto[]): Promise<void> {
+  return downloader.downloadZip(
+    files.map((f) => ({ fileName: f.fileName, base64: f.fileBase64 })),
+    'etiquetas.zip',
+  );
 }
