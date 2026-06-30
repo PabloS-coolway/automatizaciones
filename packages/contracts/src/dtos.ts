@@ -65,3 +65,29 @@ export interface MarketDto {
   variant: LabelVariant;
   importadoPor: string;
 }
+
+/** Fila del maestro (BD) expuesta al front. */
+export interface ReferenceDto {
+  style: string;
+  color: string;
+  ref: string;
+  size: string;
+  sku: string;
+  ean13?: string | null;
+  upc?: string | null;
+  colorNameWeb?: string | null;
+}
+
+/** GET /api/maestro/stats */
+export interface MaestroStatsDto {
+  total: number;
+  conEan: number;
+  conUpc: number;
+  models: { style: string; count: number }[];
+}
+
+/** GET /api/maestro/references */
+export interface ReferencesPageDto {
+  total: number;
+  items: ReferenceDto[];
+}

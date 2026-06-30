@@ -13,7 +13,7 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { to: '/etiquetas', label: 'Etiquetas', icon: <Tags />, ready: true },
-  { to: '/maestro', label: 'Base de datos', icon: <Database /> },
+  { to: '/maestro', label: 'Base de datos', icon: <Database />, ready: true },
   { to: '/tarifas', label: 'Tarifas y surtidos', icon: <CashStack /> },
   { to: '/plantillas', label: 'Plantillas de ventas', icon: <FileEarmarkText /> },
 ];
