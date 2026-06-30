@@ -16,7 +16,7 @@ import { OrderLine, PurchaseOrder } from '../../domain/model/order';
 const REF_SAP = /^\d{11,}[A-Z0-9]*$/; // "7603298020100I" (≥11 díg.; evita el nº de pedido de 7)
 const ASSORTMENT_SUFFIX = /[A-Z][A-Z0-9]*$/; // surtido al final de la ref SAP
 const COLOR = /^[A-Z]{2,4}$/; // código de color aislado (DBR, MOC, COG…)
-const STYLE = /^[A-Z0-9-]{2,}$/; // style alfanumérico (GOAL, NILO, 2003…); descarta fechas/monedas
+const STYLE = /^[A-Z0-9][A-Z0-9 -]+$/; // style alfanumérico, admite varias palabras (GOAL EDGE); descarta fechas/monedas
 
 const splitCols = (line: string): string[] =>
   line
@@ -53,8 +53,9 @@ export function parseSapOrderText(text: string, orderNumberHint?: string): Purch
     const colorIdx = cols.findIndex((c, i) => i >= 1 && COLOR.test(c));
     const boxesIdx = colorIdx >= 1 ? cols.findIndex((c, i) => i > colorIdx && /^\d+$/.test(c)) : -1;
     if (colorIdx >= 1 && boxesIdx > colorIdx) {
-      const style = cols[0].split(/\s+/).pop() ?? cols[0]; // "1 GOAL"→GOAL · "GOAL"→GOAL
-      // El style es alfanumérico (GOAL, NILO, 2003…); descarta filas meta como fechas (01.06.2026) o monedas.
+      // Quita solo el nº de línea inicial y conserva el estilo completo (incluido multi-palabra: "GOAL EDGE").
+      const style = cols[0].replace(/^\d+\s+/, '').trim();
+      // El style es alfanumérico (GOAL, NILO, 2003, GOAL EDGE…); descarta filas meta como fechas (01.06.2026) o monedas.
       if (STYLE.test(style)) {
         pending = { style, color: cols[colorIdx], boxes: Number(cols[boxesIdx]), assortment: cols[boxesIdx + 1] ?? '' };
       }
