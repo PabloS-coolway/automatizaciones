@@ -2,11 +2,35 @@
   --brand: #6d28d9;
   --brand-2: #8b5cf6;
   --brand-dark: #5b21b6;
+  --ink: #1c1830;
+  --muted: #6b7280;
+  --bg: #f6f6fb;
+  --surface: #ffffff;
+  --border: #e9e8f2;
+  --radius: 16px;
 }
 
+* { box-sizing: border-box; }
+
 body {
-  background: radial-gradient(1200px 500px at 50% -200px, #efe9ff 0%, #f4f5fb 55%) no-repeat, #f4f5fb;
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'cv02', 'cv03', 'cv04';
+}
+
+/* Tipografía y números (Web Interface Guidelines) */
+h1, h2, h3, .card-title { letter-spacing: -0.01em; text-wrap: balance; }
+.kpi-val, .labels-preview table, .tabular { font-variant-numeric: tabular-nums; }
+
+/* Foco visible coherente (accesibilidad) */
+:focus-visible { outline: 2px solid var(--brand-2); outline-offset: 2px; border-radius: 6px; }
+button, a, [role='button'], .form-control, .form-select { touch-action: manipulation; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
 }
 
 /* Navbar */
@@ -29,10 +53,14 @@ body {
 
 /* Cards */
 .card {
-  border: 0;
-  border-radius: 16px;
-  box-shadow: 0 6px 24px rgba(31, 18, 66, 0.07);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 2px rgba(28, 24, 48, 0.04), 0 12px 32px rgba(28, 24, 48, 0.06);
 }
+.card-title { font-weight: 700; font-size: 1.15rem; }
+.form-control, .form-select { border-color: #d7d5e6; border-radius: 10px; padding: 0.55rem 0.75rem; }
+.form-control:focus, .form-select:focus { border-color: var(--brand-2); box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.18); }
+.form-label { color: #2a2640; }
 
 /* Brand button */
 .btn-brand {

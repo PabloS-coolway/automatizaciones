@@ -88,8 +88,15 @@ export function ResultsCard({ files, onDownloadOne, onDownloadAll }: Props) {
                 <Fragment key={f.orderNumber}>
                   <tr>
                     <td>
-                      <Button variant="link" size="sm" className="p-0 text-secondary" onClick={() => toggle(f.orderNumber)}>
-                        {isOpen ? <ChevronDown /> : <ChevronRight />}
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="p-0 text-secondary"
+                        onClick={() => toggle(f.orderNumber)}
+                        aria-label={isOpen ? `Ocultar detalle del pedido ${f.orderNumber}` : `Ver detalle del pedido ${f.orderNumber}`}
+                        aria-expanded={isOpen}
+                      >
+                        {isOpen ? <ChevronDown aria-hidden="true" /> : <ChevronRight aria-hidden="true" />}
                       </Button>
                     </td>
                     <td className="fw-semibold">{f.orderNumber}</td>
