@@ -14,7 +14,9 @@
     "typecheck": "tsc --noEmit",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
+    "prisma:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
+    "maestro:import:demo": "ts-node -r tsconfig-paths/register src/interface/cli/main.ts maestro:import --ean ../../docs/requerimientos/validaciones/EAN.xlsm --upc ../../docs/requerimientos/validaciones/UPC.xlsm",
     "lint": "echo ok"
   },
   "prisma": {
