@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Button, Card, Form, Spinner } from 'react-bootstrap';
-import { FileEarmarkExcel, FilePdf, Tags } from 'react-bootstrap-icons';
-import type { MarketDto } from '@yorga/contracts';
+import { Button, ButtonGroup, Card, Form, Spinner } from 'react-bootstrap';
+import { Database, FileEarmarkExcel, FilePdf, Tags } from 'react-bootstrap-icons';
+import type { MarketDto, MasterSourceKind } from '@yorga/contracts';
 import type { GenerationInput } from '../../domain/generation';
 import { FileDropzone } from './FileDropzone';
 
@@ -13,16 +13,17 @@ interface Props {
 
 export function GenerateForm({ markets, loading, onGenerate }: Props) {
   const [market, setMarket] = useState('VALENCIA');
+  const [masterSource, setMasterSource] = useState<MasterSourceKind>('db');
   const [master, setMaster] = useState<File[]>([]);
   const [orders, setOrders] = useState<File[]>([]);
   const [importadoPor, setImportadoPor] = useState('');
 
   const selected = markets.find((m) => m.code === market);
-  const ready = master.length > 0 && orders.length > 0;
+  const ready = orders.length > 0 && (masterSource === 'db' || master.length > 0);
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    onGenerate({ master: master[0] ?? null, orders, market, importadoPor: importadoPor || undefined });
+    onGenerate({ masterSource, master: master[0] ?? null, orders, market, importadoPor: importadoPor || undefined });
   }
 
   return (
@@ -57,20 +58,38 @@ export function GenerateForm({ markets, loading, onGenerate }: Props) {
             </div>
           </div>
 
-          <div className="form-step">Ficheros</div>
+          <div className="form-step d-flex justify-content-between align-items-center">
+            <span>Ficheros</span>
+            <ButtonGroup size="sm" aria-label="Origen del maestro">
+              <Button
+                variant={masterSource === 'db' ? 'primary' : 'outline-secondary'}
+                onClick={() => setMasterSource('db')}
+              >
+                <Database className="me-1" aria-hidden="true" /> Maestro: base de datos
+              </Button>
+              <Button
+                variant={masterSource === 'file' ? 'primary' : 'outline-secondary'}
+                onClick={() => setMasterSource('file')}
+              >
+                <FileEarmarkExcel className="me-1" aria-hidden="true" /> Subir Excel
+              </Button>
+            </ButtonGroup>
+          </div>
 
           <div className="row g-3">
-            <div className="col-md-6">
-              <FileDropzone
-                title="Excel maestro"
-                hint="REFERENCIAS COOLWAY.xlsx"
-                accept=".xlsx,.xlsm"
-                files={master}
-                onFiles={setMaster}
-                icon={<FileEarmarkExcel />}
-              />
-            </div>
-            <div className="col-md-6">
+            {masterSource === 'file' && (
+              <div className="col-md-6">
+                <FileDropzone
+                  title="Excel maestro"
+                  hint="REFERENCIAS COOLWAY.xlsx"
+                  accept=".xlsx,.xlsm"
+                  files={master}
+                  onFiles={setMaster}
+                  icon={<FileEarmarkExcel />}
+                />
+              </div>
+            )}
+            <div className={masterSource === 'file' ? 'col-md-6' : 'col-12'}>
               <FileDropzone
                 title="PDFs de pedido"
                 hint="Uno o varios PDF de SAP"
@@ -82,6 +101,11 @@ export function GenerateForm({ markets, loading, onGenerate }: Props) {
               />
             </div>
           </div>
+          {masterSource === 'db' && (
+            <Form.Text muted className="d-block mt-2">
+              Los códigos se leen del maestro en la base de datos. Solo necesitas subir los PDF.
+            </Form.Text>
+          )}
 
           <Button type="submit" className="btn-brand w-100 py-2 mt-4" disabled={loading || !ready}>
             {loading ? (
@@ -98,7 +122,11 @@ export function GenerateForm({ markets, loading, onGenerate }: Props) {
           </Button>
           {!ready && !loading && (
             <div className="text-center text-secondary small mt-2">
-              Sube el <strong>Excel maestro</strong> y al menos un <strong>PDF de pedido</strong> para continuar.
+              {masterSource === 'file' ? (
+                <>Sube el <strong>Excel maestro</strong> y al menos un <strong>PDF de pedido</strong>.</>
+              ) : (
+                <>Sube al menos un <strong>PDF de pedido</strong> para continuar.</>
+              )}
             </div>
           )}
         </Form>

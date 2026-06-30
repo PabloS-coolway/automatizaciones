@@ -14,7 +14,8 @@ export class HttpLabelsGateway implements LabelsGateway {
 
   async generate(input: ValidGenerationInput): Promise<GenerateLabelsHttpResponse> {
     const fd = new FormData();
-    fd.append('master', input.master);
+    fd.append('masterSource', input.masterSource);
+    if (input.masterSource === 'file' && input.master) fd.append('master', input.master);
     input.orders.forEach((o) => fd.append('orders', o));
     if (input.market) fd.append('market', input.market);
     if (input.variant) fd.append('variant', input.variant);

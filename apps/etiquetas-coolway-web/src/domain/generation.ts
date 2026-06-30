@@ -1,7 +1,8 @@
-import type { LabelVariant } from '@yorga/contracts';
+import type { LabelVariant, MasterSourceKind } from '@yorga/contracts';
 
 /** Entrada del formulario de generación (modelo de dominio del front). */
 export interface GenerationInput {
+  masterSource: MasterSourceKind; // 'db' (Postgres) o 'file' (Excel subido)
   master: File | null;
   orders: File[];
   market?: string;
@@ -9,9 +10,10 @@ export interface GenerationInput {
   importadoPor?: string;
 }
 
-/** Entrada ya validada (maestro garantizado). */
+/** Entrada ya validada. */
 export interface ValidGenerationInput {
-  master: File;
+  masterSource: MasterSourceKind;
+  master: File | null; // requerido solo si masterSource === 'file'
   orders: File[];
   market?: string;
   variant?: LabelVariant;
@@ -21,7 +23,7 @@ export interface ValidGenerationInput {
 /** Reglas de validación del dominio (puras, sin framework). */
 export function validateGenerationInput(input: GenerationInput): string[] {
   const errors: string[] = [];
-  if (!input.master) errors.push('Sube el Excel maestro (REFERENCIAS COOLWAY).');
+  if (input.masterSource === 'file' && !input.master) errors.push('Sube el Excel maestro (o usa la base de datos).');
   if (input.orders.length === 0) errors.push('Sube al menos un PDF de pedido de compra.');
   return errors;
 }

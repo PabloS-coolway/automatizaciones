@@ -3,13 +3,14 @@ import { LabelVariant } from '../../domain/model/types';
 import { buildLabels } from '../../domain/services/label-builder';
 import { MasterIndex } from '../../domain/services/master-index';
 import { reconcile, Reconciliation } from '../../domain/services/reconciliation';
-import { MasterReaderPort } from '../ports/master-reader.port';
+import { MasterProvider, MasterSource } from '../ports/master-provider.port';
 import { OrderReaderPort } from '../ports/order-reader.port';
 
 export interface GenerateLabelsInput {
   /** Uno o varios PDFs de pedido (modo batch). */
   orderSources: string[];
-  masterSource: string;
+  /** Origen del maestro: BD (Postgres) o un Excel subido. */
+  master: MasterSource;
   variant: LabelVariant;
   importadoPor?: string;
 }
@@ -32,11 +33,11 @@ export interface OrderLabels {
 export class GenerateLabelsUseCase {
   constructor(
     private readonly orderReader: OrderReaderPort,
-    private readonly masterReader: MasterReaderPort,
+    private readonly masterProvider: MasterProvider,
   ) {}
 
   async generate(input: GenerateLabelsInput): Promise<OrderLabels[]> {
-    const master = new MasterIndex(await this.masterReader.read(input.masterSource));
+    const master = new MasterIndex(await this.masterProvider.load(input.master));
 
     const results: OrderLabels[] = [];
     for (const source of input.orderSources) {

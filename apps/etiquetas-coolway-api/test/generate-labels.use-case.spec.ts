@@ -1,4 +1,4 @@
-import { MasterReaderPort } from '../src/application/ports/master-reader.port';
+import { MasterProvider } from '../src/application/ports/master-provider.port';
 import { OrderReaderPort } from '../src/application/ports/order-reader.port';
 import { GenerateLabelsUseCase } from '../src/application/use-cases/generate-labels.use-case';
 import { MasterReference } from '../src/domain/model/reference';
@@ -15,22 +15,22 @@ const master: MasterReference[] = [
 
 describe('GenerateLabelsUseCase (puertos en memoria)', () => {
   const orderReader: OrderReaderPort = { read: async (src) => orders[src] };
-  let masterReads = 0;
-  const masterReader: MasterReaderPort = { read: async () => { masterReads++; return master; } };
-  const useCase = new GenerateLabelsUseCase(orderReader, masterReader);
+  let masterLoads = 0;
+  const masterProvider: MasterProvider = { load: async () => { masterLoads++; return master; } };
+  const useCase = new GenerateLabelsUseCase(orderReader, masterProvider);
 
-  it('procesa un pedido: reglas + cuadre + importado por', async () => {
-    const [result] = await useCase.generate({ orderSources: ['a.pdf'], masterSource: 'm.xlsx', variant: 'UPC_EAN', importadoPor: 'VANYOR' });
+  it('procesa un pedido leyendo el maestro de la BD: reglas + cuadre + importado por', async () => {
+    const [result] = await useCase.generate({ orderSources: ['a.pdf'], master: { kind: 'db' }, variant: 'UPC_EAN', importadoPor: 'VANYOR' });
     expect(result.orderNumber).toBe('4603418');
     expect(result.reconciliation.balanced).toBe(true);
     expect(result.rows[0]).toMatchObject({ ref: '7643398', qty: 4, ean13: '8433852642814', importadoPor: 'VANYOR' });
   });
 
-  it('modo batch: N pedidos leyendo el maestro UNA sola vez', async () => {
-    masterReads = 0;
-    const results = await useCase.generate({ orderSources: ['a.pdf', 'b.pdf'], masterSource: 'm.xlsx', variant: 'EAN' });
+  it('modo batch desde archivo: N pedidos cargando el maestro UNA sola vez', async () => {
+    masterLoads = 0;
+    const results = await useCase.generate({ orderSources: ['a.pdf', 'b.pdf'], master: { kind: 'file', path: 'm.xlsx' }, variant: 'EAN' });
     expect(results).toHaveLength(2);
     expect(results.map((r) => r.orderNumber)).toEqual(['4603418', '4603419']);
-    expect(masterReads).toBe(1); // maestro leído una vez para todo el bloque
+    expect(masterLoads).toBe(1); // maestro cargado una vez para todo el bloque
   });
 });

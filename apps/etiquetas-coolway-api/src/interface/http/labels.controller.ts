@@ -18,6 +18,7 @@ interface GenerateBody {
   market?: string;
   variant?: LabelVariant;
   importadoPor?: string;
+  masterSource?: 'db' | 'file'; // por defecto 'file' (Excel subido)
 }
 
 @Controller()
@@ -40,10 +41,11 @@ export class LabelsController {
   @Post('labels/generate')
   @UseInterceptors(FileFieldsInterceptor([{ name: 'master', maxCount: 1 }, { name: 'orders', maxCount: 50 }]))
   async generate(@UploadedFiles() files: Uploaded, @Body() body: GenerateBody): Promise<GenerateLabelsHttpResponse> {
-    const master = files.master?.[0];
+    const masterFile = files.master?.[0];
     const orders = files.orders ?? [];
-    if (!master) throw new BadRequestException('Falta el fichero maestro (campo "master").');
+    const fromDb = body.masterSource === 'db';
     if (orders.length === 0) throw new BadRequestException('Sube al menos un PDF de pedido (campo "orders").');
+    if (!fromDb && !masterFile) throw new BadRequestException('Falta el Excel maestro (o usa masterSource=db).');
 
     const preset = body.market ? resolveMarket(body.market) : undefined;
     const variant = body.variant ?? preset?.variant ?? 'UPC_EAN';
@@ -52,7 +54,7 @@ export class LabelsController {
     try {
       const results = await this.useCase.generate({
         orderSources: orders.map((o) => o.path),
-        masterSource: master.path,
+        master: fromDb ? { kind: 'db' } : { kind: 'file', path: masterFile!.path },
         variant,
         importadoPor,
       });
@@ -72,7 +74,8 @@ export class LabelsController {
       return out;
     } finally {
       // limpiar temporales subidos
-      await Promise.all([master, ...orders].map((f) => unlink(f.path).catch(() => undefined)));
+      const uploaded = [masterFile, ...orders].filter((f): f is Express.Multer.File => !!f);
+      await Promise.all(uploaded.map((f) => unlink(f.path).catch(() => undefined)));
     }
   }
 }

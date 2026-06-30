@@ -1,5 +1,8 @@
 import { LabelVariant } from './variants';
 
+/** Origen del maestro al generar etiquetas: base de datos o Excel subido. */
+export type MasterSourceKind = 'db' | 'file';
+
 /** Fila de etiqueta tal como la expone la API al front. */
 export interface LabelRowDto {
   style: string;
