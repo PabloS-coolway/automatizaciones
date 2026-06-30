@@ -36,13 +36,23 @@ Contexto del negocio y la arquitectura objetivo: ver [`diseño/`](diseño/) (con
 
 Requisitos: Node 20+, npm 10+, `pdftotext` (poppler-utils) para leer los PDFs de SAP, y **Docker** (Postgres del maestro).
 
+**Puesta en marcha (todo desde la raíz):**
 ```bash
-npm install          # instala todos los workspaces
-docker compose up -d # Postgres del maestro (Fase 2), puerto host 5544
+npm run setup        # install + levanta Postgres + genera cliente Prisma + migra
 npm run dev          # turbo: API (:3000) + front (:5173)
+```
+
+**Comandos (raíz):**
+```bash
 npm test             # turbo: tests de todos los paquetes
 npm run build        # turbo: build de todos
 npm run typecheck    # turbo: typecheck de todos
+
+npm run db:up        # levanta Postgres (Docker, host 5544) y espera a que esté listo
+npm run db:down      # para Postgres
+npm run db:migrate   # aplica migraciones (prisma migrate deploy)
+npm run db:studio    # explora el maestro en el navegador (Prisma Studio :5555)
+npm run maestro:import:demo   # importa los EAN/UPC de ejemplo al maestro
 ```
 
 ## REQ-001 · Etiquetas Coolway (primera automatización)
