@@ -1,0 +1,29 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Maestro de referencias Coolway (fuente de verdad de los códigos de barra).
+/// Una fila por SKU = (ref, size). Solo la app escribe; los consumidores leen.
+model Reference {
+  id           Int      @id @default(autoincrement())
+  style        String
+  color        String
+  ref          String
+  size         String
+  sku          String
+  ean13        String?  @unique
+  upc          String?
+  colorNameWeb String?  @map("color_name_web")
+  season       String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@unique([ref, size]) // un SKU por talla de cada referencia
+  @@index([style, color])
+  @@map("reference")
+}
