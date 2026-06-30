@@ -3,6 +3,21 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-06-30] Validación con 3 pedidos reales de Silvia + parser robusto
+
+### Corregido (parser de PDF SAP, gracias a la validación)
+- **Pedidos largos:** los nº de línea de 2+ dígitos saltan a otra línea y el ítem empieza por el style → la cabecera se detecta ahora por **color (2-4 may) + cajas**, sin depender del nº de línea (antes se cortaba en el ítem 9).
+- **Surtido** se toma del **sufijo de la ref SAP** (`…I`/`…S36`), no de la columna ASS (que viene `00I` en cajas).
+- **Falsos positivos:** el nº de pedido (7 díg.) ya no se confunde con una ref SAP (ahora ≥11 díg. + línea con "total"); filas de fecha/moneda ya no se toman como cabecera (style debe ser alfanumérico).
+
+### Añadido / cambiado
+- **Catálogo de surtidos** completado con curvas reales de los bultos: E, L, M, N (chica) y R, S, T, Y (chico).
+- `importado por` con nombres legales: **VANYOR S.A.U** y **COOLWAY USA LLC**.
+- Test de regresión e2e de cajas surtidas (4603187 → 8444 pares de pedido).
+
+### Validación (3 pedidos reales)
+- **4603552** (112 pares sueltos UPC+EAN), **4603187** (8444 cajas CODE128+EAN), **4603338** (1840 solo EAN): el total de PEDIDO calculado **cuadra exacto** con lo declarado. La pequeña diferencia en la salida son **códigos faltantes en nuestra copia del maestro** (modelo EDGE, etc.), que el sistema **avisa** — pendiente maestro actualizado del Drive.
+
 ## [2026-06-09] Front: UI con Bootstrap + arquitectura hexagonal/DDD
 
 ### Añadido

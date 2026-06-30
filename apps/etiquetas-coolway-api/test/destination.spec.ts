@@ -1,12 +1,12 @@
 import { MARKETS, resolveMarket } from '../src/domain/model/destination';
 
 describe('Preset destino → variante + importado por (RF-14/RF-13)', () => {
-  it('Valencia/tiendas → CODE128+EAN, importado por VANYOR', () => {
-    expect(resolveMarket('VALENCIA')).toEqual({ variant: 'CODE128_EAN', importadoPor: 'VANYOR' });
+  it('Valencia/tiendas → CODE128+EAN, importado por VANYOR S.A.U', () => {
+    expect(resolveMarket('VALENCIA')).toEqual({ variant: 'CODE128_EAN', importadoPor: 'VANYOR S.A.U' });
   });
 
-  it('USA → UPC+EAN, importado por COOLWAY USA', () => {
-    expect(resolveMarket('USA')).toEqual({ variant: 'UPC_EAN', importadoPor: 'COOLWAY USA' });
+  it('USA → UPC+EAN, importado por COOLWAY USA LLC', () => {
+    expect(resolveMarket('USA')).toEqual({ variant: 'UPC_EAN', importadoPor: 'COOLWAY USA LLC' });
   });
 
   it('Australia → solo UPC; Italia/UK/Costa Rica → solo EAN', () => {
@@ -17,7 +17,7 @@ describe('Preset destino → variante + importado por (RF-14/RF-13)', () => {
   });
 
   it('es insensible a mayúsculas y lanza si el mercado no existe', () => {
-    expect(resolveMarket('usa').importadoPor).toBe('COOLWAY USA');
+    expect(resolveMarket('usa').importadoPor).toBe('COOLWAY USA LLC');
     expect(() => resolveMarket('MARTE')).toThrow(/desconocido/);
   });
 });

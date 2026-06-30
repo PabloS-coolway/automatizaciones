@@ -13,8 +13,8 @@ export interface MarketPreset {
  * Valencia/tiendas: CODE128+EAN · USA: UPC+EAN · Australia: UPC · Italia/UK/Costa Rica: EAN.
  */
 export const MARKETS: Record<MarketCode, MarketPreset> = {
-  VALENCIA: { variant: 'CODE128_EAN', importadoPor: 'VANYOR' },
-  USA: { variant: 'UPC_EAN', importadoPor: 'COOLWAY USA' },
+  VALENCIA: { variant: 'CODE128_EAN', importadoPor: 'VANYOR S.A.U' },
+  USA: { variant: 'UPC_EAN', importadoPor: 'COOLWAY USA LLC' },
   AUSTRALIA: { variant: 'UPC', importadoPor: 'Australia' },
   ITALIA: { variant: 'EAN', importadoPor: 'Italia' },
   UK: { variant: 'EAN', importadoPor: 'UK' },
