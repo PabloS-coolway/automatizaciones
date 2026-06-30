@@ -1,7 +1,8 @@
 import { Fragment, useState } from 'react';
 import { Badge, Button, Card, Collapse, Table } from 'react-bootstrap';
-import { CheckCircleFill, ChevronDown, ChevronRight, Download, ExclamationTriangleFill } from 'react-bootstrap-icons';
+import { CheckCircleFill, ChevronDown, ChevronRight, Download, ExclamationTriangleFill, Eye } from 'react-bootstrap-icons';
 import type { GeneratedFileDto, MissingCodeDto } from '@yorga/contracts';
+import { LabelsTable } from './LabelsTable';
 
 interface Props {
   files: GeneratedFileDto[];
@@ -80,11 +81,9 @@ export function ResultsCard({ files, onDownloadOne, onDownloadAll }: Props) {
                 <Fragment key={f.orderNumber}>
                   <tr>
                     <td>
-                      {f.missing.length > 0 && (
-                        <Button variant="link" size="sm" className="p-0 text-secondary" onClick={() => toggle(f.orderNumber)}>
-                          {isOpen ? <ChevronDown /> : <ChevronRight />}
-                        </Button>
-                      )}
+                      <Button variant="link" size="sm" className="p-0 text-secondary" onClick={() => toggle(f.orderNumber)}>
+                        {isOpen ? <ChevronDown /> : <ChevronRight />}
+                      </Button>
                     </td>
                     <td className="fw-semibold">{f.orderNumber}</td>
                     <td>
@@ -113,19 +112,22 @@ export function ResultsCard({ files, onDownloadOne, onDownloadAll }: Props) {
                         <span className="text-secondary">—</span>
                       )}
                     </td>
-                    <td className="text-end">
+                    <td className="text-end text-nowrap">
+                      <Button variant="outline-secondary" size="sm" className="me-2" onClick={() => toggle(f.orderNumber)}>
+                        <Eye className="me-1" /> {isOpen ? 'Ocultar' : 'Ver en línea'}
+                      </Button>
                       <Button variant={ok ? 'outline-success' : 'outline-warning'} size="sm" onClick={() => onDownloadOne(f)}>
                         <Download className="me-1" /> Descargar
                       </Button>
                     </td>
                   </tr>
-                  {f.missing.length > 0 && (
-                    <tr className="missing-row">
-                      <td></td>
-                      <td colSpan={5} className="pt-0">
-                        <Collapse in={isOpen}>
-                          <div>
-                            <div className="missing-box">
+                  <tr className="detail-row">
+                    <td></td>
+                    <td colSpan={5} className="pt-0">
+                      <Collapse in={isOpen}>
+                        <div>
+                          {f.missing.length > 0 && (
+                            <div className="missing-box mb-3">
                               <div className="small text-secondary mb-2">
                                 Códigos que no están en el maestro (no se inventan — hay que añadirlos al maestro):
                               </div>
@@ -135,11 +137,12 @@ export function ResultsCard({ files, onDownloadOne, onDownloadAll }: Props) {
                                 </div>
                               ))}
                             </div>
-                          </div>
-                        </Collapse>
-                      </td>
-                    </tr>
-                  )}
+                          )}
+                          <LabelsTable rows={f.rows} />
+                        </div>
+                      </Collapse>
+                    </td>
+                  </tr>
                 </Fragment>
               );
             })}

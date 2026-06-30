@@ -39,11 +39,12 @@ export interface GenerateLabelsResultDto {
   reconciliation: ReconciliationDto;
 }
 
-/** Un fichero generado, listo para descargar (Excel en base64). */
+/** Un fichero generado, listo para descargar (Excel en base64) o previsualizar (rows). */
 export interface GeneratedFileDto {
   orderNumber: string;
   fileName: string;
   fileBase64: string;
+  rows: LabelRowDto[];
   reconciliation: ReconciliationDto;
   missing: MissingCodeDto[];
 }
