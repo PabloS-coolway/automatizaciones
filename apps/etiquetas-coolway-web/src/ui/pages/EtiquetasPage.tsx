@@ -22,7 +22,7 @@ export function EtiquetasPage() {
   };
 
   return (
-    <div className="page">
+    <div className={`page ${hasResults ? 'page-wide' : ''}`}>
       <header className="page-head mb-4">
         <h1 className="h4 mb-1">Etiquetas</h1>
         <p className="text-secondary mb-0">
