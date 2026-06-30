@@ -32,7 +32,7 @@ export class GenerateLabelsCommand extends CommandRunner {
 
   async run(_args: string[], opts: CliOptions): Promise<void> {
     if (!opts.order || !opts.master || !opts.out) {
-      console.error('Faltan argumentos. Uso: generate -o pedido.pdf -m maestro.xlsx -O salida.xlsx [-v UPC_EAN]');
+      console.error('Faltan argumentos. Uso: generate -o pedido.pdf -m <maestro.xlsx|db> -O salida.xlsx [-v UPC_EAN]');
       process.exitCode = 1;
       return;
     }
@@ -40,10 +40,11 @@ export class GenerateLabelsCommand extends CommandRunner {
     const preset = opts.market ? resolveMarket(opts.market) : undefined;
     const variant = opts.variant ?? preset?.variant ?? 'UPC_EAN';
     const importadoPor = opts.importadoPor ?? preset?.importadoPor;
+    const master = opts.master === 'db' ? ({ kind: 'db' } as const) : ({ kind: 'file', path: opts.master } as const);
 
     const [result] = await this.useCase.generate({
       orderSources: [opts.order],
-      masterSource: opts.master,
+      master,
       variant,
       importadoPor,
     });
@@ -66,7 +67,7 @@ export class GenerateLabelsCommand extends CommandRunner {
     return v;
   }
 
-  @Option({ flags: '-m, --master <path>', description: 'Excel maestro REFERENCIAS COOLWAY' })
+  @Option({ flags: '-m, --master <path>', description: 'Maestro: ruta del Excel REFERENCIAS COOLWAY, o "db" para leer de Postgres' })
   parseMaster(v: string): string {
     return v;
   }

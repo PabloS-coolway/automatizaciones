@@ -20,7 +20,8 @@ export function generateLabels(gateway: LabelsGateway, input: GenerationInput): 
   const errors = validateGenerationInput(input);
   if (errors.length) throw new ValidationError(errors);
   return gateway.generate({
-    master: input.master as File,
+    masterSource: input.masterSource,
+    master: input.master,
     orders: input.orders,
     market: input.market,
     variant: input.variant,
