@@ -146,11 +146,29 @@ button, a, [role='button'], .form-control, .form-select { touch-action: manipula
 .dropzone.dragover { border-color: var(--brand); }
 .dropzone:active { transform: scale(0.995); }
 .dropzone .dz-icon { color: var(--brand-2); font-size: 1.9rem; flex-shrink: 0; }
-.dz-text { min-width: 0; }
+.dz-text { min-width: 0; flex: 1; }
 .dropzone .dz-title { font-weight: 600; font-size: 1rem; color: var(--ink); }
 .dz-hint { font-size: 0.8rem; color: var(--muted); }
-.dz-files { margin-top: 4px; }
+.dz-single { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.dz-change { color: var(--brand); font-weight: 600; }
+.dz-count { color: var(--muted); font-weight: 600; }
+.dz-files { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px; max-height: 84px; overflow: auto; }
 
+.dropzone.filled { border-style: solid; border-color: var(--brand-2); }
+.dropzone.filled .dz-icon { color: #16a34a; }
+.dz-x { border: 0; background: transparent; color: inherit; padding: 0; margin-left: 2px; display: inline-flex; opacity: 0.55; }
+.dz-x:hover { opacity: 1; }
+
+.form-step {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 26px 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
 .variant-badge {
   display: inline-block;
   font-size: 0.72rem;

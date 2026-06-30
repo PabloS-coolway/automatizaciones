@@ -57,7 +57,7 @@ export function GenerateForm({ markets, loading, onGenerate }: Props) {
             </div>
           </div>
 
-          <hr className="my-4" />
+          <div className="form-step">Ficheros</div>
 
           <div className="row g-3">
             <div className="col-md-6">
