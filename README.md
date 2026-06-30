@@ -34,10 +34,11 @@ Contexto del negocio y la arquitectura objetivo: ver [`diseño/`](diseño/) (con
 
 ## Desarrollo (monorepo)
 
-Requisitos: Node 20+, npm 10+, y `pdftotext` (poppler-utils) para leer los PDFs de SAP.
+Requisitos: Node 20+, npm 10+, `pdftotext` (poppler-utils) para leer los PDFs de SAP, y **Docker** (Postgres del maestro).
 
 ```bash
 npm install          # instala todos los workspaces
+docker compose up -d # Postgres del maestro (Fase 2), puerto host 5544
 npm run dev          # turbo: API (:3000) + front (:5173)
 npm test             # turbo: tests de todos los paquetes
 npm run build        # turbo: build de todos
@@ -51,6 +52,7 @@ Genera el **fichero de etiquetas** de un pedido de compra SAP a partir del PDF +
 
 - **API** (`etiquetas-coolway-api`): `POST /api/labels/generate` (batch), `GET /api/markets`, `GET /api/health`. También CLI (`npm start -w @yorga/etiquetas-coolway-api -- generate ...`).
 - **Web** (`etiquetas-coolway-web`): subir PDFs + maestro, elegir destino (Valencia / USA / Australia / Italia…), descargar los Excel.
+- **Maestro en Postgres** (Fase 2): el maestro de códigos vive en BD (fuente de verdad gobernada). Importador `maestro:import` que une los exports EAN/UPC de prepedidos + calcula SKU. Ver [README de la API](apps/etiquetas-coolway-api/README.md#base-de-datos--maestro-req-001-fase-2).
 - Diseño completo: [`diseño/iniciativas/REQ-001-coleccion-coolway/`](diseño/iniciativas/REQ-001-coleccion-coolway/).
 
-**Estado:** API y motor validados contra ficheros reales (cuadre OK, reproduce la salida que validó negocio). Front funcional. Pendiente: validar variantes restantes con negocio y demo; luego fases 2-4 (BD maestra, ficheros SAP, plantillas de ventas). Ver [CHANGELOG](CHANGELOG.md).
+**Estado:** Fase 1 (etiquetas) validada con pedidos reales. Fase 2 Bloques 1-2 (maestro en Postgres) funcionando. Pendiente: Bloque 3 (gobernanza/publicar a departamentos), demo a Silvia, y fases 3-4 (tarifas/surtidos, plantillas). Ver [CHANGELOG](CHANGELOG.md).
