@@ -160,8 +160,8 @@ body { background: #f4f5fb; } /* override del gradiente anterior */
 }
 .sidebar-foot { padding: 14px 20px; font-size: 0.72rem; color: rgba(255, 255, 255, 0.6); }
 
-.content { flex: 1; min-width: 0; padding: 28px 32px; }
-.page { max-width: 920px; }
+.content { flex: 1; min-width: 0; padding: 28px 32px; display: flex; justify-content: center; }
+.page { width: 100%; max-width: 760px; }
 .page-head h1 { font-weight: 700; }
 
 @media (max-width: 640px) {
