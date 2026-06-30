@@ -64,6 +64,7 @@ export class LabelsController {
           orderNumber: r.orderNumber,
           fileName: this.serializer.fileName(r),
           fileBase64: buffer.toString('base64'),
+          rows: r.rows,
           reconciliation: r.reconciliation,
           missing: r.missing,
         });
