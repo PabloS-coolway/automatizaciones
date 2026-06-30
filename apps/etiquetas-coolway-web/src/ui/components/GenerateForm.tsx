@@ -49,28 +49,26 @@ export function GenerateForm({ markets, loading, onGenerate }: Props) {
             )}
           </Form.Group>
 
-          <div className="row g-3 mb-3">
-            <div className="col-md-6">
-              <FileDropzone
-                title="Excel maestro"
-                hint="REFERENCIAS COOLWAY.xlsx — arrastra o haz clic"
-                accept=".xlsx,.xlsm"
-                files={master}
-                onFiles={setMaster}
-                icon={<FileEarmarkExcel />}
-              />
-            </div>
-            <div className="col-md-6">
-              <FileDropzone
-                title="PDFs de pedido de compra"
-                hint="Uno o varios PDF de SAP — arrastra o haz clic"
-                accept=".pdf"
-                multiple
-                files={orders}
-                onFiles={setOrders}
-                icon={<FilePdf />}
-              />
-            </div>
+          <div className="mb-3">
+            <FileDropzone
+              title="Excel maestro"
+              hint="REFERENCIAS COOLWAY.xlsx — arrastra o haz clic"
+              accept=".xlsx,.xlsm"
+              files={master}
+              onFiles={setMaster}
+              icon={<FileEarmarkExcel />}
+            />
+          </div>
+          <div className="mb-3">
+            <FileDropzone
+              title="PDFs de pedido de compra"
+              hint="Uno o varios PDF de SAP — arrastra o haz clic"
+              accept=".pdf"
+              multiple
+              files={orders}
+              onFiles={setOrders}
+              icon={<FilePdf />}
+            />
           </div>
 
           <Form.Group className="mb-4">
