@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Alert, Toast, ToastContainer } from 'react-bootstrap';
-import { CheckCircleFill } from 'react-bootstrap-icons';
+import { Alert, Button, Toast, ToastContainer } from 'react-bootstrap';
+import { ArrowLeft, CheckCircleFill } from 'react-bootstrap-icons';
 import type { GeneratedFileDto } from '@yorga/contracts';
 import { gateway, downloader } from '../composition';
 import { useLabels } from '../useLabels';
@@ -8,8 +8,9 @@ import { GenerateForm } from '../components/GenerateForm';
 import { ResultsCard } from '../components/ResultsCard';
 
 export function EtiquetasPage() {
-  const { markets, loading, error, files, generate, downloadOne, downloadAll } = useLabels(gateway, downloader);
+  const { markets, loading, error, files, generate, reset, downloadOne, downloadAll } = useLabels(gateway, downloader);
   const [toast, setToast] = useState('');
+  const hasResults = files.length > 0;
 
   const onDownloadOne = (f: GeneratedFileDto) => {
     downloadOne(f);
@@ -17,7 +18,7 @@ export function EtiquetasPage() {
   };
   const onDownloadAll = () => {
     downloadAll();
-    setToast(`Descargados ${files.length} ficheros`);
+    setToast(`Descargando ${files.length} ficheros en un ZIP`);
   };
 
   return (
@@ -29,7 +30,15 @@ export function EtiquetasPage() {
         </p>
       </header>
 
-      <GenerateForm markets={markets} loading={loading} onGenerate={generate} />
+      {!hasResults ? (
+        <GenerateForm markets={markets} loading={loading} onGenerate={generate} />
+      ) : (
+        <div className="mb-3">
+          <Button variant="outline-secondary" size="sm" onClick={reset}>
+            <ArrowLeft className="me-1" aria-hidden="true" /> Generar otro
+          </Button>
+        </div>
+      )}
 
       <div aria-live="polite">
         {error && <Alert variant="danger">⚠ {error}</Alert>}

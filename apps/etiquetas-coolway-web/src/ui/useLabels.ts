@@ -38,12 +38,18 @@ export function useLabels(gateway: LabelsGateway, downloader: FileDownloader) {
     }
   }
 
+  const reset = () => {
+    setFiles([]);
+    setError('');
+  };
+
   return {
     markets,
     loading,
     error,
     files,
     generate,
+    reset,
     downloadOne: (f: GeneratedFileDto) => downloadFile(downloader, f),
     downloadAll: () => downloadAll(downloader, files),
   };

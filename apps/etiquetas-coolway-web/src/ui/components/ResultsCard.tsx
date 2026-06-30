@@ -1,6 +1,6 @@
 import { Fragment, useState } from 'react';
 import { Badge, Button, Card, Collapse, Table } from 'react-bootstrap';
-import { CheckCircleFill, ChevronDown, ChevronRight, Download, ExclamationTriangleFill, Eye } from 'react-bootstrap-icons';
+import { CheckCircleFill, ChevronDown, ChevronRight, Download, Eye } from 'react-bootstrap-icons';
 import type { GeneratedFileDto, MissingCodeDto } from '@yorga/contracts';
 import { LabelsTable } from './LabelsTable';
 
@@ -32,9 +32,8 @@ export function ResultsCard({ files, onDownloadOne, onDownloadAll }: Props) {
     });
 
   const totalGen = files.reduce((s, f) => s + f.reconciliation.labelPairs, 0);
-  const totalOrder = files.reduce((s, f) => s + f.reconciliation.orderPairs, 0);
   const totalMissing = files.reduce((s, f) => s + f.missing.length, 0);
-  const allOk = files.every((f) => f.reconciliation.balanced && f.missing.length === 0);
+  const okCount = files.filter((f) => f.reconciliation.balanced && f.missing.length === 0).length;
 
   return (
     <Card>
@@ -49,17 +48,25 @@ export function ResultsCard({ files, onDownloadOne, onDownloadAll }: Props) {
           )}
         </div>
 
-        <div className={`summary ${allOk ? 'ok' : 'warn'} mb-3`}>
-          {allOk ? <CheckCircleFill className="me-2" /> : <ExclamationTriangleFill className="me-2" />}
-          {files.length} pedido{files.length > 1 ? 's' : ''} ·{' '}
-          {allOk ? (
-            <>{totalGen} pares · todo cuadra y con códigos completos</>
-          ) : (
-            <>
-              {totalGen} de {totalOrder} pares generados · {totalMissing} código{totalMissing !== 1 ? 's' : ''} sin
-              encontrar en el maestro
-            </>
-          )}
+        <div className="kpis mb-4">
+          <div className="kpi">
+            <div className="kpi-val">{files.length}</div>
+            <div className="kpi-lbl">Pedidos</div>
+          </div>
+          <div className="kpi">
+            <div className="kpi-val">{totalGen.toLocaleString('es-ES')}</div>
+            <div className="kpi-lbl">Pares generados</div>
+          </div>
+          <div className={`kpi ${totalMissing ? 'kpi-warn' : ''}`}>
+            <div className="kpi-val">{totalMissing}</div>
+            <div className="kpi-lbl">Códigos faltantes</div>
+          </div>
+          <div className={`kpi ${okCount === files.length ? 'kpi-ok' : 'kpi-warn'}`}>
+            <div className="kpi-val">
+              {okCount}/{files.length}
+            </div>
+            <div className="kpi-lbl">Pedidos que cuadran</div>
+          </div>
         </div>
 
         <Table hover responsive className="align-middle mb-0">
@@ -138,7 +145,7 @@ export function ResultsCard({ files, onDownloadOne, onDownloadAll }: Props) {
                               ))}
                             </div>
                           )}
-                          <LabelsTable rows={f.rows} />
+                          <LabelsTable rows={f.rows} fileName={f.fileName} />
                         </div>
                       </Collapse>
                     </td>
