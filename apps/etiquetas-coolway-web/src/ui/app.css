@@ -130,10 +130,14 @@ button, a, [role='button'], .form-control, .form-select { touch-action: manipula
 
 /* Dropzone */
 .dropzone {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 100%;
   border: 2px dashed var(--border);
   border-radius: 14px;
-  padding: 30px 18px;
-  text-align: center;
+  padding: 16px 18px;
+  text-align: left;
   cursor: pointer;
   background: var(--kpi-bg);
   transition: border-color 0.15s, background 0.15s, transform 0.05s;
@@ -141,8 +145,23 @@ button, a, [role='button'], .form-control, .form-select { touch-action: manipula
 .dropzone:hover { border-color: var(--brand-2); }
 .dropzone.dragover { border-color: var(--brand); }
 .dropzone:active { transform: scale(0.995); }
-.dropzone .dz-icon { color: var(--brand-2); font-size: 2.1rem; }
-.dropzone .dz-title { font-weight: 600; font-size: 1.08rem; margin-top: 8px; color: var(--ink); }
+.dropzone .dz-icon { color: var(--brand-2); font-size: 1.9rem; flex-shrink: 0; }
+.dz-text { min-width: 0; }
+.dropzone .dz-title { font-weight: 600; font-size: 1rem; color: var(--ink); }
+.dz-hint { font-size: 0.8rem; color: var(--muted); }
+.dz-files { margin-top: 4px; }
+
+.variant-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: var(--brand);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
 .dz-file {
   display: inline-flex;
   align-items: center;

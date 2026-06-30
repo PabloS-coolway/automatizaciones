@@ -50,18 +50,20 @@ export function FileDropzone({ title, hint, accept, multiple = false, files, onF
       <div className="dz-icon" aria-hidden="true">
         {icon}
       </div>
-      <div className="dz-title">{title}</div>
-      {files.length === 0 ? (
-        <div className="text-secondary small mt-1">{hint}</div>
-      ) : (
-        <div className="mt-2">
-          {files.map((f) => (
-            <span key={f.name} className="dz-file">
-              {f.name}
-            </span>
-          ))}
-        </div>
-      )}
+      <div className="dz-text">
+        <div className="dz-title">{title}</div>
+        {files.length === 0 ? (
+          <div className="dz-hint">{hint}</div>
+        ) : (
+          <div className="dz-files">
+            {files.map((f) => (
+              <span key={f.name} className="dz-file">
+                {f.name}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button, Card, Form, Spinner } from 'react-bootstrap';
-import { FileEarmarkExcel, FilePdf, Tag, Tags } from 'react-bootstrap-icons';
+import { FileEarmarkExcel, FilePdf, Tags } from 'react-bootstrap-icons';
 import type { MarketDto } from '@yorga/contracts';
 import type { GenerationInput } from '../../domain/generation';
 import { FileDropzone } from './FileDropzone';
@@ -29,60 +29,61 @@ export function GenerateForm({ markets, loading, onGenerate }: Props) {
     <Card className="mb-4">
       <Card.Body className="p-4">
         <Form onSubmit={submit}>
-          <Form.Group className="mb-3">
-            <Form.Label className="fw-semibold">
-              <Tag className="me-2 text-secondary" />
-              Destino
-            </Form.Label>
-            <Form.Select value={market} onChange={(e) => setMarket(e.target.value)} size="lg">
-              {markets.map((m) => (
-                <option key={m.code} value={m.code}>
-                  {m.code}
-                </option>
-              ))}
-            </Form.Select>
-            {selected && (
-              <div className="hint-line text-secondary mt-2">
-                Generará <strong>{selected.variant.replace('_', ' + ')}</strong> · importado por{' '}
-                <strong>{selected.importadoPor}</strong>
-              </div>
-            )}
-          </Form.Group>
-
-          <div className="mb-3">
-            <FileDropzone
-              title="Excel maestro"
-              hint="REFERENCIAS COOLWAY.xlsx — arrastra o haz clic"
-              accept=".xlsx,.xlsm"
-              files={master}
-              onFiles={setMaster}
-              icon={<FileEarmarkExcel />}
-            />
-          </div>
-          <div className="mb-3">
-            <FileDropzone
-              title="PDFs de pedido de compra"
-              hint="Uno o varios PDF de SAP — arrastra o haz clic"
-              accept=".pdf"
-              multiple
-              files={orders}
-              onFiles={setOrders}
-              icon={<FilePdf />}
-            />
+          <div className="row g-3">
+            <div className="col-md-6">
+              <Form.Label className="fw-semibold">Destino</Form.Label>
+              <Form.Select value={market} onChange={(e) => setMarket(e.target.value)}>
+                {markets.map((m) => (
+                  <option key={m.code} value={m.code}>
+                    {m.code}
+                  </option>
+                ))}
+              </Form.Select>
+              {selected && (
+                <div className="mt-2">
+                  <span className="variant-badge">{selected.variant.replace('_', ' + ')}</span>
+                </div>
+              )}
+            </div>
+            <div className="col-md-6">
+              <Form.Label className="fw-semibold">Importado por</Form.Label>
+              <Form.Control
+                type="text"
+                placeholder={selected?.importadoPor ?? ''}
+                value={importadoPor}
+                onChange={(e) => setImportadoPor(e.target.value)}
+              />
+              <Form.Text muted>Por defecto, el del destino.</Form.Text>
+            </div>
           </div>
 
-          <Form.Group className="mb-4">
-            <Form.Label className="fw-semibold">Importado por (opcional)</Form.Label>
-            <Form.Control
-              type="text"
-              placeholder={selected?.importadoPor ?? ''}
-              value={importadoPor}
-              onChange={(e) => setImportadoPor(e.target.value)}
-            />
-            <Form.Text muted>Sobrescribe el valor por defecto del destino.</Form.Text>
-          </Form.Group>
+          <hr className="my-4" />
 
-          <Button type="submit" className="btn-brand w-100 py-2" disabled={loading || !ready}>
+          <div className="row g-3">
+            <div className="col-md-6">
+              <FileDropzone
+                title="Excel maestro"
+                hint="REFERENCIAS COOLWAY.xlsx"
+                accept=".xlsx,.xlsm"
+                files={master}
+                onFiles={setMaster}
+                icon={<FileEarmarkExcel />}
+              />
+            </div>
+            <div className="col-md-6">
+              <FileDropzone
+                title="PDFs de pedido"
+                hint="Uno o varios PDF de SAP"
+                accept=".pdf"
+                multiple
+                files={orders}
+                onFiles={setOrders}
+                icon={<FilePdf />}
+              />
+            </div>
+          </div>
+
+          <Button type="submit" className="btn-brand w-100 py-2 mt-4" disabled={loading || !ready}>
             {loading ? (
               <>
                 <Spinner as="span" size="sm" animation="border" className="me-2" />
