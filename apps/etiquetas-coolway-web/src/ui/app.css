@@ -88,5 +88,12 @@ body {
 .summary.ok { background: #e7f7ed; color: #1d6b3a; }
 .summary.warn { background: #fff4e0; color: #8a5a00; }
 
+.missing-row td { border-top: 0; }
+.missing-box {
+  background: #fff8ec;
+  border: 1px solid #ffe2b0;
+  border-radius: 10px;
+  padding: 12px 14px;
+}
 .hint-line { font-size: 0.85rem; }
 .app-footer { color: #8b8aa0; font-size: 0.82rem; }
