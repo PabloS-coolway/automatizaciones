@@ -1,6 +1,8 @@
 import { NavLink } from 'react-router-dom';
 import { BoxSeamFill, CashStack, Database, FileEarmarkText, Tags } from 'react-bootstrap-icons';
 import type { ReactNode } from 'react';
+import { ThemeSwitcher } from './ThemeSwitcher';
+import type { Theme } from '../useTheme';
 
 interface NavItem {
   to: string;
@@ -16,7 +18,7 @@ const NAV: NavItem[] = [
   { to: '/plantillas', label: 'Plantillas de ventas', icon: <FileEarmarkText /> },
 ];
 
-export function Sidebar() {
+export function Sidebar({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) => void }) {
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
@@ -35,7 +37,10 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="sidebar-foot">Grupo Yorga · Automatizaciones</div>
+      <div className="sidebar-foot">
+        <ThemeSwitcher theme={theme} setTheme={setTheme} />
+        <div className="mt-2">Grupo Yorga · Automatizaciones</div>
+      </div>
     </aside>
   );
 }
