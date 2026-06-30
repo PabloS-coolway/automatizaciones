@@ -24,6 +24,7 @@ export function FileDropzone({ title, hint, accept, multiple = false, files, onF
       className={`dropzone ${dragover ? 'dragover' : ''}`}
       role="button"
       tabIndex={0}
+      aria-label={`${title}. ${hint}`}
       onClick={() => inputRef.current?.click()}
       onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && inputRef.current?.click()}
       onDragOver={(e) => {
@@ -37,8 +38,18 @@ export function FileDropzone({ title, hint, accept, multiple = false, files, onF
         pick(e.dataTransfer.files);
       }}
     >
-      <input ref={inputRef} type="file" accept={accept} multiple={multiple} hidden onChange={(e) => pick(e.target.files)} />
-      <div className="dz-icon">{icon}</div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept={accept}
+        multiple={multiple}
+        hidden
+        aria-label={title}
+        onChange={(e) => pick(e.target.files)}
+      />
+      <div className="dz-icon" aria-hidden="true">
+        {icon}
+      </div>
       <div className="dz-title">{title}</div>
       {files.length === 0 ? (
         <div className="text-secondary small mt-1">{hint}</div>

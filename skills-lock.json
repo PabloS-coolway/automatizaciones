@@ -1,11 +1,29 @@
 {
   "version": 1,
   "skills": {
+    "frontend-a11y": {
+      "source": "affaan-m/everything-claude-code",
+      "sourceType": "github",
+      "skillPath": "skills/frontend-a11y/SKILL.md",
+      "computedHash": "ceb4628eacd92d4284084fc7e0dd4375c4867ba801ee92d56b7964f7f7b2ea78"
+    },
     "javascript-typescript-jest": {
       "source": "github/awesome-copilot",
       "sourceType": "github",
       "skillPath": "skills/javascript-typescript-jest/SKILL.md",
       "computedHash": "0073d19ab0275eb6a8200aced6789a53744667bd717b5d1f44ce708a1740e5d4"
+    },
+    "ux-usability-foundations": {
+      "source": "hueyexe/frontend-agent-skills",
+      "sourceType": "github",
+      "skillPath": "ux-usability-foundations/SKILL.md",
+      "computedHash": "80553aba1242e125dc978b6d2cae45c4085f45333280bb25a79e7256a1cde5ea"
+    },
+    "web-design-guidelines": {
+      "source": "thongdn-it/react-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/web-design-guidelines/SKILL.md",
+      "computedHash": "a6a44d5498f7e8f68289902f3dedfc6f38ae0cee1e96527c80724cf27f727c2a"
     }
   }
 }
