@@ -1,8 +1,10 @@
 import { NavLink } from 'react-router-dom';
-import { BoxSeamFill, CashStack, Database, FileEarmarkText, Tags } from 'react-bootstrap-icons';
+import { BoxArrowRight, BoxSeamFill, CashStack, Database, FileEarmarkText, PersonCircle, Tags } from 'react-bootstrap-icons';
 import type { ReactNode } from 'react';
+import { Button } from 'react-bootstrap';
 import { ThemeSwitcher } from './ThemeSwitcher';
 import type { Theme } from '../useTheme';
+import { useAuth } from '../auth/AuthContext';
 
 interface NavItem {
   to: string;
@@ -19,6 +21,7 @@ const NAV: NavItem[] = [
 ];
 
 export function Sidebar({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) => void }) {
+  const { user, logout } = useAuth();
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
@@ -38,6 +41,25 @@ export function Sidebar({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme
       </nav>
 
       <div className="sidebar-foot">
+        {user && (
+          <div className="sidebar-user">
+            <PersonCircle className="sidebar-user-ico" />
+            <div className="sidebar-user-info">
+              <div className="sidebar-user-name">{user.name}</div>
+              <div className="sidebar-user-role">{user.role}</div>
+            </div>
+            <Button
+              variant="link"
+              size="sm"
+              className="sidebar-logout"
+              onClick={logout}
+              title="Cerrar sesión"
+              aria-label="Cerrar sesión"
+            >
+              <BoxArrowRight />
+            </Button>
+          </div>
+        )}
         <ThemeSwitcher theme={theme} setTheme={setTheme} />
         <div className="mt-2">Grupo Yorga · Automatizaciones</div>
       </div>

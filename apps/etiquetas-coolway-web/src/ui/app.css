@@ -340,3 +340,39 @@ button, a, [role='button'], .form-control, .form-select { touch-action: manipula
 .t-violet { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
 .t-midnight { background: linear-gradient(135deg, #4f46e5, #0f172a); }
 .t-dark { background: linear-gradient(135deg, #a78bfa, #14161f); }
+
+/* --- Usuario en el sidebar --- */
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  background: rgba(127, 127, 127, 0.15);
+}
+.sidebar-user-ico { font-size: 1.6rem; color: var(--sidebar-fg); flex-shrink: 0; }
+.sidebar-user-info { flex: 1; min-width: 0; }
+.sidebar-user-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--sidebar-fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sidebar-user-role { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.3px; color: var(--sidebar-fg-muted); }
+.sidebar-logout { color: var(--sidebar-fg-muted) !important; padding: 2px 6px !important; line-height: 1; }
+.sidebar-logout:hover { color: var(--sidebar-fg) !important; }
+
+/* --- Pantalla de acceso --- */
+.login-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--bg);
+}
+.login-card { width: 100%; max-width: 380px; border: 1px solid var(--border); }
+.login-brand { font-weight: 700; font-size: 1.25rem; display: flex; align-items: center; color: var(--ink); }

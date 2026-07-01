@@ -12,6 +12,7 @@ import {
 import { GENERATE_LABELS_USE_CASE } from '../../application/tokens';
 import { GenerateLabelsUseCase } from '../../application/use-cases/generate-labels.use-case';
 import { LabelExcelSerializer } from '../../infrastructure/excel/label-excel-serializer';
+import { Public } from '../../auth/interface/http/decorators';
 
 type Uploaded = { master?: Express.Multer.File[]; orders?: Express.Multer.File[] };
 interface GenerateBody {
@@ -28,6 +29,7 @@ export class LabelsController {
     private readonly serializer: LabelExcelSerializer,
   ) {}
 
+  @Public()
   @Get('health')
   health() {
     return { status: 'ok' };

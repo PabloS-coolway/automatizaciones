@@ -4,6 +4,7 @@ import { FileEarmarkExcel, Search, Upload } from 'react-bootstrap-icons';
 import type { ImportReportDto, MaestroStatsDto, ReferenceDto } from '@yorga/contracts';
 import { maestroGateway } from '../composition';
 import { FileDropzone } from '../components/FileDropzone';
+import { useAuth } from '../auth/AuthContext';
 
 const PAGE_SIZE = 50;
 
@@ -18,6 +19,7 @@ function pageWindow(current: number, totalPages: number): (number | '…')[] {
 }
 
 export function BaseDatosPage() {
+  const { isAdmin } = useAuth();
   const [stats, setStats] = useState<MaestroStatsDto | null>(null);
   const [items, setItems] = useState<ReferenceDto[]>([]);
   const [total, setTotal] = useState(0);
@@ -120,6 +122,7 @@ export function BaseDatosPage() {
         </div>
       )}
 
+      {isAdmin && (
       <Card className="mb-4">
         <Card.Body className="p-4">
           <Card.Title className="mb-1">Actualizar maestro</Card.Title>
@@ -169,6 +172,7 @@ export function BaseDatosPage() {
           )}
         </Card.Body>
       </Card>
+      )}
 
       <Card>
         <Card.Body className="p-4">

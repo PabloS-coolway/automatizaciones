@@ -7,6 +7,8 @@ import { ImportMasterUseCase } from '../../application/import-master.use-case';
 import { ExcelCodesReader } from '../../infrastructure/excel-codes-reader';
 import { PrismaReferenceRepository } from '../../infrastructure/prisma-reference.repository';
 import { PrismaService } from '../../../infrastructure/db/prisma.service';
+import { CurrentUser, Roles } from '../../../auth/interface/http/decorators';
+import { JwtPayload } from '../../../auth/application/auth.service';
 
 type Uploaded = { ean?: Express.Multer.File[]; upc?: Express.Multer.File[] };
 
@@ -29,14 +31,16 @@ export class MaestroController {
     return this.query.references(search, t, s);
   }
 
+  @Roles('admin') // importar sobrescribe el maestro: sólo administradores
   @Post('import')
   @UseInterceptors(FileFieldsInterceptor([{ name: 'ean', maxCount: 1 }, { name: 'upc', maxCount: 1 }]))
-  async import(@UploadedFiles() files: Uploaded): Promise<ImportReportDto> {
+  async import(@UploadedFiles() files: Uploaded, @CurrentUser() user: JwtPayload): Promise<ImportReportDto> {
     const ean = files.ean?.[0];
     const upc = files.upc?.[0];
     if (!ean || !upc) throw new BadRequestException('Sube los dos ficheros: EAN.xlsm y UPC.xlsm.');
 
     try {
+      console.log(`[maestro] import ejecutado por ${user.email} (${user.role})`); // trazabilidad mínima
       const useCase = new ImportMasterUseCase(new ExcelCodesReader(), new PrismaReferenceRepository(this.prisma));
       return await useCase.execute({ eanSource: ean.path, upcSource: upc.path });
     } finally {

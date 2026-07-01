@@ -22,7 +22,8 @@
     "db:migrate": "npm run prisma:deploy -w @yorga/etiquetas-coolway-api",
     "db:migrate:new": "npm run prisma:migrate -w @yorga/etiquetas-coolway-api",
     "db:studio": "npm run prisma:studio -w @yorga/etiquetas-coolway-api",
-    "maestro:import:demo": "npm run maestro:import:demo -w @yorga/etiquetas-coolway-api"
+    "maestro:import:demo": "npm run maestro:import:demo -w @yorga/etiquetas-coolway-api",
+    "auth:create-user": "npm run start -w @yorga/etiquetas-coolway-api -- auth:create-user"
   },
   "devDependencies": {
     "turbo": "^2.1.0"
