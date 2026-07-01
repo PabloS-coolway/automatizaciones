@@ -136,23 +136,25 @@ export function ResultsCard({ files, onDownloadOne, onDownloadAll }: Props) {
                     </td>
                   </tr>
                   <tr className="detail-row">
-                    <td></td>
-                    <td colSpan={5} className="pt-0">
+                    <td colSpan={6} className="pt-0 pb-0">
                       <Collapse in={isOpen}>
                         <div>
-                          {f.missing.length > 0 && (
-                            <div className="missing-box mb-3">
-                              <div className="small text-secondary mb-2">
-                                Códigos que no están en el maestro (no se inventan — hay que añadirlos al maestro):
-                              </div>
-                              {groupMissing(f.missing).map((g) => (
-                                <div key={g.label} className="small">
-                                  <strong>{g.label}</strong> · tallas {g.sizes}
+                          <div className="detail-panel">
+                            <div className="detail-panel-title">Etiquetas del pedido {f.orderNumber}</div>
+                            {f.missing.length > 0 && (
+                              <div className="missing-box mb-3">
+                                <div className="small text-secondary mb-2">
+                                  Códigos que no están en el maestro (no se inventan — hay que añadirlos al maestro):
                                 </div>
-                              ))}
-                            </div>
-                          )}
-                          <LabelsTable rows={f.rows} fileName={f.fileName} />
+                                {groupMissing(f.missing).map((g) => (
+                                  <div key={g.label} className="small">
+                                    <strong>{g.label}</strong> · tallas {g.sizes}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            <LabelsTable rows={f.rows} fileName={f.fileName} />
+                          </div>
                         </div>
                       </Collapse>
                     </td>
