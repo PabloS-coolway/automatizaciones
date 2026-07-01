@@ -1,19 +1,29 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Button, Card, Form, InputGroup, Spinner, Table } from 'react-bootstrap';
+import { Alert, Button, Card, Form, InputGroup, Pagination, Spinner, Table } from 'react-bootstrap';
 import { FileEarmarkExcel, Search, Upload } from 'react-bootstrap-icons';
 import type { ImportReportDto, MaestroStatsDto, ReferenceDto } from '@yorga/contracts';
 import { maestroGateway } from '../composition';
 import { FileDropzone } from '../components/FileDropzone';
 
-const TAKE = 100;
+const PAGE_SIZE = 50;
+
+/** Construye la lista de páginas a mostrar con elipsis alrededor de la actual. */
+function pageWindow(current: number, totalPages: number): (number | '…')[] {
+  const out: (number | '…')[] = [];
+  for (let p = 1; p <= totalPages; p++) {
+    if (p === 1 || p === totalPages || Math.abs(p - current) <= 1) out.push(p);
+    else if (out[out.length - 1] !== '…') out.push('…');
+  }
+  return out;
+}
 
 export function BaseDatosPage() {
   const [stats, setStats] = useState<MaestroStatsDto | null>(null);
   const [items, setItems] = useState<ReferenceDto[]>([]);
   const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
 
   // Importar
@@ -22,14 +32,16 @@ export function BaseDatosPage() {
   const [importing, setImporting] = useState(false);
   const [report, setReport] = useState<ImportReportDto | null>(null);
 
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
   const loadStats = useCallback(() => {
     maestroGateway.getStats().then(setStats).catch((e) => setError((e as Error).message));
   }, []);
 
-  const loadRefs = useCallback((q: string) => {
+  const loadRefs = useCallback((q: string, p: number) => {
     setLoading(true);
     maestroGateway
-      .listReferences(q, TAKE, 0)
+      .listReferences(q, PAGE_SIZE, (p - 1) * PAGE_SIZE)
       .then((r) => {
         setItems(r.items);
         setTotal(r.total);
@@ -38,23 +50,22 @@ export function BaseDatosPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const loadMore = () => {
-    setLoadingMore(true);
-    maestroGateway
-      .listReferences(search, TAKE, items.length)
-      .then((r) => {
-        setItems((prev) => [...prev, ...r.items]);
-        setTotal(r.total);
-      })
-      .catch((e) => setError((e as Error).message))
-      .finally(() => setLoadingMore(false));
-  };
-
   useEffect(() => loadStats(), [loadStats]);
+
+  // Al buscar (debounce) se vuelve a la página 1.
   useEffect(() => {
-    const t = setTimeout(() => loadRefs(search), 250);
+    const t = setTimeout(() => {
+      setPage(1);
+      loadRefs(search, 1);
+    }, 250);
     return () => clearTimeout(t);
   }, [search, loadRefs]);
+
+  function goTo(p: number) {
+    if (p < 1 || p > totalPages || p === page) return;
+    setPage(p);
+    loadRefs(search, p);
+  }
 
   async function runImport() {
     if (ean.length === 0 || upc.length === 0) return;
@@ -67,13 +78,17 @@ export function BaseDatosPage() {
       setEan([]);
       setUpc([]);
       loadStats();
-      loadRefs(search);
+      setPage(1);
+      loadRefs(search, 1);
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setImporting(false);
     }
   }
+
+  const from = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const to = (page - 1) * PAGE_SIZE + items.length;
 
   return (
     <div className="page page-wide">
@@ -167,7 +182,7 @@ export function BaseDatosPage() {
               </>
             ) : (
               <>
-                Mostrando {items.length} de {total.toLocaleString('es-ES')} referencias
+                Mostrando {from.toLocaleString('es-ES')}–{to.toLocaleString('es-ES')} de {total.toLocaleString('es-ES')}
                 {search && ' (filtradas)'}
               </>
             )}
@@ -204,17 +219,24 @@ export function BaseDatosPage() {
             </Table>
           </div>
 
-          {items.length < total && (
-            <div className="text-center mt-3">
-              <Button variant="outline-secondary" size="sm" onClick={loadMore} disabled={loadingMore}>
-                {loadingMore ? (
-                  <>
-                    <Spinner as="span" size="sm" animation="border" className="me-2" /> Cargando…
-                  </>
-                ) : (
-                  <>Cargar más ({(total - items.length).toLocaleString('es-ES')} restantes)</>
+          {totalPages > 1 && (
+            <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-3">
+              <span className="text-secondary small">
+                Página {page} de {totalPages}
+              </span>
+              <Pagination size="sm" className="mb-0">
+                <Pagination.Prev disabled={page === 1 || loading} onClick={() => goTo(page - 1)} />
+                {pageWindow(page, totalPages).map((p, i) =>
+                  p === '…' ? (
+                    <Pagination.Ellipsis key={`e${i}`} disabled />
+                  ) : (
+                    <Pagination.Item key={p} active={p === page} onClick={() => goTo(p)}>
+                      {p}
+                    </Pagination.Item>
+                  ),
                 )}
-              </Button>
+                <Pagination.Next disabled={page === totalPages || loading} onClick={() => goTo(page + 1)} />
+              </Pagination>
             </div>
           )}
         </Card.Body>
