@@ -148,11 +148,24 @@ export function BaseDatosPage() {
           </Button>
 
           {report && (
-            <div className={`summary ${report.issues.length ? 'warn' : 'ok'} mt-3`}>
-              {report.merged} SKU procesados · {report.created} nuevos · {report.updated} actualizados
-              {report.skipped ? ` · ${report.skipped} saltados` : ''} ·{' '}
-              {report.issues.length ? `${report.issues.length} incidencias` : 'sin incidencias'}
-            </div>
+            <>
+              <div className={`summary ${report.issues.length ? 'warn' : 'ok'} mt-3`}>
+                {report.merged} SKU procesados · {report.created} nuevos · {report.updated} actualizados
+                {report.skipped ? ` · ${report.skipped} saltados` : ''} ·{' '}
+                {report.issues.length ? `${report.issues.length} incidencias` : 'sin incidencias'}
+              </div>
+              {report.issues.length > 0 && (
+                <div className="missing-box mt-2 small">
+                  {Object.entries(
+                    report.issues.reduce<Record<string, number>>((m, i) => ((m[i.reason] = (m[i.reason] ?? 0) + 1), m), {}),
+                  ).map(([reason, count]) => (
+                    <div key={reason}>
+                      <strong>{count}</strong> · {reason}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </Card.Body>
       </Card>

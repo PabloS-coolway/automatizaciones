@@ -1,5 +1,5 @@
 import { Fragment, useState } from 'react';
-import { Badge, Button, Card, Collapse, Table } from 'react-bootstrap';
+import { Alert, Badge, Button, Card, Collapse, Table } from 'react-bootstrap';
 import { CheckCircleFill, ChevronDown, ChevronRight, Download, Eye } from 'react-bootstrap-icons';
 import type { GeneratedFileDto, MissingCodeDto } from '@yorga/contracts';
 import { LabelsTable } from './LabelsTable';
@@ -140,7 +140,34 @@ export function ResultsCard({ files, onDownloadOne, onDownloadAll }: Props) {
                       <Collapse in={isOpen}>
                         <div>
                           <div className="detail-panel">
-                            <div className="detail-panel-title">Etiquetas del pedido {f.orderNumber}</div>
+                            <div className="detail-panel-head">
+                              <span className="detail-panel-title">Etiquetas del pedido {f.orderNumber}</span>
+                              {ok ? (
+                                <Badge bg="success-subtle" text="success">
+                                  <CheckCircleFill className="me-1" /> todo correcto
+                                </Badge>
+                              ) : (
+                                <Badge bg="warning-subtle" text="warning">revisar</Badge>
+                              )}
+                            </div>
+
+                            {(!f.reconciliation.balanced || f.missing.length > 0) && (
+                              <Alert variant={!f.reconciliation.balanced ? 'danger' : 'warning'} className="py-2 mb-3 small">
+                                {!f.reconciliation.balanced && (
+                                  <div>
+                                    <strong>No cuadra:</strong> {f.reconciliation.labelPairs} de {f.reconciliation.orderPairs} pares
+                                    generados (faltan {Math.abs(f.reconciliation.diff)}).
+                                  </div>
+                                )}
+                                {f.missing.length > 0 && (
+                                  <div>
+                                    <strong>{f.missing.length} código{f.missing.length > 1 ? 's' : ''}</strong> sin encontrar en el
+                                    maestro (detalle abajo).
+                                  </div>
+                                )}
+                              </Alert>
+                            )}
+
                             {f.missing.length > 0 && (
                               <div className="missing-box mb-3">
                                 <div className="small text-secondary mb-2">
