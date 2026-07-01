@@ -13,6 +13,7 @@ export function BaseDatosPage() {
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
 
   // Importar
@@ -36,6 +37,18 @@ export function BaseDatosPage() {
       .catch((e) => setError((e as Error).message))
       .finally(() => setLoading(false));
   }, []);
+
+  const loadMore = () => {
+    setLoadingMore(true);
+    maestroGateway
+      .listReferences(search, TAKE, items.length)
+      .then((r) => {
+        setItems((prev) => [...prev, ...r.items]);
+        setTotal(r.total);
+      })
+      .catch((e) => setError((e as Error).message))
+      .finally(() => setLoadingMore(false));
+  };
 
   useEffect(() => loadStats(), [loadStats]);
   useEffect(() => {
@@ -190,6 +203,20 @@ export function BaseDatosPage() {
               </tbody>
             </Table>
           </div>
+
+          {items.length < total && (
+            <div className="text-center mt-3">
+              <Button variant="outline-secondary" size="sm" onClick={loadMore} disabled={loadingMore}>
+                {loadingMore ? (
+                  <>
+                    <Spinner as="span" size="sm" animation="border" className="me-2" /> Cargando…
+                  </>
+                ) : (
+                  <>Cargar más ({(total - items.length).toLocaleString('es-ES')} restantes)</>
+                )}
+              </Button>
+            </div>
+          )}
         </Card.Body>
       </Card>
     </div>
