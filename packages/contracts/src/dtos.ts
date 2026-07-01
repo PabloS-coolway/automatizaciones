@@ -91,3 +91,22 @@ export interface ReferencesPageDto {
   total: number;
   items: ReferenceDto[];
 }
+
+export interface ImportIssueDto {
+  ref: string;
+  size: string;
+  reason: 'missing_upc' | 'missing_ean13' | 'invalid_ean13' | 'invalid_upc' | 'style_color_mismatch';
+  detail?: string;
+}
+
+/** Resultado de POST /api/maestro/import (subir EAN.xlsm + UPC.xlsm). */
+export interface ImportReportDto {
+  eanRows: number;
+  upcRows: number;
+  merged: number;
+  upserted: number;
+  created: number;
+  updated: number;
+  skipped: number;
+  issues: ImportIssueDto[];
+}
