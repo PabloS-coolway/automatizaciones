@@ -1,13 +1,12 @@
 import type { GenerateLabelsHttpResponse, MarketDto } from '@yorga/contracts';
 import type { ValidGenerationInput } from '../domain/generation';
 import type { LabelsGateway } from '../application/ports/labels-gateway.port';
+import { apiFetch, errorMessage } from './api-client';
 
-/** Adapter: implementa el puerto LabelsGateway contra la API HTTP (NestJS). */
+/** Adapter: implementa el puerto LabelsGateway contra la API HTTP (NestJS), con el token de sesión. */
 export class HttpLabelsGateway implements LabelsGateway {
-  constructor(private readonly baseUrl = '/api') {}
-
   async getMarkets(): Promise<MarketDto[]> {
-    const res = await fetch(`${this.baseUrl}/markets`);
+    const res = await apiFetch('/markets');
     if (!res.ok) throw new Error('No se pudieron cargar los destinos.');
     return (await res.json()).markets;
   }
@@ -21,16 +20,8 @@ export class HttpLabelsGateway implements LabelsGateway {
     if (input.variant) fd.append('variant', input.variant);
     if (input.importadoPor) fd.append('importadoPor', input.importadoPor);
 
-    const res = await fetch(`${this.baseUrl}/labels/generate`, { method: 'POST', body: fd });
-    if (!res.ok) {
-      let msg = 'Error generando etiquetas.';
-      try {
-        msg = (await res.json()).message ?? msg;
-      } catch {
-        /* noop */
-      }
-      throw new Error(msg);
-    }
+    const res = await apiFetch('/labels/generate', { method: 'POST', body: fd });
+    if (!res.ok) throw new Error(await errorMessage(res, 'Error generando etiquetas.'));
     return res.json();
   }
 }
