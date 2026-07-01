@@ -222,17 +222,25 @@ button, a, [role='button'], .form-control, .form-select { touch-action: manipula
 .detail-panel {
   background: var(--kpi-bg);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 16px 18px;
-  margin: 8px 0 18px;
+  border-radius: 14px;
+  padding: 20px 22px 22px;
+  margin: 10px 0 20px;
+}
+.detail-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
 }
 .detail-panel-title {
-  font-weight: 600;
-  font-size: 0.85rem;
+  font-weight: 700;
+  font-size: 0.82rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--muted);
-  margin-bottom: 12px;
 }
 .detail-panel .labels-preview { background: var(--surface); }
 .missing-box {
