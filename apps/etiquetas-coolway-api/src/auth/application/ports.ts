@@ -5,6 +5,8 @@ export interface UserRepository {
   findByEmail(email: string): Promise<User | null>;
   findById(id: number): Promise<User | null>;
   create(input: { email: string; name: string; passwordHash: string; role: Role }): Promise<User>;
+  update(id: number, data: { role?: Role; active?: boolean; passwordHash?: string }): Promise<User>;
+  list(): Promise<User[]>;
   count(): Promise<number>;
 }
 

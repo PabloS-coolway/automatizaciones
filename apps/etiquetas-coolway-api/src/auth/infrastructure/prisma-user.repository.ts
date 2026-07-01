@@ -20,6 +20,14 @@ export class PrismaUserRepository implements UserRepository {
     return this.prisma.user.create({ data: input });
   }
 
+  update(id: number, data: { role?: Role; active?: boolean; passwordHash?: string }): Promise<User> {
+    return this.prisma.user.update({ where: { id }, data });
+  }
+
+  list(): Promise<User[]> {
+    return this.prisma.user.findMany({ orderBy: [{ active: 'desc' }, { name: 'asc' }] });
+  }
+
   count(): Promise<number> {
     return this.prisma.user.count();
   }

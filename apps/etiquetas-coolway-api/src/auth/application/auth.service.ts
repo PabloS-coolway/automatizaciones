@@ -40,5 +40,5 @@ export class AuthService {
 }
 
 export function toDto(u: User): UserDto {
-  return { id: u.id, email: u.email, name: u.name, role: u.role };
+  return { id: u.id, email: u.email, name: u.name, role: u.role, active: u.active };
 }
