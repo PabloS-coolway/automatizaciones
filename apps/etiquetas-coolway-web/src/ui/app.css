@@ -219,6 +219,22 @@ button, a, [role='button'], .form-control, .form-select { touch-action: manipula
 @media (max-width: 560px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
 
 .detail-row td { border-top: 0; }
+.detail-panel {
+  background: var(--kpi-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin: 8px 0 18px;
+}
+.detail-panel-title {
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+.detail-panel .labels-preview { background: var(--surface); }
 .missing-box {
   background: #fff8ec;
   border: 1px solid #ffe2b0;
