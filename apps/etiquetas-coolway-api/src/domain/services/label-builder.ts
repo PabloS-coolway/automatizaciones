@@ -41,17 +41,17 @@ export function buildLabels(
 
       const row = master.find(line.style, line.color, size, gender);
       if (!row) {
-        missing.push({ style: line.style, color: line.color, size, reason: 'no_master_row' });
+        missing.push({ style: line.style, color: line.color, size, qty, reason: 'no_master_row' });
         continue;
       }
 
       const ean13 = row.ean13;
       const upc = master.resolveUpc(line.style, line.color, size, gender);
       if (needsEan(variant) && !ean13) {
-        missing.push({ style: line.style, color: line.color, size, ref: row.ref, reason: 'missing_ean13' });
+        missing.push({ style: line.style, color: line.color, size, qty, ref: row.ref, reason: 'missing_ean13' });
       }
       if (needsUpc(variant) && !upc) {
-        missing.push({ style: line.style, color: line.color, size, ref: row.ref, reason: 'missing_upc' });
+        missing.push({ style: line.style, color: line.color, size, qty, ref: row.ref, reason: 'missing_upc' });
       }
 
       const dedupeKey = `${row.ref}|${size}`;

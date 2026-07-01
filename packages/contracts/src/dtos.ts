@@ -28,6 +28,7 @@ export interface MissingCodeDto {
   style: string;
   color: string;
   size: string;
+  qty: number;
   ref?: string;
   reason: 'no_master_row' | 'missing_ean13' | 'missing_upc';
 }

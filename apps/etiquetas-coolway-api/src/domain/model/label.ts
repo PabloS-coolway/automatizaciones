@@ -17,6 +17,7 @@ export interface MissingCode {
   style: string;
   color: string;
   size: string;
+  qty: number; // pares afectados por este código faltante
   ref?: string;
   reason: 'no_master_row' | 'missing_ean13' | 'missing_upc';
 }
