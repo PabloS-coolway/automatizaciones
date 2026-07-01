@@ -7,6 +7,7 @@ import { PASSWORD_HASHER, USER_REPOSITORY } from './application/ports';
 import { BcryptHasher } from './infrastructure/bcrypt-hasher';
 import { PrismaUserRepository } from './infrastructure/prisma-user.repository';
 import { AuthController } from './interface/http/auth.controller';
+import { UsersController } from './interface/http/users.controller';
 import { JwtAuthGuard } from './interface/http/jwt-auth.guard';
 import { RolesGuard } from './interface/http/roles.guard';
 import { jwtOptions } from './auth.config';
@@ -22,7 +23,7 @@ export const authProviders: Provider[] = [
 /** Módulo de autenticación: login/me + guards globales (JWT + roles). */
 @Module({
   imports: [JwtModule.register(jwtOptions())],
-  controllers: [AuthController],
+  controllers: [AuthController, UsersController],
   providers: [
     ...authProviders,
     { provide: APP_GUARD, useClass: JwtAuthGuard }, // 1º: exige token

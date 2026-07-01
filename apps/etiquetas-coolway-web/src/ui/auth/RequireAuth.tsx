@@ -17,3 +17,10 @@ export function RequireAuth() {
   if (!user) return <Navigate to="/login" replace state={{ from: location }} />;
   return <Outlet />;
 }
+
+/** Protege rutas sólo para administradores. */
+export function RequireAdmin() {
+  const { isAdmin } = useAuth();
+  if (!isAdmin) return <Navigate to="/etiquetas" replace />;
+  return <Outlet />;
+}

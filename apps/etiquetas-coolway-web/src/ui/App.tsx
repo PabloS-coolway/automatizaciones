@@ -4,8 +4,9 @@ import { EtiquetasPage } from './pages/EtiquetasPage';
 import { BaseDatosPage } from './pages/BaseDatosPage';
 import { ComingSoonPage } from './pages/ComingSoonPage';
 import { LoginPage } from './pages/LoginPage';
+import { UsuariosPage } from './pages/UsuariosPage';
 import { AuthProvider } from './auth/AuthContext';
-import { RequireAuth } from './auth/RequireAuth';
+import { RequireAdmin, RequireAuth } from './auth/RequireAuth';
 
 export function App() {
   return (
@@ -20,6 +21,9 @@ export function App() {
               <Route path="/maestro" element={<BaseDatosPage />} />
               <Route path="/tarifas" element={<ComingSoonPage title="Tarifas y surtidos" />} />
               <Route path="/plantillas" element={<ComingSoonPage title="Plantillas de ventas" />} />
+              <Route element={<RequireAdmin />}>
+                <Route path="/usuarios" element={<UsuariosPage />} />
+              </Route>
               <Route path="*" element={<Navigate to="/etiquetas" replace />} />
             </Route>
           </Route>

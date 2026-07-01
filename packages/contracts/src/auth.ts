@@ -7,6 +7,22 @@ export interface UserDto {
   email: string;
   name: string;
   role: Role;
+  active: boolean;
+}
+
+/** POST /api/users (alta de usuario, sólo admin). */
+export interface CreateUserRequest {
+  email: string;
+  name: string;
+  password: string;
+  role: Role;
+}
+
+/** PATCH /api/users/:id (cambiar rol, activar/desactivar o resetear contraseña; sólo admin). */
+export interface UpdateUserRequest {
+  role?: Role;
+  active?: boolean;
+  password?: string;
 }
 
 /** POST /api/auth/login */
