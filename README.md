@@ -38,7 +38,12 @@ Requisitos: Node 20+, npm 10+, `pdftotext` (poppler-utils) para leer los PDFs de
 
 **Puesta en marcha (todo desde la raíz):**
 ```bash
+cp apps/etiquetas-coolway-api/.env.example apps/etiquetas-coolway-api/.env   # config (BD + JWT)
 npm run setup        # install + levanta Postgres + genera cliente Prisma + migra
+
+# crea el primer usuario (no hay registro abierto: la app pide login)
+npm run auth:create-user -- --email admin@coolway.co --password "…" --name "Admin" --role admin
+
 npm run dev          # turbo: API (:3000) + front (:5173)
 ```
 
@@ -53,7 +58,25 @@ npm run db:down      # para Postgres
 npm run db:migrate   # aplica migraciones (prisma migrate deploy)
 npm run db:studio    # explora el maestro en el navegador (Prisma Studio :5555)
 npm run maestro:import:demo   # importa los EAN/UPC de ejemplo al maestro
+
+npm run auth:create-user -- --email … --password … --name … --role admin|operador
 ```
+
+**Configuración:** la API lee `apps/etiquetas-coolway-api/.env` (no versionado). Plantilla con todas las
+variables y su explicación en [`.env.example`](apps/etiquetas-coolway-api/.env.example).
+
+## Acceso (login y roles)
+
+La herramienta pide **login**. Los usuarios viven en la misma Postgres (contraseña con bcrypt) y la sesión es un JWT.
+
+| Rol | Puede |
+|---|---|
+| `operador` | Generar etiquetas y consultar el maestro |
+| `admin` | Todo lo anterior **+ importar al maestro** y **gestionar usuarios** (sección *Usuarios* de la web) |
+
+El primer admin se crea por CLI (`npm run auth:create-user`); a partir de ahí las altas/bajas se hacen desde la web.
+
+> **Al desplegar:** define `JWT_SECRET` en el entorno (en local hay un secreto de desarrollo por defecto) y sirve por HTTPS.
 
 ## REQ-001 · Etiquetas Coolway (primera automatización)
 
@@ -65,4 +88,4 @@ Genera el **fichero de etiquetas** de un pedido de compra SAP a partir del PDF +
 - **Maestro en Postgres** (Fase 2): el maestro de códigos vive en BD (fuente de verdad gobernada). Importador `maestro:import` que une los exports EAN/UPC de prepedidos + calcula SKU. Ver [README de la API](apps/etiquetas-coolway-api/README.md#base-de-datos--maestro-req-001-fase-2).
 - Diseño completo: [`diseño/iniciativas/REQ-001-coleccion-coolway/`](diseño/iniciativas/REQ-001-coleccion-coolway/).
 
-**Estado:** Fase 1 (etiquetas) validada con pedidos reales. Fase 2 Bloques 1-2 (maestro en Postgres) funcionando. Pendiente: Bloque 3 (gobernanza/publicar a departamentos), demo a Silvia, y fases 3-4 (tarifas/surtidos, plantillas). Ver [CHANGELOG](CHANGELOG.md).
+**Estado:** Fase 1 (etiquetas) validada con pedidos reales. Fase 2 Bloques 1-2 (maestro en Postgres) funcionando. Acceso con login + roles (operador/admin) y administración de usuarios. Pendiente: Bloque 3 (gobernanza/publicar a departamentos), demo a Silvia, y fases 3-4 (tarifas/surtidos, plantillas). Ver [CHANGELOG](CHANGELOG.md).
