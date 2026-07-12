@@ -77,27 +77,25 @@ Verifica antes que `origin` apunta a `github-coolway`:
 git remote -v   # debe decir git@github-coolway:PabloS-coolway/automatizaciones.git
 ```
 
-### 7. Abrir la PR
+### 7. Dejar la PR lista (la abre el usuario, a mano)
 
-La descripción **sigue la plantilla** [`.github/pull_request_template.md`](../../../.github/pull_request_template.md)
-y enumera los cambios reales del diff.
+**No uses `gh`, y no propongas instalarlo.** Decisión tomada: el usuario tiene varias identidades de
+GitHub en la máquina (Coolway e Iberia) y `gh auth` toca configuración global de git — el riesgo de
+enredar las credenciales no compensa ahorrarse un clic.
 
-Con `gh` instalado y autenticado. **Pasa siempre `-R`**: el remoto usa el alias SSH `github-coolway`, y
-`gh` deduce el repo del host del remoto, así que sin `-R` no lo reconoce como un repo de GitHub.
+En su lugar, deja la PR a un clic:
 
-```bash
-gh pr create -R PabloS-coolway/automatizaciones \
-  --base main --head <rama> --title "<título>" --body-file <fichero-con-la-descripcion>
-```
-
-**Si `gh` no está instalado** (hoy no lo está en la máquina del usuario): no falles en silencio. Escribe
-la descripción en un fichero, y dale al usuario el enlace para abrirla en dos clics:
+1. Escribe la descripción en un fichero (sigue la plantilla
+   [`.github/pull_request_template.md`](../../../.github/pull_request_template.md) y enumera los cambios
+   **reales del diff**).
+2. Pega la descripción también en el chat, para que el usuario la copie sin abrir ficheros.
+3. Dale el enlace:
 
 ```
 https://github.com/PabloS-coolway/automatizaciones/compare/main...<rama>?expand=1
 ```
 
-GitHub cargará sola la plantilla del repo; el usuario pega la descripción preparada.
+GitHub carga sola la plantilla del repo; el usuario pega encima la descripción preparada y crea la PR.
 
 ## Al terminar
 
