@@ -3,6 +3,23 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-01] Acceso — login, roles y administración de usuarios
+
+### Añadido
+- **Login** con JWT y usuarios en la **misma Postgres** (tabla `app_user`, contraseñas con **bcrypt**). Módulo `auth` hexagonal en la api.
+- **Roles**: `operador` (genera etiquetas, consulta el maestro) y `admin` (además **importa al maestro** y **gestiona usuarios**).
+- **Guards globales**: toda ruta exige token salvo `POST /api/auth/login` y `GET /api/health`; `POST /api/maestro/import` y `/api/users/*` exigen `admin`.
+- **Pantalla de Usuarios** (sólo admin): alta, cambio de rol, activar/desactivar y reset de contraseña. Salvaguardas: un admin no puede desactivarse ni auto-degradarse.
+- CLI **`auth:create-user`** para crear el primer admin (no hay registro abierto).
+- **`.env.example`** con todas las variables (`DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRES_IN`, `PORT`).
+
+### Añadido (etiquetas)
+- El detalle de un fallo indica ahora **cuántos pares afecta** cada código sin resolver y el **motivo** en claro (no está en el maestro / sin EAN13 / sin UPC).
+
+### Decidido
+- Identidad **en nuestra BD** (no SSO corporativo, aún por mapear la infra del grupo). Alcance **local/preparación**.
+- **Pendiente al desplegar**: definir `JWT_SECRET` en el entorno, HTTPS y valorar cookie `httpOnly` en vez de `localStorage`.
+
 ## [2026-06-30] REQ-001 Fase 2 — Maestro en Postgres (Bloques 1 y 2)
 
 ### Añadido
