@@ -9,7 +9,8 @@
     "packages/*"
   ],
   "scripts": {
-    "setup": "npm install && npm run db:up && npm run db:generate && npm run db:migrate",
+    "setup": "npm install && npm run preflight && npm run db:up && npm run db:generate && npm run db:migrate",
+    "preflight": "node scripts/preflight.mjs",
     "build": "turbo run build",
     "test": "turbo run test",
     "lint": "turbo run lint",

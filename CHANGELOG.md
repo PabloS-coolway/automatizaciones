@@ -3,6 +3,35 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-12] Entorno — se comprueba `pdftotext` antes de fallar, y el error se entiende
+
+Generar etiquetas moría con un **`⚠ Internal server error`** opaco en una máquina sin `pdftotext`.
+La dependencia **ya estaba documentada** (README y ESTADO), así que el problema no era de documentación:
+era que **nada la hacía cumplir**. `npm run setup` pasaba en verde con una dependencia crítica ausente y
+el fallo aparecía mucho después, en runtime, disfrazado.
+
+### Añadido
+- **Preflight de dependencias de sistema** ([`scripts/preflight.mjs`](scripts/preflight.mjs)), enganchado a
+  `npm run setup` (y suelto con `npm run preflight`): comprueba `pdftotext` y `docker` —las que `npm install`
+  **no** trae— y aborta con el comando exacto de instalación. El fallo se ve al minuto 0, no al minuto 40.
+- **Aviso al arrancar la API**: si falta `pdftotext`, lo dice por consola en vez de arrancar mudo y
+  reventar en la primera generación.
+- **Skill `/create-pr`** ([`.claude/skills/create-pr/`](.claude/skills/create-pr/)) y **plantilla de PR**
+  ([`.github/pull_request_template.md`](.github/pull_request_template.md)): cerrar un bloque implica rama,
+  puerta de calidad, CHANGELOG + ESTADO, y push por `origin` (github-coolway). Es un skill propio del
+  proyecto, así que **sí se versiona** (excepción en `.gitignore` frente a los skills de terceros).
+
+### Corregido
+- **`POST /api/labels/generate` ya no devuelve un 500 genérico** cuando falta `pdftotext`: responde
+  **503** con el motivo real y cómo resolverlo. El front ya pintaba el campo `message`, así que Silvia lee
+  el problema en vez de "Internal server error". Coherente con la regla del proyecto: *si falta un dato, se avisa*.
+- El extractor distingue **"no existe el binario"** (`ENOENT`) de **un fallo real del PDF**, que antes se
+  confundían en el mismo mensaje.
+
+### Pendiente (despliegue)
+- `pdftotext` es dependencia **del sistema operativo**: `npm ci` **no** la instala. Al desplegar hay que
+  añadirla a la imagen/VM (`apt-get install -y poppler-utils`). No hay Dockerfile ni docs de despliegue todavía.
+
 ## [2026-07-12] Maestro — carga completa desde la web + informe de rechazadas
 
 ### Añadido

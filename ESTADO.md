@@ -33,6 +33,9 @@ Sin ese paso el proyecto funciona igual, pero Claude no tendrá esos skills disp
 Requisitos previos: Node 20+, npm 10+, **Docker** (Postgres) y `pdftotext` (paquete `poppler-utils`, para
 leer los PDFs de SAP).
 
+> No hace falta que te acuerdes: **`npm run setup` los comprueba** (preflight) y aborta diciéndote qué
+> falta y cómo instalarlo. `pdftotext` es dependencia **de sistema**, no de npm: `sudo apt-get install -y poppler-utils`.
+
 ## Resumen en una línea
 
 **REQ-001 Fase 1 (etiquetas) está terminada y validada con pedidos reales.** La Fase 2 (maestro en
@@ -118,5 +121,9 @@ BD y elige *maestro = base de datos*).
 - **Al desplegar**: definir `JWT_SECRET` en el entorno (hoy hay un secreto de desarrollo por defecto
   **en el código**, así que sin definirlo los tokens son falsificables). Servir por HTTPS y valorar
   cookie `httpOnly` en vez de `localStorage`.
+- **Despliegue sin definir**: no hay Dockerfile, ni docs de deploy, ni CI. Importa porque **`pdftotext` es
+  dependencia del sistema operativo y `npm ci` no la instala**: el servidor se comería el mismo fallo que
+  en local. Cuando se sepa dónde se despliega, es una línea (`apt-get install -y poppler-utils` en la imagen
+  o en el aprovisionamiento). Mitigado de momento: la API lo avisa al arrancar y responde 503 explicándolo.
 - No hay tests del front ni del controlador HTTP (sí del dominio: 36 en verde).
 - El maestro se sube a mano; leerlo del Drive por API sigue pendiente (DEP-02).
