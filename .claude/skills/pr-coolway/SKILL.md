@@ -82,10 +82,12 @@ git remote -v   # debe decir git@github-coolway:PabloS-coolway/automatizaciones.
 La descripción **sigue la plantilla** [`.github/pull_request_template.md`](../../../.github/pull_request_template.md)
 y enumera los cambios reales del diff.
 
-Con `gh` instalado y autenticado:
+Con `gh` instalado y autenticado. **Pasa siempre `-R`**: el remoto usa el alias SSH `github-coolway`, y
+`gh` deduce el repo del host del remoto, así que sin `-R` no lo reconoce como un repo de GitHub.
 
 ```bash
-gh pr create --base main --head <rama> --title "<título>" --body-file <fichero-con-la-descripcion>
+gh pr create -R PabloS-coolway/automatizaciones \
+  --base main --head <rama> --title "<título>" --body-file <fichero-con-la-descripcion>
 ```
 
 **Si `gh` no está instalado** (hoy no lo está en la máquina del usuario): no falles en silencio. Escribe
