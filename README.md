@@ -44,11 +44,19 @@ Requisitos: Node 20+, npm 10+, `pdftotext` (poppler-utils) para leer los PDFs de
 cp apps/etiquetas-coolway-api/.env.example apps/etiquetas-coolway-api/.env   # config (BD + JWT)
 npm run setup        # install + levanta Postgres + genera cliente Prisma + migra
 
+# skills de Claude Code: el contenido no se versiona, se restaura del skills-lock.json
+npx skills experimental_install
+
 # crea el primer usuario (no hay registro abierto: la app pide login)
 npm run auth:create-user -- --email admin@coolway.co --password "…" --name "Admin" --role admin
 
 npm run dev          # turbo: API (:3000) + front (:5173)
 ```
+
+> **Skills y comandos de Claude Code.** El comando `/nuevo-requerimiento` (`.claude/commands/`) **sí** está
+> versionado. El **contenido** de los skills no (`.claude/skills/`, `.agents/` están en `.gitignore`): viaja
+> sólo el `skills-lock.json`, y se restauran con `npx skills experimental_install`. Sin ese paso, en un clon
+> nuevo no tendrás los skills instalados.
 
 **Comandos (raíz):**
 ```bash
