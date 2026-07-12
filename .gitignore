@@ -32,4 +32,4 @@ dist/
 # Ojo: se ignora el CONTENIDO (no el directorio), porque git no puede reincluir
 # ficheros dentro de un directorio excluido. Así los skills PROPIOS sí viajan.
 .claude/skills/*
-!.claude/skills/create-pr/
+!.claude/skills/pr-coolway/

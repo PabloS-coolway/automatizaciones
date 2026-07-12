@@ -16,7 +16,7 @@ el fallo aparecía mucho después, en runtime, disfrazado.
   **no** trae— y aborta con el comando exacto de instalación. El fallo se ve al minuto 0, no al minuto 40.
 - **Aviso al arrancar la API**: si falta `pdftotext`, lo dice por consola en vez de arrancar mudo y
   reventar en la primera generación.
-- **Skill `/create-pr`** ([`.claude/skills/create-pr/`](.claude/skills/create-pr/)) y **plantilla de PR**
+- **Skill `/pr-coolway`** ([`.claude/skills/pr-coolway/`](.claude/skills/pr-coolway/)) y **plantilla de PR**
   ([`.github/pull_request_template.md`](.github/pull_request_template.md)): cerrar un bloque implica rama,
   puerta de calidad, CHANGELOG + ESTADO, y push por `origin` (github-coolway). Es un skill propio del
   proyecto, así que **sí se versiona** (excepción en `.gitignore` frente a los skills de terceros).
