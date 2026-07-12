@@ -60,6 +60,13 @@ npm run auth:create-user -- --email tu@email.com --password "…" --name "Tu nom
 npm run dev       # API :3000 + web :5173
 ```
 
+**Skills** (en un clon nuevo): el comando `/nuevo-requerimiento` está versionado, pero el **contenido**
+de los skills no (pesa y se reinstala). El `skills-lock.json` sí viaja, así que se restauran con:
+
+```bash
+npx skills experimental_install    # restaura los skills desde skills-lock.json
+```
+
 La app **pide login**. Roles: `operador` (genera etiquetas, consulta el maestro) y `admin`
 (además importa/carga el maestro y gestiona usuarios).
 
