@@ -1,6 +1,6 @@
 <!--
 Plantilla de PR del repo de automatizaciones de Yorga.
-La rellena el skill `/create-pr` (o tú a mano). Borra las secciones que no apliquen.
+La rellena el skill `/pr-coolway` (o tú a mano). Borra las secciones que no apliquen.
 -->
 
 ## Qué resuelve

@@ -1,9 +1,9 @@
 ---
-name: create-pr
-description: Cierra un bloque de trabajo en el repo de automatizaciones de Yorga y lo deja en una PR. Úsalo cuando el usuario diga "create-pr", "prepara el PR", "haz el PR" o "cierra este bloque". Crea la rama, verifica que compila y pasa tests, actualiza CHANGELOG.md y ESTADO.md, commitea, pushea por el remoto `origin` (alias SSH github-coolway) y abre la PR con la plantilla del repo.
+name: pr-coolway
+description: Cierra un bloque de trabajo en el repo de automatizaciones de Yorga (Coolway) y lo deja en una PR. Úsalo cuando el usuario diga "pr-coolway", "prepara el PR", "haz el PR" o "cierra este bloque" trabajando en este repo. Crea la rama, verifica que compila y pasa tests, actualiza CHANGELOG.md y ESTADO.md, commitea, pushea por el remoto `origin` (alias SSH github-coolway) y abre la PR con la plantilla del repo. No confundir con el skill `create-pr`, que es de los repos de Iberia y NO pushea.
 ---
 
-# create-pr · Cerrar un bloque de trabajo
+# pr-coolway · Cerrar un bloque de trabajo
 
 Convierte los cambios del working tree en una PR lista para revisar, **sin perder la memoria del
 proyecto**: el `CHANGELOG.md` (qué se hizo) y el `ESTADO.md` (dónde vamos) son parte del entregable,
