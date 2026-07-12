@@ -3,6 +3,23 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-12] Maestro — carga completa desde la web + informe de rechazadas
+
+### Añadido
+- **`POST /api/maestro/seed`** (sólo admin) y panel **"Cargar maestro completo"** en la web: se sube
+  `REFERENCIAS COOLWAY.xlsx` sin necesidad de CLI ni acceso al servidor. Upsert por (ref, talla): idempotente, no borra.
+- `SeedMasterUseCase` compartido por CLI y web (una sola lógica de carga).
+- **Informe de filas rechazadas**: antes el upsert toleraba fallos pero sólo los contaba, así que se
+  perdían filas en silencio. Ahora dice **qué** fila se quedó fuera y **por qué** (modelo, color, ref, talla, motivo).
+
+### Detectado (calidad del maestro)
+- El Excel maestro tiene **29 filas con EAN13 duplicado** → esas tallas no entran en la BD y no se pueden
+  etiquetar. Ej.: `8433852550355` está en **GOAL EXP 42** y en **GOAL BRW 42**. Explicaba el descuadre de 1 par
+  del pedido 4603338 contra BD. **Pendiente**: que Silvia corrija los duplicados. Ver [`ESTADO.md`](ESTADO.md).
+
+### Documentación
+- **`CLAUDE.md`** (contexto y reglas del proyecto) y **`ESTADO.md`** (traspaso: dónde vamos, qué probar, qué sigue).
+
 ## [2026-07-01] Acceso — login, roles y administración de usuarios
 
 ### Añadido

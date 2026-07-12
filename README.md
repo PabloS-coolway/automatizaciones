@@ -3,6 +3,9 @@
 Plataforma de automatizaciones del **Grupo Yorga**. Monorepo que reúne, en un mismo sitio,
 el **diseño** (negocio + arquitectura) y el **código** de cada automatización.
 
+> **¿Retomas el trabajo o vienes de otro ordenador?** Empieza por **[`ESTADO.md`](ESTADO.md)**: dónde
+> vamos, qué probar y cuál es el siguiente hilo. El contexto para Claude Code está en [`CLAUDE.md`](CLAUDE.md).
+
 Filosofía: **pensamos negocio + arquitectura antes de implementar.** Nada se construye sin
 saber qué dato consume, qué dato produce y quién es su dueño (sistema fuente de la verdad).
 
