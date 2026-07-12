@@ -1,5 +1,15 @@
 import { unlink } from 'node:fs/promises';
-import { Body, Controller, Get, Inject, Post, UploadedFiles, UseInterceptors, BadRequestException } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Post,
+  UploadedFiles,
+  UseInterceptors,
+  BadRequestException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import {
   GenerateLabelsHttpResponse,
@@ -12,6 +22,7 @@ import {
 import { GENERATE_LABELS_USE_CASE } from '../../application/tokens';
 import { GenerateLabelsUseCase } from '../../application/use-cases/generate-labels.use-case';
 import { LabelExcelSerializer } from '../../infrastructure/excel/label-excel-serializer';
+import { PdftotextNotInstalledError } from '../../infrastructure/pdf/pdf-text-extractor';
 import { Public } from '../../auth/interface/http/decorators';
 
 type Uploaded = { master?: Express.Multer.File[]; orders?: Express.Multer.File[] };
@@ -74,6 +85,10 @@ export class LabelsController {
         });
       }
       return out;
+    } catch (err) {
+      // Falta una dependencia del entorno: se avisa con su nombre, no como error genérico.
+      if (err instanceof PdftotextNotInstalledError) throw new ServiceUnavailableException(err.message);
+      throw err;
     } finally {
       // limpiar temporales subidos
       const uploaded = [masterFile, ...orders].filter((f): f is Express.Multer.File => !!f);

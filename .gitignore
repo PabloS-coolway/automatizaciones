@@ -29,4 +29,7 @@ dist/
 # Skills instalados: el contenido no se versiona (lo hace skills-lock.json).
 # Restaurar en un clon nuevo con: npx skills experimental_install
 .agents/
-.claude/skills/
+# Ojo: se ignora el CONTENIDO (no el directorio), porque git no puede reincluir
+# ficheros dentro de un directorio excluido. Así los skills PROPIOS sí viajan.
+.claude/skills/*
+!.claude/skills/pr-coolway/
