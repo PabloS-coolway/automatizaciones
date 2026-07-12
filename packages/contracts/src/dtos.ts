@@ -100,6 +100,28 @@ export interface ImportIssueDto {
   detail?: string;
 }
 
+/** Fila del maestro que no se pudo guardar (esa talla faltará al generar etiquetas). */
+export interface SeedIssueDto {
+  style: string;
+  color: string;
+  ref: string;
+  size: string;
+  reason: 'duplicate_ean13' | 'rejected';
+  detail?: string;
+}
+
+/** Resultado de POST /api/maestro/seed (subir REFERENCIAS COOLWAY.xlsx completo). */
+export interface SeedReportDto {
+  rows: number; // filas leídas del Excel
+  valid: number; // filas utilizables (con modelo, color, ref y talla)
+  upserted: number; // filas guardadas
+  failed: number; // rechazadas (p.ej. EAN13 duplicado)
+  created: number;
+  updated: number;
+  total: number; // SKU en el maestro tras la carga
+  issues: SeedIssueDto[]; // qué filas se quedaron fuera y por qué
+}
+
 /** Resultado de POST /api/maestro/import (subir EAN.xlsm + UPC.xlsm). */
 export interface ImportReportDto {
   eanRows: number;
