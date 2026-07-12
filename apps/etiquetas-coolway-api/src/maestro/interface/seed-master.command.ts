@@ -1,7 +1,8 @@
 import { Command, CommandRunner, Option } from 'nest-commander';
 import { PrismaClient } from '@prisma/client';
 import { ExcelMasterReader } from '../../infrastructure/excel/excel-master-reader.adapter';
-import { isValidEan13, isValidUpc, buildSku } from '../domain/codes';
+import { PrismaReferenceRepository } from '../infrastructure/prisma-reference.repository';
+import { SeedMasterUseCase } from '../application/seed-master.use-case';
 
 /** Siembra el maestro en Postgres a partir del Excel REFERENCIAS COOLWAY (upsert tolerante). */
 @Command({ name: 'maestro:seed', description: 'Carga REFERENCIAS COOLWAY.xlsx en Postgres (upsert).' })
@@ -14,33 +15,18 @@ export class SeedMasterCommand extends CommandRunner {
     }
     const prisma = new PrismaClient();
     try {
-      const rows = await new ExcelMasterReader().read(opts.master);
-      const before = await prisma.reference.count();
-      let ok = 0;
-      let failed = 0;
-      for (const r of rows) {
-        if (!r.style || !r.color || !r.ref || !r.size) continue;
-        const data = {
-          style: r.style,
-          color: r.color,
-          sku: r.sku || buildSku(r.ref, r.size),
-          ean13: isValidEan13(r.ean13) ? r.ean13 : null,
-          upc: isValidUpc(r.upc) ? r.upc : null,
-          colorNameWeb: r.colorNameWeb ?? null,
-        };
-        try {
-          await prisma.reference.upsert({
-            where: { ref_size: { ref: r.ref, size: r.size } },
-            create: { ref: r.ref, size: r.size, ...data },
-            update: data,
-          });
-          ok++;
-        } catch {
-          failed++; // p.ej. ean13 duplicado o formato — se reporta, no aborta
+      // Mismo caso de uso que usa la web (POST /api/maestro/seed).
+      const useCase = new SeedMasterUseCase(new ExcelMasterReader(), new PrismaReferenceRepository(prisma));
+      const r = await useCase.execute({ source: opts.master });
+      console.log(
+        `Maestro: ${r.rows} filas leídas · ${r.valid} válidas → guardadas ${r.upserted}, rechazadas ${r.failed} · nuevas ${r.created}, actualizadas ${r.updated} · total BD ${r.total}`,
+      );
+      if (r.issues.length > 0) {
+        console.warn(`\n⚠ ${r.issues.length} filas NO entraron en el maestro (esas tallas faltarán al etiquetar):`);
+        for (const i of r.issues) {
+          console.warn(`   ${i.style} ${i.color} ref ${i.ref} talla ${i.size} — ${i.reason}${i.detail ? `: ${i.detail}` : ''}`);
         }
       }
-      const after = await prisma.reference.count();
-      console.log(`Maestro: ${rows.length} filas leídas → upsert OK ${ok}, fallidas ${failed} · nuevos ${after - before} · total BD ${after}`);
     } finally {
       await prisma.$disconnect();
     }

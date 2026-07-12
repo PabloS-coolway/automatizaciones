@@ -1,4 +1,4 @@
-import type { ImportReportDto, MaestroStatsDto, ReferencesPageDto } from '@yorga/contracts';
+import type { ImportReportDto, MaestroStatsDto, ReferencesPageDto, SeedReportDto } from '@yorga/contracts';
 import type { MaestroGateway } from '../application/ports/maestro-gateway.port';
 import { apiFetch, errorMessage } from './api-client';
 
@@ -23,6 +23,14 @@ export class HttpMaestroGateway implements MaestroGateway {
     fd.append('upc', upc);
     const res = await apiFetch('/maestro/import', { method: 'POST', body: fd });
     if (!res.ok) throw new Error(await errorMessage(res, 'Error al importar los códigos.'));
+    return res.json();
+  }
+
+  async seedMaster(master: File): Promise<SeedReportDto> {
+    const fd = new FormData();
+    fd.append('master', master);
+    const res = await apiFetch('/maestro/seed', { method: 'POST', body: fd });
+    if (!res.ok) throw new Error(await errorMessage(res, 'Error al cargar el maestro.'));
     return res.json();
   }
 }

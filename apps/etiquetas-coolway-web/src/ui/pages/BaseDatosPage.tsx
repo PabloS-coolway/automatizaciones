@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Button, Card, Form, InputGroup, Pagination, Spinner, Table } from 'react-bootstrap';
-import { FileEarmarkExcel, Search, Upload } from 'react-bootstrap-icons';
-import type { ImportReportDto, MaestroStatsDto, ReferenceDto } from '@yorga/contracts';
+import { Database, FileEarmarkExcel, Search, Upload } from 'react-bootstrap-icons';
+import type { ImportReportDto, MaestroStatsDto, ReferenceDto, SeedReportDto } from '@yorga/contracts';
 import { maestroGateway } from '../composition';
 import { FileDropzone } from '../components/FileDropzone';
 import { useAuth } from '../auth/AuthContext';
@@ -28,11 +28,16 @@ export function BaseDatosPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Importar
+  // Importar códigos (EAN/UPC de prepedidos)
   const [ean, setEan] = useState<File[]>([]);
   const [upc, setUpc] = useState<File[]>([]);
   const [importing, setImporting] = useState(false);
   const [report, setReport] = useState<ImportReportDto | null>(null);
+
+  // Cargar maestro completo (REFERENCIAS COOLWAY.xlsx)
+  const [masterFile, setMasterFile] = useState<File[]>([]);
+  const [seeding, setSeeding] = useState(false);
+  const [seedReport, setSeedReport] = useState<SeedReportDto | null>(null);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -89,6 +94,25 @@ export function BaseDatosPage() {
     }
   }
 
+  async function runSeed() {
+    if (masterFile.length === 0) return;
+    setSeeding(true);
+    setError('');
+    setSeedReport(null);
+    try {
+      const r = await maestroGateway.seedMaster(masterFile[0]);
+      setSeedReport(r);
+      setMasterFile([]);
+      loadStats();
+      setPage(1);
+      loadRefs(search, 1);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setSeeding(false);
+    }
+  }
+
   const from = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
   const to = (page - 1) * PAGE_SIZE + items.length;
 
@@ -125,7 +149,84 @@ export function BaseDatosPage() {
       {isAdmin && (
       <Card className="mb-4">
         <Card.Body className="p-4">
-          <Card.Title className="mb-1">Actualizar maestro</Card.Title>
+          <Card.Title className="mb-1">Cargar maestro completo</Card.Title>
+          <p className="text-secondary small">
+            Sube el Excel <strong>REFERENCIAS COOLWAY.xlsx</strong> (la colección entera). Se guarda por{' '}
+            <strong>ref + talla</strong>: añade lo que falte y actualiza lo existente, sin borrar nada. Es lo que hay que
+            cargar para que la generación de etiquetas pueda usar la base de datos como maestro.
+          </p>
+          <FileDropzone
+            title="REFERENCIAS COOLWAY.xlsx"
+            hint="El maestro completo de la colección"
+            accept=".xlsx,.xlsm"
+            files={masterFile}
+            onFiles={setMasterFile}
+            icon={<Database />}
+          />
+          <Button className="btn-brand mt-3" disabled={seeding || masterFile.length === 0} onClick={runSeed}>
+            {seeding ? (
+              <>
+                <Spinner as="span" size="sm" animation="border" className="me-2" /> Cargando maestro…
+              </>
+            ) : (
+              <>
+                <Upload className="me-2" aria-hidden="true" /> Cargar maestro
+              </>
+            )}
+          </Button>
+
+          {seedReport && (
+            <>
+              <div className={`summary ${seedReport.failed ? 'warn' : 'ok'} mt-3`}>
+                {seedReport.valid.toLocaleString('es-ES')} filas válidas de {seedReport.rows.toLocaleString('es-ES')} leídas ·{' '}
+                {seedReport.created.toLocaleString('es-ES')} nuevas · {seedReport.updated.toLocaleString('es-ES')} actualizadas
+                {seedReport.failed ? ` · ${seedReport.failed} rechazadas` : ''} ·{' '}
+                <strong>{seedReport.total.toLocaleString('es-ES')} SKU en el maestro</strong>
+              </div>
+
+              {seedReport.issues.length > 0 && (
+                <div className="missing-box mt-2">
+                  <div className="small text-secondary mb-2">
+                    Estas filas del Excel <strong>no han entrado</strong> en el maestro. Son tallas que faltarán al generar
+                    etiquetas: hay que corregirlas en el Excel y volver a cargarlo.
+                  </div>
+                  <Table size="sm" borderless className="mb-0 missing-table">
+                    <thead>
+                      <tr className="small text-secondary">
+                        <th>modelo</th>
+                        <th>color</th>
+                        <th>ref.</th>
+                        <th>talla</th>
+                        <th>motivo</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {seedReport.issues.map((i) => (
+                        <tr key={`${i.ref}-${i.size}`} className="small">
+                          <td><strong>{i.style}</strong></td>
+                          <td>{i.color}</td>
+                          <td>{i.ref}</td>
+                          <td>{i.size}</td>
+                          <td>
+                            {i.reason === 'duplicate_ean13' ? 'EAN13 duplicado' : 'rechazada'}
+                            {i.detail && <div className="text-secondary">{i.detail}</div>}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                </div>
+              )}
+            </>
+          )}
+        </Card.Body>
+      </Card>
+      )}
+
+      {isAdmin && (
+      <Card className="mb-4">
+        <Card.Body className="p-4">
+          <Card.Title className="mb-1">Actualizar códigos (prepedidos)</Card.Title>
           <p className="text-secondary small">
             Sube los exports de prepedidos <strong>EAN.xlsm</strong> y <strong>UPC.xlsm</strong>. Se unen por ref+talla,
             se calcula el SKU y se guardan en la base de datos (los códigos existentes se actualizan).
