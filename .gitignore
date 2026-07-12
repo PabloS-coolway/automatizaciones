@@ -23,6 +23,9 @@ dist/
 # Temporales de Office
 ~$*
 
+# Restos de sesiones de navegador (Playwright MCP)
+.playwright-mcp/
+
 # Skills instalados (gestionados por skills-lock.json; reinstalar con `npx skills`)
 .agents/
 .claude/skills/
