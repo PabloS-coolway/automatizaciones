@@ -3,6 +3,36 @@
 > Documento de traspaso. Si retomas el trabajo (o cambias de ordenador), **empieza por aquí**.
 > Última actualización: **2026-07-12**. Historial detallado en [`CHANGELOG.md`](CHANGELOG.md).
 
+## Arranque en un ordenador nuevo
+
+```bash
+git clone git@github-coolway:PabloS-coolway/automatizaciones.git
+cd automatizaciones
+
+cp apps/etiquetas-coolway-api/.env.example apps/etiquetas-coolway-api/.env
+npm run setup                     # install + Postgres (Docker) + Prisma + migraciones
+
+npx skills experimental_install    # ← IMPRESCINDIBLE: restaura los skills de Claude Code
+
+npm run auth:create-user -- --email tu@email.com --password "…" --name "Tu nombre" --role admin
+npm run dev                       # API :3000 + web :5173
+```
+
+**Sobre skills y comandos de Claude Code:**
+
+| Qué | ¿Viaja en el repo? |
+|---|---|
+| Comando `/nuevo-requerimiento` (`.claude/commands/`) | ✅ Sí |
+| `skills-lock.json` (qué skills y de dónde salen) | ✅ Sí |
+| **Contenido** de los skills (`.claude/skills/`, `.agents/`) | ❌ No — está en `.gitignore` |
+
+Por eso hace falta `npx skills experimental_install`: reinstala desde el lockfile los 4 skills del proyecto
+(`frontend-a11y`, `javascript-typescript-jest`, `ux-usability-foundations`, `web-design-guidelines`).
+Sin ese paso el proyecto funciona igual, pero Claude no tendrá esos skills disponibles.
+
+Requisitos previos: Node 20+, npm 10+, **Docker** (Postgres) y `pdftotext` (paquete `poppler-utils`, para
+leer los PDFs de SAP).
+
 ## Resumen en una línea
 
 **REQ-001 Fase 1 (etiquetas) está terminada y validada con pedidos reales.** La Fase 2 (maestro en
