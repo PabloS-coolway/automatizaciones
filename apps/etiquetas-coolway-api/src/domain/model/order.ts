@@ -15,9 +15,22 @@ export const OrderLineSchema = z.object({
 
 export type OrderLine = z.infer<typeof OrderLineSchema>;
 
+/**
+ * Totales que el PROPIO PDF declara al pie ("TOTAL BOXES" / "TOTAL PAIRS").
+ * Son la única fuente independiente de nuestro parser: sirven para comprobar que no nos hemos
+ * dejado ninguna línea. Opcional: si el pie no se reconoce, no se inventa.
+ */
+export const OrderTotalsSchema = z.object({
+  boxes: z.number().int().nonnegative(),
+  pairs: z.number().int().nonnegative(),
+});
+
+export type OrderTotals = z.infer<typeof OrderTotalsSchema>;
+
 export const PurchaseOrderSchema = z.object({
   orderNumber: z.string().min(1),
   lines: z.array(OrderLineSchema),
+  declared: OrderTotalsSchema.optional(),
 });
 
 export type PurchaseOrder = z.infer<typeof PurchaseOrderSchema>;

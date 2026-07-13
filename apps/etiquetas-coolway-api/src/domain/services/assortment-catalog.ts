@@ -32,19 +32,38 @@ export const ASSORTMENTS: Record<string, AssortmentDef> = {
 };
 
 const PARES_SUELTOS = /^S(\d{2})$/;
+const MONOTALLA = /^M(\d{2})$/;
+
+/** Pares de una caja monotalla `M<nn>` (validado en el pedido 4603662: 448 líneas, siempre 6). */
+const PARES_POR_CAJA_MONOTALLA = 6;
+
+/** Un surtido que el catálogo no conoce. Se distingue para poder avisar con el código concreto. */
+export class UnknownAssortmentError extends Error {
+  constructor(readonly code: string) {
+    super(`Surtido desconocido: "${code}"`);
+    this.name = 'UnknownAssortmentError';
+  }
+}
 
 /**
- * Devuelve la composición de un surtido. Para pares sueltos `S<nn>` → 1 par en la talla nn.
- * Lanza si el código no se reconoce (mejor fallar que inventar).
+ * Devuelve la composición de un surtido:
+ *  - `S<nn>` → 1 par suelto de la talla nn.
+ *  - `M<nn>` → caja monotalla: 6 pares, todos de la talla nn (el género real sale de la ref SAP, RN-04).
+ *  - resto   → catálogo `ASSORTMENTS`.
+ *
+ * Lanza si el código no se reconoce: mejor fallar que inventar un surtido y descuadrar el pedido.
  */
 export function expandAssortment(code: string): AssortmentDef {
   const known = ASSORTMENTS[code];
   if (known) return known;
 
-  const m = PARES_SUELTOS.exec(code);
-  if (m) return { gender: 'W', pairs: { [m[1]]: 1 } };
+  const suelto = PARES_SUELTOS.exec(code);
+  if (suelto) return { gender: 'W', pairs: { [suelto[1]]: 1 } };
 
-  throw new Error(`Surtido desconocido: "${code}"`);
+  const mono = MONOTALLA.exec(code);
+  if (mono) return { gender: 'W', pairs: { [mono[1]]: PARES_POR_CAJA_MONOTALLA } };
+
+  throw new UnknownAssortmentError(code);
 }
 
 /** Total de pares de una caja de ese surtido. */

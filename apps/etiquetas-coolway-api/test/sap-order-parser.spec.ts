@@ -28,3 +28,34 @@ describe('parseSapOrderText — PDF 4603418 (pares sueltos)', () => {
     expect(order.lines.map((l) => l.assortment)).toEqual(['S36', 'S37', 'S38', 'S39', 'S40', 'S41', 'S42']);
   });
 });
+
+describe('parseSapOrderText — colores compuestos y cajas monotalla (PDF 4603662)', () => {
+  // Reproduce el fallo real: el color W-B (blanco-negro) lleva guión. El parser lo ignoraba
+  // y se comía el ítem ENTERO en silencio: 37 refs, 133 cajas, 798 pares sin etiquetar.
+  const texto = [
+    '        BLAKE                      BLAKE BLANCO-NEGRO M36              W-B               1     M36       6      35/42',
+    ' 167                               Surtido',
+    '                                                76035480701M36                total      1',
+    '        NILO                       NILO ROJO M38 Surtido               RED               6     M38       6      35/42',
+    '                                                76033980500M38                total      6',
+  ].join('\n');
+
+  const order = parseSapOrderText(texto, '4603662');
+
+  it('NO se salta el ítem cuyo color lleva guión (W-B)', () => {
+    expect(order.lines).toHaveLength(2);
+    expect(order.lines[0]).toEqual({
+      style: 'BLAKE',
+      color: 'W-B',
+      refSap: '76035480701M36',
+      assortment: 'M36',
+      boxes: 1,
+    });
+  });
+
+  it('sigue leyendo los colores normales (RED)', () => {
+    expect(order.lines[1].color).toBe('RED');
+    expect(order.lines[1].assortment).toBe('M38');
+    expect(order.lines[1].boxes).toBe(6);
+  });
+});

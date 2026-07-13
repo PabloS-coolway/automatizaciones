@@ -1,4 +1,4 @@
-import { OrderLine, PurchaseOrder } from '../../domain/model/order';
+import { OrderLine, OrderTotals, PurchaseOrder } from '../../domain/model/order';
 
 /**
  * Parser PURO del texto (layout) de un pedido de compra SAP → PurchaseOrder.
@@ -15,7 +15,10 @@ import { OrderLine, PurchaseOrder } from '../../domain/model/order';
  */
 const REF_SAP = /^\d{11,}[A-Z0-9]*$/; // "7603298020100I" (≥11 díg.; evita el nº de pedido de 7)
 const ASSORTMENT_SUFFIX = /[A-Z][A-Z0-9]*$/; // surtido al final de la ref SAP
-const COLOR = /^[A-Z]{2,4}$/; // código de color aislado (DBR, MOC, COG…)
+// Código de color aislado: DBR, MOC, COG… y también los COMPUESTOS con guión (W-B blanco-negro,
+// B-W, W-R). Sin el guión, el ítem entero se descartaba en silencio (pedido 4603662: 37 refs,
+// 133 cajas, 798 pares perdidos). Sólo letras: así "M36" (surtido) nunca se confunde con un color.
+const COLOR = /^[A-Z]{2,4}$|^[A-Z]{1,3}-[A-Z]{1,3}$/;
 const STYLE = /^[A-Z0-9][A-Z0-9 -]+$/; // style alfanumérico, admite varias palabras (GOAL EDGE); descarta fechas/monedas
 
 const splitCols = (line: string): string[] =>
@@ -23,6 +26,30 @@ const splitCols = (line: string): string[] =>
     .split(/\s{2,}/)
     .map((s) => s.trim())
     .filter(Boolean);
+
+/** "1.838" → 1838 (el PDF usa el punto como separador de millares). */
+const num = (s: string): number => Number(s.replace(/\./g, ''));
+
+/**
+ * Totales del pie del PDF ("TOTAL BOXES  TOTAL PAIRS  AMOUNT …" y debajo los números).
+ * Es la ÚNICA fuente independiente de nuestro parser: permite detectar que nos hemos dejado
+ * líneas por el camino. Si el pie no se reconoce, se devuelve undefined (no se inventa).
+ */
+function parseDeclaredTotals(lines: string[]): OrderTotals | undefined {
+  const i = lines.findIndex((l) => /TOTAL\s+BOXES/i.test(l));
+  if (i === -1) return undefined;
+
+  for (const l of lines.slice(i + 1, i + 4)) {
+    const cols = splitCols(l);
+    if (cols.length < 2) continue;
+    const boxes = num(cols[0]);
+    const pairs = num(cols[1]);
+    if (Number.isInteger(boxes) && Number.isInteger(pairs) && boxes > 0 && pairs > 0) {
+      return { boxes, pairs };
+    }
+  }
+  return undefined;
+}
 
 export function parseSapOrderText(text: string, orderNumberHint?: string): PurchaseOrder {
   const lines = text.split(/\r?\n/);
@@ -62,5 +89,5 @@ export function parseSapOrderText(text: string, orderNumberHint?: string): Purch
     }
   }
 
-  return { orderNumber, lines: items };
+  return { orderNumber, lines: items, declared: parseDeclaredTotals(lines) };
 }
