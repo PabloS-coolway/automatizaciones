@@ -110,6 +110,7 @@ Si eliges el destino equivocado, aparecerán "faltantes" que en realidad son cor
 | `validaciones/Update Order 4603338.pdf` | Italia | Sólo EAN, 1.840 pares |
 | `validaciones/UPDATE Order 4603187- (1).pdf` | **Valencia** | El gordo: cajas surtidas + CODE128, 8.444 pares, 265 filas |
 | `validaciones/4603662.pdf` | USA | Cajas **monotalla** (`M36`…`M46`) y **colores compuestos** (`W-B`): 11.028 pares, 448 filas |
+| `validaciones/4603661.pdf` | USA | Surtidos `D` / `CD` / `DE4`: 5.080 pares, 1.068 cajas. **0 faltantes** desde que se arregló el UPC de GOAL |
 
 **Maestro**: `docs/requerimientos/REFERENCIAS COOLWAY.xlsx` (súbelo como fichero, o cárgalo antes en la
 BD y elige *maestro = base de datos*).
@@ -139,6 +140,20 @@ tipo Excel y facetas cruzadas (los valores de un desplegable respetan los filtro
 - **Exportar a Excel la vista filtrada** (`GET /maestro/export`): lo genera el servidor, con los mismos
   filtros y orden que se ven. Los códigos se escriben como **texto celda a celda** (si no, Excel convierte
   el EAN13 en notación científica y pierde los ceros a la izquierda: sería corromper el dato al exportarlo).
+
+## ⏭ Bloqueado esperando a Silvia (REQ-003)
+
+**Ropa, calcetines y bolsas no se pueden etiquetar todavía**: su SKU tiene **tres tallas** (la que viene en
+el PDF, la que va al código de barras y la que se imprime) y la BD sólo guarda una. Diseño en
+[`diseño/iniciativas/REQ-003-tallas-ropa-calcetines-bolsas/`](diseño/iniciativas/REQ-003-tallas-ropa-calcetines-bolsas/diseño.md).
+
+Falta de Silvia, y son **bloqueantes**:
+1. **Un PDF de pedido real con ropa / calcetines / bolsas.** Sin muestra, estaríamos adivinando cómo vienen
+   las líneas y la rejilla de tallas — y ya sabemos cómo acaba eso (los 798 pares del 4603662).
+2. **La regla del CODE128 con refs cortas**: las bolsas tienen ref de 6 dígitos (`556596`) y saldría un
+   código de 13, no de 14.
+3. Normalizar las cabeceras de la hoja **`ROPA`** (están mal rotuladas) y rellenar las **9 refs de ropa sin
+   talla tiendas**. Y decidir si **llaveros/cleaner** entra en el alcance (hoy esa hoja **no se carga**).
 
 ## Siguiente hilo (elige uno)
 

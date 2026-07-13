@@ -3,6 +3,49 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-13] BUG-003 · Los UPC de GOAL estaban en el Excel y no se cargaban · y MEJ-002 (surtidos nuevos)
+
+Salió al probar el pedido **4603661**, que no se podía etiquetar. Detrás había dos cosas.
+
+### Corregido · BUG-003 — el lector del maestro cogía la columna UPC equivocada
+- **Síntoma:** el pedido 4603661 (USA) daba **119 faltantes por "falta el UPC"**… pero los UPC **estaban en
+  el Excel**. La app decía que faltaba un dato que sí existía: **no fallaba, mentía.**
+- **Causa:** la hoja `GOAL` tiene **dos columnas con la cabecera `UPC`**: la **H** (los códigos buenos, 985)
+  y la **N** (de la subtabla `GOAL HI`, 28 valores). El lector mapeaba las cabeceras en orden y **la última
+  pisaba a la primera** → se quedaba con la N. El número lo confirmaba: en la BD había exactamente
+  **28 GOAL con UPC**, los 28 de la columna equivocada.
+- **Arreglo:** ante un `UPC` repetido se usa **siempre la PRIMERA columna** (regla confirmada por Silvia: la
+  segunda pertenece a la subtabla `GOAL HI` y no es válida). No se pudo aplicar "la primera" a todo: la hoja
+  `ROPA` repite `SIZE` y ahí la buena es **la última** (`S/M/L/XL` frente a un código interno `11,12,13`).
+  Para el resto de cabeceras repetidas se usa la que tiene datos, **avisando por el log**: una cabecera
+  duplicada es un defecto del Excel y hay que verlo, no taparlo.
+- **Resultado:** GOAL pasa de **28 a 948** UPC · el maestro de 2.679 a **3.599** · el pedido **4603661 pasa
+  de 119 faltantes a 0**, y el **4603662 de 46 a 0** (era el mismo bug).
+
+### Añadido · MEJ-002 — tres surtidos nuevos (D, CD, DE4)
+El pedido 4603661 usaba surtidos que el catálogo no conocía, y el dominio **paró antes que inventar** cuántos
+pares lleva cada caja (que es lo correcto: inventarlo habría descuadrado el pedido en silencio).
+
+| Código | Género | Composición | Pares/caja |
+|---|---|---|---|
+| `D` | Chica (76) | 36×1, 37×1, 38×1, 39×1 | 4 |
+| `CD` | Chico (86) | 40×1, 41×1, 42×1, 43×1 | 4 |
+| `DE4` | Chica (76) | 37×1, **38×2**, 39×1 | 4 |
+
+`DE4` **dobla la 38** en vez de repartir una por talla: suponerlo "uniforme" habría cuadrado igual pero con
+**la talla equivocada** en 95 cajas.
+
+**Cómo se obtuvo la composición (sin inventar nada):** leyendo la rejilla del PDF con las **coordenadas
+exactas** de cada número (`pdftotext -bbox`), no a ojo — el primer intento a ojo daba 7 pares donde el PDF
+declaraba 6 y se descartó. La lectura **se valida sola**: de los 12 surtidos del pedido, los **9 que ya
+estaban en el catálogo coincidieron exactamente**. Y el pie del PDF declara **1.068 cajas / 5.080 pares**:
+con las tres composiciones nuevas sale **1.068 / 5.080** exactos.
+
+### Diseño
+- **REQ-003** registrado (🔍 en análisis): etiquetar **ropa, calcetines y bolsas**, donde el SKU tiene
+  **tres tallas** (la del PDF, la del código de barras y la que se imprime). Bloqueado a la espera de un PDF
+  de pedido real de esas familias y de confirmar la regla del CODE128 para refs cortas.
+
 ## [2026-07-13] MEJ-001 · UX de Base de datos · y BUG-001 / BUG-002 (filtros)
 
 ### Añadido (MEJ-001)
