@@ -19,6 +19,22 @@ exactamente por dónde vamos y cuál es el siguiente hilo.
 5. **Verificar de verdad, no asumir.** Antes de dar algo por bueno: ejecutarlo (curl a la API, o el
    navegador) y enseñar el resultado real. Si algo falla, se dice.
 
+## No todo lo que entra es un requerimiento
+
+Tres tipos, y se gestionan distinto. Detalle en [`diseño/03-backlog-requerimientos.md`](diseño/03-backlog-requerimientos.md).
+
+| Prefijo | Qué es | ¿Ritual de diseño? |
+|---|---|---|
+| **REQ** | Valor de negocio nuevo | **Sí** → `/nuevo-requerimiento` |
+| **MEJ** | Mejora sobre algo existente (UX, rendimiento, DX). No cambia el dato ni su dueño | **No** (sería burocracia) |
+| **BUG** | Algo que ya debía funcionar y no funciona | **No**, pero es obligatorio registrar **síntoma + causa raíz + test de regresión** |
+
+**Ante un bug, la regla no se negocia:** antes de darlo por arreglado, **rompe el código a propósito** y
+comprueba que el test se pone en rojo. Un test que pasa igual con el bug da falsa seguridad.
+
+**Y la pregunta que hay que hacerse siempre**, porque los peores bugs de este proyecto comparten patrón
+(no fallan: **mienten**): *"si esto devolviera un resultado incompleto, ¿cómo me enteraría?"*.
+
 ## Reglas de negocio que NO se negocian
 
 - **Los códigos de barras NUNCA se inventan.** El maestro es la única autoridad: se lee, y lo que

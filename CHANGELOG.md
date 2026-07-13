@@ -3,6 +3,40 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-13] MEJ-001 · UX de Base de datos · y BUG-001 / BUG-002 (filtros)
+
+### Añadido (MEJ-001)
+- **KPIs fijos (sticky)**: explorando 5.736 referencias se perdía de vista el total, que es justo la
+  referencia para interpretar lo que estás viendo. Se quedan arriba, más compactos y con fondo opaco.
+- **Pestañas** en Base de datos: **Referencias** (explorar, filtrar, exportar — lo del día a día, y lo
+  primero que se ve) y **Cargas y actualizaciones** (subir maestro + códigos), **sólo visible para admin**.
+  Antes, un operador veía primero dos formularios que ni siquiera puede usar.
+- **La barra de Referencias, en una sola fila**: título · buscador · exportar. El buscador **crece** para
+  ocupar el hueco libre (antes tenía un ancho fijo pequeño y el botón se le caía debajo).
+
+### Corregido · BUG-001 — un filtro con >20 valores dejaba la tabla vacía SIN ERROR
+- **Síntoma:** al desmarcar un valor en `color web`, la tabla salía vacía.
+- **Causa:** Express parsea la query con `qs`, cuyo **`arrayLimit` es 20**: a partir de 21 valores repetidos
+  deja de construir un array y devuelve un **objeto** `{0:…, 1:…}`. El parser lo convertía en la cadena
+  `"[object Object]"`, que no coincide con nada → **0 filas y ningún error**. Sólo se veía en `color web`
+  porque tiene **408 valores distintos**: al desmarcar uno se mandaban 407. Umbral confirmado contra la API:
+  **20 valores → 21 filas** (correcto), **21 → 0**.
+- **Arreglo:** `arrayLimit` alto en `main.ts` **y** el parser acepta también la forma de objeto — dos capas,
+  para que un cambio de configuración no lo vuelva a romper en silencio.
+- **Verificado:** desmarcando `(vacío)` → **4.843 filas**, exactamente 5.736 − 893 (contrastado en Postgres).
+
+### Corregido · BUG-002 — el desplegable del filtro se vaciaba al desmarcar
+- **Síntoma:** desmarcabas un valor y la lista quedaba vacía; había que cerrar el popover y reabrirlo.
+- **Causa:** al cambiar un filtro se invalidaba la caché de facetas **entera**, incluida la de la columna que
+  se estaba editando — y las facetas del maestro sólo se piden **al abrir** el desplegable.
+- **Arreglo:** se **conservan** las facetas de esa columna (se calculan ignorando su propio filtro,
+  que es justo lo que te permite volver a marcar lo que acabas de desmarcar) y sólo caducan las de las demás.
+
+### Proceso
+- **Se separan REQ / MEJ / BUG** en el backlog y en `CLAUDE.md`: no todo lo que entra es un requerimiento, y
+  cada tipo se gestiona distinto. Un bug exige **síntoma + causa raíz + test de regresión**, y el test
+  **debe poder fallar**: se rompe el código a propósito y se comprueba que se pone en rojo (hecho con los dos).
+
 ## [2026-07-13] REQ-002 · Exportar la vista filtrada del maestro a Excel (fase 4) — REQ-002 COMPLETO
 
 Cierra REQ-002. Cuando Silvia puede filtrar, lo siguiente que quiere es **llevarse eso a Excel**.

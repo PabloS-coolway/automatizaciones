@@ -60,8 +60,8 @@ export function useServerTable(
   // Al cambiar filtros u orden se vuelve a la página 1: si no, te quedas en una página que ya no existe.
   useEffect(() => setPage(1), [clave]);
 
-  // Las facetas dependen de los filtros: si cambian, las cacheadas ya no valen.
-  useEffect(() => setFacetsCache({}), [clave]);
+  // La búsqueda global afecta a TODAS las columnas → ninguna faceta cacheada sigue valiendo.
+  useEffect(() => setFacetsCache({}), [search]);
 
   const vivo = useRef(true);
   useEffect(() => {
@@ -107,6 +107,16 @@ export function useServerTable(
       else next[key] = filter;
       return next;
     });
+
+    /**
+     * Caducan las facetas de las OTRAS columnas (sus valores dependen de este filtro), pero NO las
+     * de esta: sus valores se calculan ignorando su propio filtro, precisamente para que puedas
+     * volver a marcar lo que acabas de desmarcar.
+     *
+     * Antes se tiraba la caché entera y, como las facetas sólo se piden al ABRIR el desplegable, la
+     * lista se quedaba vacía nada más desmarcar un valor: había que cerrar y volver a abrir.
+     */
+    setFacetsCache((prev) => (prev[key] ? { [key]: prev[key] } : {}));
   }, []);
 
   const toggleSort = useCallback((key: string) => {
@@ -127,7 +137,10 @@ export function useServerTable(
     toggleSort,
     filters,
     setColumnFilter,
-    clearFilters: () => setFilters({}),
+    clearFilters: () => {
+      setFilters({});
+      setFacetsCache({}); // sin filtros, los valores de todas las columnas vuelven a ser otros
+    },
     activeFilterCount: Object.keys(filters).length,
     facets: (key) => facetsCache[key] ?? [],
     requestFacets,
