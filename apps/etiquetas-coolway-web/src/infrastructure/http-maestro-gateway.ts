@@ -60,6 +60,16 @@ export class HttpMaestroGateway implements MaestroGateway {
     return res.json();
   }
 
+  async exportReferences(filters: ReferenceFiltersDto): Promise<{ blob: Blob; fileName: string }> {
+    const res = await apiFetch(`/maestro/export?${filtersToParams(filters)}`);
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo exportar el maestro.'));
+
+    // El nombre lo decide el servidor (lleva la fecha y si la vista está filtrada).
+    const cd = res.headers.get('Content-Disposition') ?? '';
+    const fileName = /filename="([^"]+)"/.exec(cd)?.[1] ?? 'maestro-coolway.xlsx';
+    return { blob: await res.blob(), fileName };
+  }
+
   async importCodes(ean: File, upc: File): Promise<ImportReportDto> {
     const fd = new FormData();
     fd.append('ean', ean);

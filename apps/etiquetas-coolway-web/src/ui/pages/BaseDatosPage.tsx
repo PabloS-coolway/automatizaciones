@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Button, Card, Form, InputGroup, Spinner } from 'react-bootstrap';
-import { Database, FileEarmarkExcel, Search, Upload } from 'react-bootstrap-icons';
+import { Database, Download, FileEarmarkExcel, Search, Upload } from 'react-bootstrap-icons';
 import type {
   ImportReportDto,
   MaestroStatsDto,
@@ -12,7 +12,7 @@ import type {
 import { maestroGateway } from '../composition';
 import { FileDropzone } from '../components/FileDropzone';
 import { useAuth } from '../auth/AuthContext';
-import { Column, DataTable, useMemoryTable, useServerTable } from '../components/table';
+import { Column, DataTable, toApiFilters, useMemoryTable, useServerTable } from '../components/table';
 
 /** Filas rechazadas al cargar el maestro. Filtrable por modelo/motivo: así se atacan por lotes. */
 function TablaRechazadas({ issues }: { issues: SeedIssueDto[] }) {
@@ -126,6 +126,31 @@ export function BaseDatosPage() {
   );
 
   const maestro = useServerTable(maestroGateway, columns, searchAplicada, setError);
+  const [exportando, setExportando] = useState(false);
+
+  /**
+   * Exporta EXACTAMENTE lo que se está viendo: los mismos filtros y el mismo orden.
+   * Se reusa `toApiFilters`, el mismo traductor que usa la tabla para pedir los datos — así no hay
+   * forma de que el Excel y la pantalla dejen de coincidir.
+   */
+  async function exportar() {
+    setExportando(true);
+    setError('');
+    try {
+      const filtros = toApiFilters(maestro.filters, maestro.sort, searchAplicada);
+      const { blob, fileName } = await maestroGateway.exportReferences(filtros);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setExportando(false);
+    }
+  }
 
   async function runImport() {
     if (ean.length === 0 || upc.length === 0) return;
@@ -314,17 +339,32 @@ export function BaseDatosPage() {
         <Card.Body className="p-4">
           <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
             <Card.Title className="mb-0">Referencias</Card.Title>
-            <InputGroup size="sm" style={{ maxWidth: 280 }}>
-              <InputGroup.Text>
-                <Search aria-hidden="true" />
-              </InputGroup.Text>
-              <Form.Control
-                placeholder="Buscar modelo, color, ref, SKU, código…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                aria-label="Buscar en el maestro"
-              />
-            </InputGroup>
+            <div className="d-flex gap-2 flex-wrap">
+              <InputGroup size="sm" style={{ maxWidth: 280 }}>
+                <InputGroup.Text>
+                  <Search aria-hidden="true" />
+                </InputGroup.Text>
+                <Form.Control
+                  placeholder="Buscar modelo, color, ref, SKU, código…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  aria-label="Buscar en el maestro"
+                />
+              </InputGroup>
+              {/* Exporta LO QUE SE VE: mismos filtros y mismo orden. El Excel lo hace el servidor. */}
+              <Button variant="outline-secondary" size="sm" disabled={exportando} onClick={exportar}>
+                {exportando ? (
+                  <>
+                    <Spinner as="span" size="sm" animation="border" className="me-2" /> Exportando…
+                  </>
+                ) : (
+                  <>
+                    <Download className="me-1" aria-hidden="true" />
+                    Exportar {maestro.activeFilterCount > 0 || searchAplicada ? 'lo filtrado' : 'todo'} a Excel
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
 
           {maestro.loading && (

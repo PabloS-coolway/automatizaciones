@@ -1,5 +1,5 @@
 import { VALOR_VACIO } from '@yorga/contracts';
-import { MaestroQuery, buildOrderBy, buildWhere, esColumnaDeFacetas } from '../src/maestro/application/maestro-query.service';
+import { MAX_EXPORT, MaestroQuery, buildOrderBy, buildWhere, esColumnaDeFacetas } from '../src/maestro/application/maestro-query.service';
 
 describe('buildOrderBy · lista blanca (esto es SEGURIDAD, no cosmética)', () => {
   it('ordena por una columna permitida, en el sentido pedido', () => {
@@ -136,5 +136,23 @@ describe('MaestroQuery · lo que se le pide a la BD', () => {
     expect(p.reference.groupBy).toHaveBeenCalledWith(
       expect.objectContaining({ where: { AND: [{ size: { in: ['42'] } }] } }),
     );
+  });
+});
+
+describe('MaestroQuery · exportación (fase 4)', () => {
+  const prisma = () => ({
+    reference: { count: jest.fn(), findMany: jest.fn().mockResolvedValue([]), groupBy: jest.fn() },
+    $transaction: (ps: Promise<unknown>[]) => Promise.all(ps),
+  });
+
+  it('allForExport pide TODAS las filas del filtro (sin paginar) y con el mismo orden', async () => {
+    const p = prisma();
+    await new MaestroQuery(p as never).allForExport({ style: ['GOAL'], sort: 'ean13', dir: 'desc' });
+
+    const args = p.reference.findMany.mock.calls[0][0];
+    expect(args.where).toEqual({ AND: [{ style: { in: ['GOAL'] } }] }); // el mismo filtro de la pantalla
+    expect(args.orderBy).toEqual([{ ean13: 'desc' }]); // …y el mismo orden
+    expect(args.skip).toBeUndefined(); // sin paginar: es la vista entera
+    expect(args.take).toBe(MAX_EXPORT); // con tope, para no tumbar el servidor si el maestro crece
   });
 });
