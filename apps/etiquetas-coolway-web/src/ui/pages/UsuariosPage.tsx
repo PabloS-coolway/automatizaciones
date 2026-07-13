@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { Alert, Badge, Button, Card, Form, Spinner, Table } from 'react-bootstrap';
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { Alert, Badge, Button, Card, Form, Spinner } from 'react-bootstrap';
 import { KeyFill, PersonPlus } from 'react-bootstrap-icons';
 import type { Role, UserDto } from '@yorga/contracts';
 import { usersGateway } from '../composition';
 import { useAuth } from '../auth/AuthContext';
+import { Column, DataTable, useMemoryTable } from '../components/table';
 
 export function UsuariosPage() {
   const { user: me } = useAuth();
@@ -76,6 +77,87 @@ export function UsuariosPage() {
     patch(u.id, { password: pwd }, `Contraseña de ${u.email} actualizada.`);
   }
 
+  // El valor CRUDO (`value`) es lo que se ordena y se filtra; `render` sólo decide cómo se ve.
+  const columns = useMemo<Column<UserDto>[]>(
+    () => [
+      {
+        key: 'name',
+        label: 'nombre',
+        value: (u) => u.name,
+        render: (u) => (
+          <>
+            {u.name} {u.id === me?.id && <span className="text-secondary small">(tú)</span>}
+          </>
+        ),
+      },
+      { key: 'email', label: 'email', value: (u) => u.email },
+      {
+        key: 'role',
+        label: 'rol',
+        value: (u) => u.role,
+        render: (u) => <Badge bg={u.role === 'admin' ? 'primary' : 'secondary'}>{u.role}</Badge>,
+      },
+      {
+        key: 'active',
+        label: 'estado',
+        value: (u) => (u.active ? 'activo' : 'inactivo'),
+        render: (u) =>
+          u.active ? (
+            <Badge bg="success-subtle" text="success">activo</Badge>
+          ) : (
+            <Badge bg="secondary-subtle" text="secondary">inactivo</Badge>
+          ),
+      },
+      {
+        key: 'acciones',
+        label: 'acciones',
+        align: 'end',
+        sortable: false,
+        filter: 'none',
+        value: () => '',
+        render: (u) => {
+          const isMe = u.id === me?.id;
+          const busy = busyId === u.id;
+          return (
+            <div className="d-inline-flex gap-2">
+              <Button
+                size="sm"
+                variant="outline-secondary"
+                disabled={busy || isMe}
+                title={isMe ? 'No puedes cambiar tu propio rol' : 'Cambiar rol'}
+                onClick={() =>
+                  patch(
+                    u.id,
+                    { role: u.role === 'admin' ? 'operador' : 'admin' },
+                    `${u.email} ahora es ${u.role === 'admin' ? 'operador' : 'admin'}.`,
+                  )
+                }
+              >
+                {u.role === 'admin' ? 'hacer operador' : 'hacer admin'}
+              </Button>
+              <Button size="sm" variant="outline-secondary" disabled={busy} title="Resetear contraseña" onClick={() => resetPassword(u)}>
+                <KeyFill />
+              </Button>
+              <Button
+                size="sm"
+                variant={u.active ? 'outline-danger' : 'outline-success'}
+                disabled={busy || isMe}
+                title={isMe ? 'No puedes desactivarte' : u.active ? 'Desactivar' : 'Activar'}
+                onClick={() => patch(u.id, { active: !u.active }, `${u.email} ${u.active ? 'desactivado' : 'activado'}.`)}
+              >
+                {u.active ? 'desactivar' : 'activar'}
+              </Button>
+            </div>
+          );
+        },
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [me?.id, busyId],
+  );
+
+  const tabla = useMemoryTable(users, columns);
+
   return (
     <div className="page page-wide">
       <header className="page-head mb-4">
@@ -132,82 +214,7 @@ export function UsuariosPage() {
             <Card.Title className="mb-0">Usuarios ({users.length})</Card.Title>
             {loading && <Spinner as="span" size="sm" animation="border" />}
           </div>
-          <div className="labels-preview">
-            <Table size="sm" striped hover responsive className="mb-0 align-middle">
-              <thead>
-                <tr>
-                  <th>nombre</th>
-                  <th>email</th>
-                  <th>rol</th>
-                  <th>estado</th>
-                  <th className="text-end">acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((u) => {
-                  const isMe = u.id === me?.id;
-                  const busy = busyId === u.id;
-                  return (
-                    <tr key={u.id}>
-                      <td>
-                        {u.name} {isMe && <span className="text-secondary small">(tú)</span>}
-                      </td>
-                      <td>{u.email}</td>
-                      <td>
-                        <Badge bg={u.role === 'admin' ? 'primary' : 'secondary'}>{u.role}</Badge>
-                      </td>
-                      <td>
-                        {u.active ? (
-                          <Badge bg="success-subtle" text="success">activo</Badge>
-                        ) : (
-                          <Badge bg="secondary-subtle" text="secondary">inactivo</Badge>
-                        )}
-                      </td>
-                      <td className="text-end">
-                        <div className="d-inline-flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline-secondary"
-                            disabled={busy || isMe}
-                            title={isMe ? 'No puedes cambiar tu propio rol' : 'Cambiar rol'}
-                            onClick={() =>
-                              patch(
-                                u.id,
-                                { role: u.role === 'admin' ? 'operador' : 'admin' },
-                                `${u.email} ahora es ${u.role === 'admin' ? 'operador' : 'admin'}.`,
-                              )
-                            }
-                          >
-                            {u.role === 'admin' ? 'hacer operador' : 'hacer admin'}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline-secondary"
-                            disabled={busy}
-                            title="Resetear contraseña"
-                            onClick={() => resetPassword(u)}
-                          >
-                            <KeyFill />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant={u.active ? 'outline-danger' : 'outline-success'}
-                            disabled={busy || isMe}
-                            title={isMe ? 'No puedes desactivarte' : u.active ? 'Desactivar' : 'Activar'}
-                            onClick={() =>
-                              patch(u.id, { active: !u.active }, `${u.email} ${u.active ? 'desactivado' : 'activado'}.`)
-                            }
-                          >
-                            {u.active ? 'desactivar' : 'activar'}
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </Table>
-          </div>
+          <DataTable model={tabla} allRows={users} rowKey={(u) => String(u.id)} empty="Ningún usuario cumple el filtro." />
         </Card.Body>
       </Card>
     </div>

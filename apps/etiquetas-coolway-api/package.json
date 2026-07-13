@@ -9,7 +9,7 @@
     "start": "ts-node -r tsconfig-paths/register src/interface/cli/main.ts",
     "serve": "ts-node -r tsconfig-paths/register src/interface/http/main.ts",
     "dev": "ts-node -r tsconfig-paths/register src/interface/http/main.ts",
-    "test": "jest",
+    "test": "jest --coverage",
     "test:watch": "jest --watch",
     "typecheck": "tsc --noEmit",
     "prisma:generate": "prisma generate",

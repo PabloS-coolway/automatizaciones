@@ -257,11 +257,16 @@ button, a, [role='button'], .form-control, .form-select { touch-action: manipula
 }
 .labels-preview table { font-size: 0.92rem; margin: 0; }
 .labels-preview th, .labels-preview td { padding: 8px 12px; }
+/* El wrapper que añade `responsive` de react-bootstrap crea su propio overflow y ancla ahí el
+   sticky, que entonces no se pega a nada (no hace scroll vertical). Lo neutralizamos: el scroll
+   lo lleva `.labels-preview`. */
+.labels-preview .table-responsive { overflow: visible; }
 .labels-preview thead th {
   position: sticky;
   top: 0;
   background: var(--kpi-bg);
-  z-index: 1;
+  z-index: 2;
+  box-shadow: inset 0 -1px 0 var(--border); /* la línea inferior no viaja con el sticky: se dibuja */
 }
 .hint-line { font-size: 0.85rem; }
 .app-footer { color: #8b8aa0; font-size: 0.82rem; }
