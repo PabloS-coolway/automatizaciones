@@ -132,16 +132,30 @@ export class MaestroController {
   }
 }
 
+/** Tope de valores en un filtro de casillas (y `arrayLimit` de `qs`). `color web` ya tiene 408. */
+export const MAX_VALORES_FILTRO = 2000;
+
 /**
  * Un filtro de casillas puede venir de tres formas, y las tres significan cosas distintas:
  *   · ausente        → sin filtro (todas las filas)
  *   · `style=`       → selección VACÍA: no se quiere ningún valor → 0 filas
  *   · `style=A&style=B` → sólo esos valores
  * Confundir la segunda con la primera es justo el bug que tuvimos en el filtro del front.
+ *
+ * ⚠️ Además hay una CUARTA forma, y muerde: si `qs` supera su `arrayLimit`, en vez de un array
+ * devuelve un OBJETO `{0:'A', 1:'B'}`. Con `color web` (408 valores) pasaba, y la tabla salía vacía
+ * SIN ERROR (el objeto se convertía en la cadena "[object Object]", que no coincide con nada).
+ * Se sube el límite en `main.ts`, pero aquí también se acepta la forma de objeto: si el parseo de la
+ * query cambia, que no vuelva a fallar en silencio.
  */
-function asValores(v: unknown): string[] | undefined {
+export function asValores(v: unknown): string[] | undefined {
   if (v === undefined) return undefined;
   if (Array.isArray(v)) return v.map(String).filter((s) => s !== '');
+  if (typeof v === 'object' && v !== null) {
+    return Object.values(v as Record<string, unknown>)
+      .map(String)
+      .filter((s) => s !== '');
+  }
   return String(v) === '' ? [] : [String(v)];
 }
 

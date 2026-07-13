@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Button, Card, Form, InputGroup, Spinner } from 'react-bootstrap';
+import { Alert, Button, Card, Form, InputGroup, Spinner, Tab, Tabs } from 'react-bootstrap';
 import { Database, Download, FileEarmarkExcel, Search, Upload } from 'react-bootstrap-icons';
 import type {
   ImportReportDto,
@@ -198,8 +198,9 @@ export function BaseDatosPage() {
 
       {error && <Alert variant="danger">⚠ {error}</Alert>}
 
+      {/* Fijos: explorando 5.736 referencias, el total es la referencia para interpretar lo que ves. */}
       {stats && (
-        <div className="kpis mb-4">
+        <div className="kpis kpis-sticky mb-4">
           <div className="kpi">
             <div className="kpi-val">{stats.total.toLocaleString('es-ES')}</div>
             <div className="kpi-lbl">SKU</div>
@@ -219,170 +220,186 @@ export function BaseDatosPage() {
         </div>
       )}
 
-      {isAdmin && (
-      <Card className="mb-4">
-        <Card.Body className="p-4">
-          <Card.Title className="mb-1">Cargar maestro completo</Card.Title>
-          <p className="text-secondary small">
-            Sube el Excel <strong>REFERENCIAS COOLWAY.xlsx</strong> (la colección entera). Se guarda por{' '}
-            <strong>ref + talla</strong>: añade lo que falte y actualiza lo existente, sin borrar nada. Es lo que hay que
-            cargar para que la generación de etiquetas pueda usar la base de datos como maestro.
-          </p>
-          <FileDropzone
-            title="REFERENCIAS COOLWAY.xlsx"
-            hint="El maestro completo de la colección"
-            accept=".xlsx,.xlsm"
-            files={masterFile}
-            onFiles={setMasterFile}
-            icon={<Database />}
-          />
-          <Button className="btn-brand mt-3" disabled={seeding || masterFile.length === 0} onClick={runSeed}>
-            {seeding ? (
-              <>
-                <Spinner as="span" size="sm" animation="border" className="me-2" /> Cargando maestro…
-              </>
-            ) : (
-              <>
-                <Upload className="me-2" aria-hidden="true" /> Cargar maestro
-              </>
-            )}
-          </Button>
 
-          {seedReport && (
-            <>
-              <div className={`summary ${seedReport.failed ? 'warn' : 'ok'} mt-3`}>
-                {seedReport.valid.toLocaleString('es-ES')} filas válidas de {seedReport.rows.toLocaleString('es-ES')} leídas ·{' '}
-                {seedReport.created.toLocaleString('es-ES')} nuevas · {seedReport.updated.toLocaleString('es-ES')} actualizadas
-                {seedReport.failed ? ` · ${seedReport.failed} rechazadas` : ''} ·{' '}
-                <strong>{seedReport.total.toLocaleString('es-ES')} SKU en el maestro</strong>
+      <Tabs defaultActiveKey="referencias" className="mb-3">
+        {/* Lo que se usa a diario va primero: es lo que ve el operador nada más entrar. */}
+        <Tab eventKey="referencias" title="Referencias">
+          <Card>
+            <Card.Body className="p-4">
+              {/* Una sola fila: título · buscador (se come el espacio libre) · exportar.
+                  Antes el buscador y el botón caían uno debajo del otro porque iban en un bloque
+                  aparte con `flex-wrap`, y el buscador tenía un ancho fijo pequeño. */}
+              <div className="refs-toolbar mb-3">
+                <Card.Title className="mb-0 text-nowrap">Referencias</Card.Title>
+
+                <InputGroup size="sm" className="refs-search">
+                  <InputGroup.Text>
+                    <Search aria-hidden="true" />
+                  </InputGroup.Text>
+                  <Form.Control
+                    placeholder="Buscar modelo, color, ref, SKU, código…"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    aria-label="Buscar en el maestro"
+                  />
+                </InputGroup>
+
+                {/* Exporta LO QUE SE VE: mismos filtros y mismo orden. El Excel lo hace el servidor. */}
+                <Button
+                  variant="outline-secondary"
+                  size="sm"
+                  className="text-nowrap"
+                  disabled={exportando}
+                  onClick={exportar}
+                >
+                  {exportando ? (
+                    <>
+                      <Spinner as="span" size="sm" animation="border" className="me-2" /> Exportando…
+                    </>
+                  ) : (
+                    <>
+                      <Download className="me-1" aria-hidden="true" />
+                      Exportar {maestro.activeFilterCount > 0 || searchAplicada ? 'lo filtrado' : 'todo'} a Excel
+                    </>
+                  )}
+                </Button>
               </div>
 
-              {seedReport.issues.length > 0 && (
-                <div className="missing-box mt-2">
-                  <div className="small text-secondary mb-2">
-                    Estas filas del Excel <strong>no han entrado</strong> en el maestro. Son tallas que faltarán al generar
-                    etiquetas: hay que corregirlas en el Excel y volver a cargarlo.
-                  </div>
-                  <TablaRechazadas issues={seedReport.issues} />
+              {maestro.loading && (
+                <div className="text-secondary small mb-2">
+                  <Spinner as="span" size="sm" animation="border" className="me-2" />
+                  Cargando…
                 </div>
               )}
 
-              {seedReport.sharedEan13.length > 0 && (
-                <div className="missing-box mt-2">
-                  <div className="small text-secondary mb-2">
-                    <strong>{seedReport.sharedEan13.length} códigos EAN13 están repetidos en productos distintos.</strong>{' '}
-                    Estas filas <strong>sí han entrado</strong> en el maestro, pero el mismo código de barras identifica a
-                    dos productos que se venden por separado: en caja sería ambiguo. Hay que corregirlo en el Excel.
-                  </div>
-                  <TablaEanCompartidos shared={seedReport.sharedEan13} />
-                </div>
-              )}
-            </>
-          )}
-        </Card.Body>
-      </Card>
-      )}
+              {/* Filtra y ordena EN LA BD sobre los 5.736 SKU, no sobre las 100 filas de la página. */}
+              <DataTable
+                model={maestro}
+                allRows={maestro.rows}
+                rowKey={(r) => r.sku}
+                empty="Ninguna referencia cumple el filtro."
+              />
+            </Card.Body>
+          </Card>
+        </Tab>
 
-      {isAdmin && (
-      <Card className="mb-4">
-        <Card.Body className="p-4">
-          <Card.Title className="mb-1">Actualizar códigos (prepedidos)</Card.Title>
-          <p className="text-secondary small">
-            Sube los exports de prepedidos <strong>EAN.xlsm</strong> y <strong>UPC.xlsm</strong>. Se unen por ref+talla,
-            se calcula el SKU y se guardan en la base de datos (los códigos existentes se actualizan).
-          </p>
-          <div className="row g-3">
-            <div className="col-md-6">
-              <FileDropzone title="EAN.xlsm" hint="Export de prepedidos con EAN" accept=".xlsx,.xlsm" files={ean} onFiles={setEan} icon={<FileEarmarkExcel />} />
-            </div>
-            <div className="col-md-6">
-              <FileDropzone title="UPC.xlsm" hint="Export de prepedidos con UPC" accept=".xlsx,.xlsm" files={upc} onFiles={setUpc} icon={<FileEarmarkExcel />} />
-            </div>
-          </div>
-          <Button className="btn-brand mt-3" disabled={importing || ean.length === 0 || upc.length === 0} onClick={runImport}>
-            {importing ? (
-              <>
-                <Spinner as="span" size="sm" animation="border" className="me-2" /> Importando…
-              </>
-            ) : (
-              <>
-                <Upload className="me-2" aria-hidden="true" /> Importar al maestro
-              </>
-            )}
-          </Button>
-
-          {report && (
-            <>
-              <div className={`summary ${report.issues.length ? 'warn' : 'ok'} mt-3`}>
-                {report.merged} SKU procesados · {report.created} nuevos · {report.updated} actualizados
-                {report.skipped ? ` · ${report.skipped} saltados` : ''} ·{' '}
-                {report.issues.length ? `${report.issues.length} incidencias` : 'sin incidencias'}
-              </div>
-              {report.issues.length > 0 && (
-                <div className="missing-box mt-2 small">
-                  {Object.entries(
-                    report.issues.reduce<Record<string, number>>((m, i) => ((m[i.reason] = (m[i.reason] ?? 0) + 1), m), {}),
-                  ).map(([reason, count]) => (
-                    <div key={reason}>
-                      <strong>{count}</strong> · {reason}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-        </Card.Body>
-      </Card>
-      )}
-
-      <Card>
-        <Card.Body className="p-4">
-          <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-            <Card.Title className="mb-0">Referencias</Card.Title>
-            <div className="d-flex gap-2 flex-wrap">
-              <InputGroup size="sm" style={{ maxWidth: 280 }}>
-                <InputGroup.Text>
-                  <Search aria-hidden="true" />
-                </InputGroup.Text>
-                <Form.Control
-                  placeholder="Buscar modelo, color, ref, SKU, código…"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  aria-label="Buscar en el maestro"
+        {/* Las cargas reescriben la fuente de verdad: sólo admin, y fuera del camino diario. */}
+        {isAdmin && (
+          <Tab eventKey="cargas" title="Cargas y actualizaciones">
+            <Card className="mb-4">
+              <Card.Body className="p-4">
+                <Card.Title className="mb-1">Cargar maestro completo</Card.Title>
+                <p className="text-secondary small">
+                  Sube el Excel <strong>REFERENCIAS COOLWAY.xlsx</strong> (la colección entera). Se guarda por{' '}
+                  <strong>ref + talla</strong>: añade lo que falte y actualiza lo existente, sin borrar nada. Es lo que hay que
+                  cargar para que la generación de etiquetas pueda usar la base de datos como maestro.
+                </p>
+                <FileDropzone
+                  title="REFERENCIAS COOLWAY.xlsx"
+                  hint="El maestro completo de la colección"
+                  accept=".xlsx,.xlsm"
+                  files={masterFile}
+                  onFiles={setMasterFile}
+                  icon={<Database />}
                 />
-              </InputGroup>
-              {/* Exporta LO QUE SE VE: mismos filtros y mismo orden. El Excel lo hace el servidor. */}
-              <Button variant="outline-secondary" size="sm" disabled={exportando} onClick={exportar}>
-                {exportando ? (
+                <Button className="btn-brand mt-3" disabled={seeding || masterFile.length === 0} onClick={runSeed}>
+                  {seeding ? (
+                    <>
+                      <Spinner as="span" size="sm" animation="border" className="me-2" /> Cargando maestro…
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="me-2" aria-hidden="true" /> Cargar maestro
+                    </>
+                  )}
+                </Button>
+
+                {seedReport && (
                   <>
-                    <Spinner as="span" size="sm" animation="border" className="me-2" /> Exportando…
-                  </>
-                ) : (
-                  <>
-                    <Download className="me-1" aria-hidden="true" />
-                    Exportar {maestro.activeFilterCount > 0 || searchAplicada ? 'lo filtrado' : 'todo'} a Excel
+                    <div className={`summary ${seedReport.failed ? 'warn' : 'ok'} mt-3`}>
+                      {seedReport.valid.toLocaleString('es-ES')} filas válidas de {seedReport.rows.toLocaleString('es-ES')} leídas ·{' '}
+                      {seedReport.created.toLocaleString('es-ES')} nuevas · {seedReport.updated.toLocaleString('es-ES')} actualizadas
+                      {seedReport.failed ? ` · ${seedReport.failed} rechazadas` : ''} ·{' '}
+                      <strong>{seedReport.total.toLocaleString('es-ES')} SKU en el maestro</strong>
+                    </div>
+
+                    {seedReport.issues.length > 0 && (
+                      <div className="missing-box mt-2">
+                        <div className="small text-secondary mb-2">
+                          Estas filas del Excel <strong>no han entrado</strong> en el maestro. Son tallas que faltarán al generar
+                          etiquetas: hay que corregirlas en el Excel y volver a cargarlo.
+                        </div>
+                        <TablaRechazadas issues={seedReport.issues} />
+                      </div>
+                    )}
+
+                    {seedReport.sharedEan13.length > 0 && (
+                      <div className="missing-box mt-2">
+                        <div className="small text-secondary mb-2">
+                          <strong>{seedReport.sharedEan13.length} códigos EAN13 están repetidos en productos distintos.</strong>{' '}
+                          Estas filas <strong>sí han entrado</strong> en el maestro, pero el mismo código de barras identifica a
+                          dos productos que se venden por separado: en caja sería ambiguo. Hay que corregirlo en el Excel.
+                        </div>
+                        <TablaEanCompartidos shared={seedReport.sharedEan13} />
+                      </div>
+                    )}
                   </>
                 )}
-              </Button>
-            </div>
-          </div>
+              </Card.Body>
+            </Card>
 
-          {maestro.loading && (
-            <div className="text-secondary small mb-2">
-              <Spinner as="span" size="sm" animation="border" className="me-2" />
-              Cargando…
-            </div>
-          )}
+            <Card className="mb-4">
+              <Card.Body className="p-4">
+                <Card.Title className="mb-1">Actualizar códigos (prepedidos)</Card.Title>
+                <p className="text-secondary small">
+                  Sube los exports de prepedidos <strong>EAN.xlsm</strong> y <strong>UPC.xlsm</strong>. Se unen por ref+talla,
+                  se calcula el SKU y se guardan en la base de datos (los códigos existentes se actualizan).
+                </p>
+                <div className="row g-3">
+                  <div className="col-md-6">
+                    <FileDropzone title="EAN.xlsm" hint="Export de prepedidos con EAN" accept=".xlsx,.xlsm" files={ean} onFiles={setEan} icon={<FileEarmarkExcel />} />
+                  </div>
+                  <div className="col-md-6">
+                    <FileDropzone title="UPC.xlsm" hint="Export de prepedidos con UPC" accept=".xlsx,.xlsm" files={upc} onFiles={setUpc} icon={<FileEarmarkExcel />} />
+                  </div>
+                </div>
+                <Button className="btn-brand mt-3" disabled={importing || ean.length === 0 || upc.length === 0} onClick={runImport}>
+                  {importing ? (
+                    <>
+                      <Spinner as="span" size="sm" animation="border" className="me-2" /> Importando…
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="me-2" aria-hidden="true" /> Importar al maestro
+                    </>
+                  )}
+                </Button>
 
-          {/* Filtra y ordena EN LA BD sobre los 5.736 SKU, no sobre las 100 filas de la página. */}
-          <DataTable
-            model={maestro}
-            allRows={maestro.rows}
-            rowKey={(r) => r.sku}
-            empty="Ninguna referencia cumple el filtro."
-          />
-        </Card.Body>
-      </Card>
+                {report && (
+                  <>
+                    <div className={`summary ${report.issues.length ? 'warn' : 'ok'} mt-3`}>
+                      {report.merged} SKU procesados · {report.created} nuevos · {report.updated} actualizados
+                      {report.skipped ? ` · ${report.skipped} saltados` : ''} ·{' '}
+                      {report.issues.length ? `${report.issues.length} incidencias` : 'sin incidencias'}
+                    </div>
+                    {report.issues.length > 0 && (
+                      <div className="missing-box mt-2 small">
+                        {Object.entries(
+                          report.issues.reduce<Record<string, number>>((m, i) => ((m[i.reason] = (m[i.reason] ?? 0) + 1), m), {}),
+                        ).map(([reason, count]) => (
+                          <div key={reason}>
+                            <strong>{count}</strong> · {reason}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </Card.Body>
+            </Card>
+          </Tab>
+        )}
+      </Tabs>
     </div>
   );
 }

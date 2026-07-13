@@ -148,6 +148,18 @@ tipo Excel y facetas cruzadas (los valores de un desplegable respetan los filtro
 3. **Fase 3**: ficheros de tarifas/surtidos SAP. **Fase 4**: plantillas de ventas.
 4. Próximos requerimientos anunciados: gestión de email, listados de stocks, listados de ventas.
 
+## Cómo se clasifica lo que entra (no todo es un requerimiento)
+
+**REQ** = valor de negocio nuevo (ritual `/nuevo-requerimiento`) · **MEJ** = mejora sobre algo existente
+(UX/rendimiento/DX, no toca el dato) · **BUG** = ya debía funcionar y no funcionaba (exige síntoma, causa
+raíz y **test de regresión que se comprueba que falla**). Detalle en
+[`diseño/03-backlog-requerimientos.md`](diseño/03-backlog-requerimientos.md).
+
+> **El patrón de los peores bugs de este proyecto: no fallan, MIENTEN.** El parser que se comía 798 pares y
+> aun así "cuadraba"; el filtro que habría mirado 100 filas de 5.736; el `qs` que vaciaba la tabla sin error.
+> Ante cualquier cosa que pueda devolver un resultado incompleto, la pregunta no es *"¿falla?"* sino
+> **"¿cómo me enteraría de que está mintiendo?"**.
+
 ## Calidad: la puerta exige cobertura
 
 ```bash
