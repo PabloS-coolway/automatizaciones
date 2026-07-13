@@ -3,6 +3,43 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-13] REQ-002 · El maestro filtra y ordena EN LA BD (fases 2 y 3)
+
+La tabla del maestro se quedó sin filtros en la fase 1 **a propósito**: es la única paginada en servidor
+(100 filas de 5.736), y filtrarla en el navegador habría dado un resultado **falso con apariencia de
+correcto** — el mismo patrón que costó los 798 pares del pedido 4603662. Ahora el filtro viaja a Postgres.
+
+### Añadido
+- **`GET /api/maestro/references` con filtros por columna**: multivalor (`style`, `color`, `size`,
+  `colorNameWeb`), "contiene" (`ref`, `sku`, `ean13`, `upc`) y `sort` + `dir`. Devuelve además
+  `grandTotal` (las filas del maestro sin filtrar) para poder enseñar siempre **"N de M"**.
+- **`GET /api/maestro/facets?column=…`**: los valores del desplegable de una columna **con los filtros de
+  las demás ya aplicados** (como Excel). No se pueden deducir de la página: con 100 filas en pantalla no se
+  sabe qué colores tiene GOAL.
+- **`useServerTable`**: produce el mismo `TableModel` que `useMemoryTable`, así que **la `DataTable` y la
+  página no cambian**. Era la promesa del diseño y se ha cumplido: sólo se cambió el motor.
+- **El filtro `(vacío)`** responde a la pregunta real de Silvia (*"¿qué no puedo etiquetar?"*): 893 filas sin
+  color web, verificado contra un `count` directo en Postgres.
+
+### Seguridad
+- **Lista blanca de columnas para ordenar**: `sort=id;DROP TABLE reference` **no rompe nada**, cae al orden
+  por defecto. Pasar el `orderBy` del cliente tal cual habría sido inyectable.
+- **Lista blanca de columnas agrupables**: `facets?column=sku` devuelve **400** con mensaje claro, en vez de
+  agrupar por una columna de 5.736 valores distintos.
+
+### Corregido
+- **Accesibilidad**: los botones de paginación no tenían etiqueta (un lector de pantalla no sabía decir qué
+  hacían). Añadidas `aria-label` ("Página siguiente", "Página 3"…).
+
+### Verificado contra la BD real (no sólo con tests)
+- `style=GOAL` → **1.343 de 5.736**. Facetas de color con GOAL aplicado → **92**, frente a 95 en todo el
+  maestro (los 3 que faltan no existen en GOAL).
+- **La selección vacía devuelve 0 filas, no "todas"**: viaja por la URL como `style=`. Si se perdiera ese
+  matiz, el servidor devolvería el maestro entero — el mismo bug que ya tuvimos en el front.
+
+> La puerta de calidad hizo su trabajo: al terminar la fase 3, `npm test` **falló** por cobertura de
+> funciones (74,35%). Hubo que escribir 4 tests más antes de poder seguir. **120 tests** (70 API + 50 web).
+
 ## [2026-07-13] Calidad — tests del front y cobertura mínima del 75% en la puerta
 
 Los dos bugs de la fase 1 (el sticky roto y el "(Seleccionar todo)" que no desmarcaba) los cazó **Pablo a

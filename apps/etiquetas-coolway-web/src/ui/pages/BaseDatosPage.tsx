@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Button, Card, Form, InputGroup, Pagination, Spinner, Table } from 'react-bootstrap';
+import { Alert, Button, Card, Form, InputGroup, Spinner } from 'react-bootstrap';
 import { Database, FileEarmarkExcel, Search, Upload } from 'react-bootstrap-icons';
 import type {
   ImportReportDto,
@@ -12,9 +12,7 @@ import type {
 import { maestroGateway } from '../composition';
 import { FileDropzone } from '../components/FileDropzone';
 import { useAuth } from '../auth/AuthContext';
-import { Column, DataTable, useMemoryTable } from '../components/table';
-
-const PAGE_SIZE = 50;
+import { Column, DataTable, useMemoryTable, useServerTable } from '../components/table';
 
 /** Filas rechazadas al cargar el maestro. Filtrable por modelo/motivo: así se atacan por lotes. */
 function TablaRechazadas({ issues }: { issues: SeedIssueDto[] }) {
@@ -69,24 +67,11 @@ function TablaEanCompartidos({ shared }: { shared: SharedEan13Dto[] }) {
   return <DataTable model={model} allRows={shared} rowKey={(s) => s.ean13} />;
 }
 
-/** Construye la lista de páginas a mostrar con elipsis alrededor de la actual. */
-function pageWindow(current: number, totalPages: number): (number | '…')[] {
-  const out: (number | '…')[] = [];
-  for (let p = 1; p <= totalPages; p++) {
-    if (p === 1 || p === totalPages || Math.abs(p - current) <= 1) out.push(p);
-    else if (out[out.length - 1] !== '…') out.push('…');
-  }
-  return out;
-}
-
 export function BaseDatosPage() {
   const { isAdmin } = useAuth();
   const [stats, setStats] = useState<MaestroStatsDto | null>(null);
-  const [items, setItems] = useState<ReferenceDto[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [searchAplicada, setSearchAplicada] = useState('');
   const [error, setError] = useState('');
 
   // Importar códigos (EAN/UPC de prepedidos)
@@ -100,40 +85,47 @@ export function BaseDatosPage() {
   const [seeding, setSeeding] = useState(false);
   const [seedReport, setSeedReport] = useState<SeedReportDto | null>(null);
 
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-
   const loadStats = useCallback(() => {
     maestroGateway.getStats().then(setStats).catch((e) => setError((e as Error).message));
   }, []);
 
-  const loadRefs = useCallback((q: string, p: number) => {
-    setLoading(true);
-    maestroGateway
-      .listReferences(q, PAGE_SIZE, (p - 1) * PAGE_SIZE)
-      .then((r) => {
-        setItems(r.items);
-        setTotal(r.total);
-      })
-      .catch((e) => setError((e as Error).message))
-      .finally(() => setLoading(false));
-  }, []);
-
   useEffect(() => loadStats(), [loadStats]);
 
-  // Al buscar (debounce) se vuelve a la página 1.
+  // La búsqueda global se aplica con un respiro, para no llamar a la API en cada tecla.
   useEffect(() => {
-    const t = setTimeout(() => {
-      setPage(1);
-      loadRefs(search, 1);
-    }, 250);
+    const t = setTimeout(() => setSearchAplicada(search), 250);
     return () => clearTimeout(t);
-  }, [search, loadRefs]);
+  }, [search]);
 
-  function goTo(p: number) {
-    if (p < 1 || p > totalPages || p === page) return;
-    setPage(p);
-    loadRefs(search, p);
-  }
+  const vacio = <span className="text-secondary">—</span>;
+
+  /**
+   * El TIPO de filtro se declara aquí a mano (no se deduce de las filas cargadas): la cardinalidad
+   * real está en la BD. Con 100 filas en pantalla, `sku` parecería tener pocos valores distintos y
+   * saldría un desplegable de casillas… con 5.736 valores detrás.
+   */
+  const columns = useMemo<Column<ReferenceDto>[]>(
+    () => [
+      { key: 'style', label: 'modelo', value: (r) => r.style, filter: 'values' },
+      { key: 'color', label: 'color', value: (r) => r.color, filter: 'values' },
+      { key: 'ref', label: 'ref.', value: (r) => r.ref, filter: 'text' },
+      { key: 'size', label: 'talla', value: (r) => r.size, filter: 'values' },
+      { key: 'sku', label: 'SKU', value: (r) => r.sku, filter: 'text' },
+      { key: 'ean13', label: 'ean13', value: (r) => r.ean13, filter: 'text', render: (r) => r.ean13 ?? vacio },
+      { key: 'upc', label: 'upc', value: (r) => r.upc, filter: 'text', render: (r) => r.upc ?? vacio },
+      {
+        key: 'colorNameWeb',
+        label: 'color web',
+        value: (r) => r.colorNameWeb,
+        filter: 'values',
+        render: (r) => r.colorNameWeb ?? vacio,
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
+  const maestro = useServerTable(maestroGateway, columns, searchAplicada, setError);
 
   async function runImport() {
     if (ean.length === 0 || upc.length === 0) return;
@@ -146,8 +138,7 @@ export function BaseDatosPage() {
       setEan([]);
       setUpc([]);
       loadStats();
-      setPage(1);
-      loadRefs(search, 1);
+      maestro.reload?.();
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -165,17 +156,13 @@ export function BaseDatosPage() {
       setSeedReport(r);
       setMasterFile([]);
       loadStats();
-      setPage(1);
-      loadRefs(search, 1);
+      maestro.reload?.();
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setSeeding(false);
     }
   }
-
-  const from = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
-  const to = (page - 1) * PAGE_SIZE + items.length;
 
   return (
     <div className="page page-wide">
@@ -340,71 +327,20 @@ export function BaseDatosPage() {
             </InputGroup>
           </div>
 
-          <div className="text-secondary small mb-2">
-            {loading ? (
-              <>
-                <Spinner as="span" size="sm" animation="border" className="me-2" />
-                Cargando…
-              </>
-            ) : (
-              <>
-                Mostrando {from.toLocaleString('es-ES')}–{to.toLocaleString('es-ES')} de {total.toLocaleString('es-ES')}
-                {search && ' (filtradas)'}
-              </>
-            )}
-          </div>
-
-          <div className="labels-preview">
-            <Table size="sm" striped hover responsive className="mb-0">
-              <thead>
-                <tr>
-                  <th>style</th>
-                  <th>color</th>
-                  <th>ref.</th>
-                  <th>talla</th>
-                  <th>SKU</th>
-                  <th>ean13</th>
-                  <th>upc</th>
-                  <th>color web</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((r) => (
-                  <tr key={r.sku}>
-                    <td>{r.style}</td>
-                    <td>{r.color}</td>
-                    <td>{r.ref}</td>
-                    <td>{r.size}</td>
-                    <td>{r.sku}</td>
-                    <td>{r.ean13 ?? <span className="text-secondary">—</span>}</td>
-                    <td>{r.upc ?? <span className="text-secondary">—</span>}</td>
-                    <td>{r.colorNameWeb ?? <span className="text-secondary">—</span>}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          </div>
-
-          {totalPages > 1 && (
-            <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-3">
-              <span className="text-secondary small">
-                Página {page} de {totalPages}
-              </span>
-              <Pagination size="sm" className="mb-0">
-                <Pagination.Prev disabled={page === 1 || loading} onClick={() => goTo(page - 1)} />
-                {pageWindow(page, totalPages).map((p, i) =>
-                  p === '…' ? (
-                    <Pagination.Ellipsis key={`e${i}`} disabled />
-                  ) : (
-                    <Pagination.Item key={p} active={p === page} onClick={() => goTo(p)}>
-                      {p}
-                    </Pagination.Item>
-                  ),
-                )}
-                <Pagination.Next disabled={page === totalPages || loading} onClick={() => goTo(page + 1)} />
-              </Pagination>
+          {maestro.loading && (
+            <div className="text-secondary small mb-2">
+              <Spinner as="span" size="sm" animation="border" className="me-2" />
+              Cargando…
             </div>
           )}
+
+          {/* Filtra y ordena EN LA BD sobre los 5.736 SKU, no sobre las 100 filas de la página. */}
+          <DataTable
+            model={maestro}
+            allRows={maestro.rows}
+            rowKey={(r) => r.sku}
+            empty="Ninguna referencia cumple el filtro."
+          />
         </Card.Body>
       </Card>
     </div>

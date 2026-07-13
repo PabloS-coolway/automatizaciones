@@ -117,3 +117,50 @@ describe('DataTable', () => {
     expect(filasPintadas()).toHaveLength(11);
   });
 });
+
+describe('DataTable · paginación y desplegable con muchos valores', () => {
+  // modelo: 20 valores distintos → filtro de CASILLAS con buscador (>8 valores).
+  // talla: 260 distintos → filtro de TEXTO (un desplegable no serviría).
+  const muchas = Array.from({ length: 260 }, (_, i) => ({ modelo: `M${i % 20}`, talla: String(i) }));
+
+  it('pagina y navega con "siguiente" (50 por página)', () => {
+    render(<Tabla filas={muchas} />);
+    expect(filasPintadas()).toHaveLength(50);
+
+    fireEvent.click(screen.getByLabelText('Página siguiente'));
+    expect(filasPintadas()).toHaveLength(50);
+    expect(screen.getByLabelText('Página 2').closest('li')?.className).toContain('active');
+  });
+
+  it('salta a una página concreta', () => {
+    render(<Tabla filas={muchas} />);
+    fireEvent.click(screen.getByLabelText('Página 6')); // última
+    expect(filasPintadas()).toHaveLength(10); // 260 = 5x50 + 10
+  });
+
+  it('con muchos valores, el desplegable trae buscador y "(Seleccionar lo visible)"', () => {
+    render(<Tabla filas={muchas} />);
+    abrirFiltro('modelo'); // 100 valores distintos → filtro de casillas con buscador
+
+    fireEvent.change(desplegable().getByLabelText('Buscar valor en el filtro'), { target: { value: 'M1' } });
+
+    // Al buscar, la casilla de arriba pasa a afectar SÓLO lo visible (como Excel).
+    const visibles = desplegable().getByRole('checkbox', { name: '(Seleccionar lo visible)' });
+    fireEvent.click(visibles); // desmarca los que coinciden con "M1"
+
+    // Se desmarcan M1 y M10..M19 (11 de 20 modelos) → quedan 9 modelos × 13 filas = 117 de 260.
+    expect(screen.getByText(/Quitar 1 filtro/)).toBeDefined();
+    expect(screen.getByText('117')).toBeDefined();
+  });
+
+  it('"Quitar filtro" del filtro de texto lo limpia', () => {
+    render(<Tabla filas={muchas} />);
+    abrirFiltro('talla'); // 260 valores distintos → filtro de texto
+
+    fireEvent.change(desplegable().getByLabelText('Filtrar: contiene'), { target: { value: '25' } });
+    expect(screen.getByText(/Quitar 1 filtro/)).toBeDefined();
+
+    fireEvent.click(desplegable().getByText('Quitar filtro'));
+    expect(filasPintadas()).toHaveLength(50); // vuelve la primera página completa
+  });
+});
