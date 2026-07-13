@@ -9,6 +9,7 @@ import {
   UseInterceptors,
   BadRequestException,
   ServiceUnavailableException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import {
@@ -23,6 +24,7 @@ import { GENERATE_LABELS_USE_CASE } from '../../application/tokens';
 import { GenerateLabelsUseCase } from '../../application/use-cases/generate-labels.use-case';
 import { LabelExcelSerializer } from '../../infrastructure/excel/label-excel-serializer';
 import { PdftotextNotInstalledError } from '../../infrastructure/pdf/pdf-text-extractor';
+import { UnknownAssortmentError } from '../../domain/services/assortment-catalog';
 import { Public } from '../../auth/interface/http/decorators';
 
 type Uploaded = { master?: Express.Multer.File[]; orders?: Express.Multer.File[] };
@@ -88,6 +90,15 @@ export class LabelsController {
     } catch (err) {
       // Falta una dependencia del entorno: se avisa con su nombre, no como error genérico.
       if (err instanceof PdftotextNotInstalledError) throw new ServiceUnavailableException(err.message);
+      // El pedido trae un surtido que no está en el catálogo: es un dato que falta, no un fallo del
+      // sistema. Se dice cuál, para poder añadirlo (nunca se adivina su composición: descuadraría).
+      if (err instanceof UnknownAssortmentError) {
+        throw new UnprocessableEntityException(
+          `El pedido usa el surtido "${err.code}", que no está en el catálogo de surtidos. ` +
+            `No se puede saber cuántos pares lleva cada caja, así que no se generan etiquetas ` +
+            `(inventarlo descuadraría el pedido). Hay que añadirlo al catálogo.`,
+        );
+      }
       throw err;
     } finally {
       // limpiar temporales subidos

@@ -16,7 +16,11 @@ model Reference {
   ref          String
   size         String
   sku          String
-  ean13        String?  @unique
+  /// El EAN13 NO es único: un producto re-referenciado en SAP conserva su código en la ref vieja
+  /// y en la nueva (mismo modelo+color, dos refs). La identidad del SKU es (ref, size).
+  /// Si un mismo EAN aparece en productos DISTINTOS, es un error del maestro: la carga lo AVISA
+  /// (no lo rechaza) para que se corrija en origen. Ver SeedMasterUseCase.
+  ean13        String?
   upc          String?
   colorNameWeb String?  @map("color_name_web")
   season       String?
@@ -25,6 +29,7 @@ model Reference {
 
   @@unique([ref, size]) // un SKU por talla de cada referencia
   @@index([style, color])
+  @@index([ean13]) // se consulta por código, pero sin exigir unicidad
   @@map("reference")
 }
 

@@ -1,4 +1,9 @@
-import { ASSORTMENTS, assortmentTotalPairs, expandAssortment } from '../src/domain/services/assortment-catalog';
+import {
+  ASSORTMENTS,
+  UnknownAssortmentError,
+  assortmentTotalPairs,
+  expandAssortment,
+} from '../src/domain/services/assortment-catalog';
 
 describe('Catálogo de surtidos', () => {
   it('surtido I suma 12 pares y cubre 36-41', () => {
@@ -30,7 +35,18 @@ describe('Catálogo de surtidos', () => {
     expect(expandAssortment('S46')).toEqual({ gender: 'M', pairs: { '46': 1 } });
   });
 
-  it('surtido desconocido lanza error (no inventa)', () => {
-    expect(() => expandAssortment('XX')).toThrow(/desconocido/);
+  it('caja monotalla M<nn> → 6 pares, todos de esa talla (pedido 4603662)', () => {
+    expect(expandAssortment('M36').pairs).toEqual({ '36': 6 });
+    expect(assortmentTotalPairs('M36')).toBe(6);
+    expect(assortmentTotalPairs('M46')).toBe(6); // también en tallas de chico
+  });
+
+  it('surtido desconocido lanza UnknownAssortmentError con el código (no inventa)', () => {
+    expect(() => expandAssortment('XX')).toThrow(UnknownAssortmentError);
+    try {
+      expandAssortment('XX');
+    } catch (e) {
+      expect((e as UnknownAssortmentError).code).toBe('XX');
+    }
   });
 });

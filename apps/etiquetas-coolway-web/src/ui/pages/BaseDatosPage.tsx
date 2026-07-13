@@ -217,6 +217,38 @@ export function BaseDatosPage() {
                   </Table>
                 </div>
               )}
+
+              {seedReport.sharedEan13.length > 0 && (
+                <div className="missing-box mt-2">
+                  <div className="small text-secondary mb-2">
+                    <strong>{seedReport.sharedEan13.length} códigos EAN13 están repetidos en productos distintos.</strong>{' '}
+                    Estas filas <strong>sí han entrado</strong> en el maestro, pero el mismo código de barras identifica a
+                    dos productos que se venden por separado: en caja sería ambiguo. Hay que corregirlo en el Excel.
+                  </div>
+                  <Table size="sm" borderless className="mb-0 missing-table">
+                    <thead>
+                      <tr className="small text-secondary">
+                        <th>EAN13</th>
+                        <th>productos que lo comparten</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {seedReport.sharedEan13.map((s) => (
+                        <tr key={s.ean13} className="small">
+                          <td><strong>{s.ean13}</strong></td>
+                          <td>
+                            {s.rows.map((r) => (
+                              <div key={`${r.ref}-${r.size}`}>
+                                {r.style} {r.color} · ref {r.ref} · talla {r.size}
+                              </div>
+                            ))}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                </div>
+              )}
             </>
           )}
         </Card.Body>
