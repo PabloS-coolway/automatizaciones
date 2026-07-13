@@ -1,8 +1,9 @@
-import { Fragment, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { Alert, Badge, Button, Card, Collapse, Table } from 'react-bootstrap';
 import { CheckCircleFill, ChevronDown, ChevronRight, Download, Eye } from 'react-bootstrap-icons';
 import type { GeneratedFileDto, MissingCodeDto } from '@yorga/contracts';
 import { LabelsTable } from './LabelsTable';
+import { Column, DataTable, useMemoryTable } from './table';
 
 interface Props {
   files: GeneratedFileDto[];
@@ -27,6 +28,34 @@ function groupMissing(missing: MissingCodeDto[]) {
     map.set(key, g);
   }
   return [...map.values()];
+}
+
+type Faltante = ReturnType<typeof groupMissing>[number];
+
+/** Códigos que no se pudieron resolver. Filtrar por MOTIVO es la pregunta real: "¿qué me falta y por qué?". */
+function TablaFaltantes({ missing }: { missing: MissingCodeDto[] }) {
+  const rows = useMemo(() => groupMissing(missing), [missing]);
+  const columns = useMemo<Column<Faltante>[]>(
+    () => [
+      {
+        key: 'style',
+        label: 'modelo',
+        value: (g) => g.label.split(' ')[0],
+        render: (g) => <strong>{g.label.split(' ')[0]}</strong>,
+      },
+      { key: 'color', label: 'color', value: (g) => g.label.split(' ').slice(1).join(' ') },
+      {
+        key: 'sizes',
+        label: 'tallas',
+        value: (g) => [...g.sizes].sort((a, b) => Number(a) - Number(b)).join(', '),
+      },
+      { key: 'pairs', label: 'pares', align: 'end', value: (g) => g.pairs },
+      { key: 'reason', label: 'motivo', value: (g) => REASON_LABEL[g.reason] },
+    ],
+    [],
+  );
+  const model = useMemoryTable(rows, columns);
+  return <DataTable model={model} allRows={rows} rowKey={(g) => `${g.label}-${g.reason}`} />;
 }
 
 export function ResultsCard({ files, onDownloadOne, onDownloadAll }: Props) {
@@ -202,28 +231,7 @@ export function ResultsCard({ files, onDownloadOne, onDownloadAll }: Props) {
                                   Estos códigos no se pudieron resolver en el maestro (no se inventan — hay que
                                   añadirlos/completarlos en el maestro):
                                 </div>
-                                <Table size="sm" borderless className="mb-0 missing-table">
-                                  <thead>
-                                    <tr className="small text-secondary">
-                                      <th>modelo</th>
-                                      <th>color</th>
-                                      <th>tallas</th>
-                                      <th className="text-end">pares</th>
-                                      <th>motivo</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {groupMissing(f.missing).map((g) => (
-                                      <tr key={`${g.label}-${g.reason}`} className="small">
-                                        <td><strong>{g.label.split(' ')[0]}</strong></td>
-                                        <td>{g.label.split(' ').slice(1).join(' ')}</td>
-                                        <td>{[...g.sizes].sort((a, b) => Number(a) - Number(b)).join(', ')}</td>
-                                        <td className="text-end">{g.pairs}</td>
-                                        <td>{REASON_LABEL[g.reason]}</td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </Table>
+                                <TablaFaltantes missing={f.missing} />
                               </div>
                             )}
                             <LabelsTable rows={f.rows} fileName={f.fileName} />

@@ -128,6 +128,13 @@ BD y elige *maestro = base de datos*).
 - **Roles operador/admin**: lo que hay que proteger de verdad es la escritura del maestro.
 - Formato de salida simplificado (lo que prefiere Silvia); los bultos se quedan en SAP.
 
+### REQ-002 · Tablas explorables (fase 1 ✅)
+Todas las tablas que caben en memoria (etiquetas, faltantes, avisos, usuarios) ya se **ordenan y filtran
+por columna** con un componente único (`DataTable`), con autofiltro tipo Excel y facetas cruzadas.
+**Pendiente: fases 2 y 3** → llevar filtro y orden del **maestro** al servidor (hoy no tiene filtros a
+propósito: en cliente sólo miraría las 100 filas de la página y mentiría). Fase 4 opcional: exportar la
+vista filtrada a Excel.
+
 ## Siguiente hilo (elige uno)
 
 1. **Fase 2 · Bloque 3 — gobernanza del maestro**: publicar el maestro a Excel/Sheets para los
@@ -145,5 +152,7 @@ BD y elige *maestro = base de datos*).
   dependencia del sistema operativo y `npm ci` no la instala**: el servidor se comería el mismo fallo que
   en local. Cuando se sepa dónde se despliega, es una línea (`apt-get install -y poppler-utils` en la imagen
   o en el aprovisionamiento). Mitigado de momento: la API lo avisa al arrancar y responde 503 explicándolo.
-- No hay tests del front ni del controlador HTTP (sí del dominio: 36 en verde).
+- **No hay tests del front** ni del controlador HTTP (sí del dominio: 43 en verde). Duele ya: el motor de
+  filtrado (`useMemoryTable`) tiene lógica real —facetas cruzadas, selección vacía— y su bug de
+  "(Seleccionar todo)" lo cazó el usuario a mano, no un test. Montar Vitest en la web es lo siguiente.
 - El maestro se sube a mano; leerlo del Drive por API sigue pendiente (DEP-02).
