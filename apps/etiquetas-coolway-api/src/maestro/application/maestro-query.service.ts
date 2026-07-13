@@ -5,6 +5,7 @@ import {
   MaestroStatsDto,
   REFERENCE_FACET_COLUMNS,
   REFERENCE_SORT_COLUMNS,
+  ReferenceDto,
   ReferenceFacetColumn,
   ReferenceFiltersDto,
   ReferencesPageDto,
@@ -12,6 +13,13 @@ import {
   VALOR_VACIO,
 } from '@yorga/contracts';
 import { PrismaService } from '../../infrastructure/db/prisma.service';
+
+/**
+ * Tope de filas al exportar. Hoy el maestro tiene 5.736; el tope está para que, si un día crece
+ * mucho, la exportación no se lleve por delante la memoria del servidor. Si se alcanza, se AVISA
+ * (nunca se recorta en silencio: un Excel a medias es peor que ninguno).
+ */
+export const MAX_EXPORT = 50_000;
 
 /** Orden por defecto (el de siempre): por modelo, color, referencia y talla. */
 const ORDEN_POR_DEFECTO: Prisma.ReferenceOrderByWithRelationInput[] = [
@@ -122,6 +130,19 @@ export class MaestroQuery {
       }),
     ]);
     return { total, grandTotal, items };
+  }
+
+  /**
+   * TODAS las filas que cumplen el filtro (sin paginar), para exportar la vista tal como se ve.
+   * Con tope: exportar es cómodo, pero no a costa de tumbar el servidor si el maestro crece.
+   */
+  async allForExport(filters: ReferenceFiltersDto): Promise<ReferenceDto[]> {
+    return this.prisma.reference.findMany({
+      where: buildWhere(filters),
+      orderBy: buildOrderBy(filters.sort, filters.dir),
+      take: MAX_EXPORT,
+      select: { style: true, color: true, ref: true, size: true, sku: true, ean13: true, upc: true, colorNameWeb: true },
+    });
   }
 
   /**

@@ -128,7 +128,7 @@ BD y elige *maestro = base de datos*).
 - **Roles operador/admin**: lo que hay que proteger de verdad es la escritura del maestro.
 - Formato de salida simplificado (lo que prefiere Silvia); los bultos se quedan en SAP.
 
-### REQ-002 · Tablas explorables (fases 1, 2 y 3 ✅)
+### REQ-002 · Tablas explorables ✅ (COMPLETO: fases 1-4)
 **Todas** las tablas se ordenan y filtran por columna con un componente único (`DataTable`), con autofiltro
 tipo Excel y facetas cruzadas (los valores de un desplegable respetan los filtros de las demás columnas).
 
@@ -136,10 +136,9 @@ tipo Excel y facetas cruzadas (los valores de un desplegable respetan los filtro
 - **Maestro** (5.736 SKU): **en la BD** (`useServerTable` + `GET /maestro/references` con filtros y
   `GET /maestro/facets`). Filtrar en cliente habría mirado sólo las 100 filas de la página → resultado
   falso con apariencia de correcto. El `sort` va contra **lista blanca**: sin ella sería inyectable.
-
-**Pendiente — fase 4:** exportar **la vista filtrada** del maestro a Excel. Hoy `allFilteredRows()` del motor
-de servidor devuelve **sólo la página cargada** (exportar las 5.736 exigiría traérselas todas), así que la
-página no ofrece exportar: mejor eso que fingir que exporta lo que no tiene.
+- **Exportar a Excel la vista filtrada** (`GET /maestro/export`): lo genera el servidor, con los mismos
+  filtros y orden que se ven. Los códigos se escriben como **texto celda a celda** (si no, Excel convierte
+  el EAN13 en notación científica y pierde los ceros a la izquierda: sería corromper el dato al exportarlo).
 
 ## Siguiente hilo (elige uno)
 

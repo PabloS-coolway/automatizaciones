@@ -1,6 +1,6 @@
 # REQ-002 · Tablas explorables: filtrar por columna y ordenar (como en Excel)
 
-- Estado: 🔍 En análisis · Fecha: 2026-07-13
+- Estado: ✅ Hecho (fases 1-4) · Fecha: 2026-07-13
 - Área: Catálogo (UX de la herramienta de etiquetas)
 
 ## Problema de negocio
@@ -176,9 +176,26 @@ componente y la UI no se tocan**.
 | **3** | `ServerDataSource` y enchufar el maestro al mismo `DataTable` | El maestro deja de mentir: filtra sobre los 5.736, no sobre 100 |
 | **4** | *(opcional)* Exportar a Excel **la vista filtrada** | Cuando Silvia pueda filtrar, lo va a pedir |
 
+## Resultado (todas las fases entregadas)
+
+| Fase | Estado | Qué quedó |
+|---|---|---|
+| **1** | ✅ | `DataTable` + `useMemoryTable` en etiquetas, faltantes, avisos y usuarios |
+| **2** | ✅ | API del maestro: filtros por columna, `sort`/`dir` con **lista blanca**, `GET /maestro/facets` |
+| **3** | ✅ | `useServerTable`: el maestro filtra en la BD. **La UI no cambió** — sólo el motor |
+| **4** | ✅ | `GET /maestro/export`: Excel de la vista filtrada, generado en el servidor |
+
+**Lo que se confirmó por el camino:**
+- La decisión de **no** filtrar el maestro en cliente era la correcta: son 100 filas de 5.736 en pantalla.
+- **La lista blanca de ordenación era seguridad**, no cosmética: `sort=id;DROP TABLE reference` cae al orden
+  por defecto en vez de llegar al `orderBy`.
+- **Los códigos hay que exportarlos como texto celda a celda**: `exceljs` no guarda el formato de columna, y
+  Excel habría convertido los EAN13 en notación científica. Lo cazó un test porque **reabre el fichero**.
+
+**Aprendizaje para el siguiente REQ:** los dos bugs de la fase 1 (sticky roto, "(Seleccionar todo)" que no
+desmarcaba) eran de **presentación**, y ninguna cobertura los habría cazado. Se cazan **probando la app**.
+
 ## Próximos pasos
 
-1. Implementar la **fase 1** y enseñársela a Silvia: es la forma barata de validar que "así se parece a
-   Excel" antes de construir el servidor.
-2. Con su OK, fases 2 y 3.
-3. Revisar si la fase 4 (exportar la vista filtrada) entra en este REQ o se registra aparte.
+- Enseñárselo a Silvia y ver si el gesto le vale (es lo que decide si esto sirve).
+- Si pide filtrar por rangos (tallas 40-45) o guardar vistas, se registra como REQ nuevo.
