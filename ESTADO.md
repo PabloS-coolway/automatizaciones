@@ -1,7 +1,7 @@
 # Estado del proyecto · dónde vamos y qué sigue
 
 > Documento de traspaso. Si retomas el trabajo (o cambias de ordenador), **empieza por aquí**.
-> Última actualización: **2026-07-12**. Historial detallado en [`CHANGELOG.md`](CHANGELOG.md).
+> Última actualización: **2026-07-13**. Historial detallado en [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Arranque en un ordenador nuevo
 
@@ -54,7 +54,11 @@ prefijo 76/86 de la ref SAP), RN-05 (UPC compartido entre géneros), RN-06 (dedu
 ### Fase 2 · Maestro en Postgres ✅ (Bloques 1 y 2)
 El maestro de códigos vive en **Postgres** (fuente de verdad gobernada: sólo la app escribe).
 - **Cargar maestro completo**: se sube `REFERENCIAS COOLWAY.xlsx` **desde la web** (Base de datos →
-  *Cargar maestro completo*) o por CLI (`maestro:seed`). ~5.548 SKU.
+  *Cargar maestro completo*) o por CLI (`maestro:seed`). **5.736 SKU** con el maestro del 13/07/2026.
+- **El EAN13 no es único** (migración `ean13_deja_de_ser_unico`): un producto re-referenciado en SAP
+  conserva su código en la ref vieja y en la nueva. La identidad del SKU es `(ref, talla)`.
+- **Un código vacío en el Excel NO borra el de la BD**: vacío = "no lo sé", no "bórralo" (el UPC sólo
+  aplica a USA y a veces llega más tarde).
 - **Actualizar códigos**: importa los exports de prepedidos `EAN.xlsm` + `UPC.xlsm` (une por ref+talla,
   calcula SKU, upsert idempotente, con informe).
 - Al generar etiquetas se puede elegir el maestro **desde la BD o desde un Excel subido**.
@@ -66,17 +70,32 @@ sin CLI. El primer admin se crea con `npm run auth:create-user`.
 
 ## ⚠ Hallazgo pendiente de resolver con Silvia
 
-**El Excel maestro tiene 29 filas con EAN13 duplicado.** Un EAN13 identifica un producto único, así que
-la base de datos las rechaza y **esas 29 tallas no se pueden etiquetar**.
+**33 códigos EAN13 están asignados a DOS PRODUCTOS DISTINTOS** (modelo o color diferente). Ya no
+bloquean la carga —las filas entran—, pero el mismo código de barras identificaría a dos productos que se
+venden por separado: **en caja sería ambiguo**. La web los lista en cada carga del maestro.
 
-Ejemplo real: el código `8433852550355` está asignado a la vez a **GOAL EXP talla 42** y a
-**GOAL BRW talla 42**. Por eso el pedido 4603338 descuadraba en 1 par al generar contra la BD.
+| Productos que comparten EAN | EAN afectados |
+|---|---|
+| BECKS BUR vs BECKS RED | 13 |
+| BECKS PUR vs BECKS WHT | 6 |
+| KIZUNA FRS vs KIZUNA GHY | 6 |
+| BECKS BUR vs BECKS DGY *(comparten además ref y talla: uno pisa al otro en la BD)* | 6 |
+| GOAL BRW vs GOAL EXP | 1 |
+| GOAL KAK vs GOAL NUD | 1 |
 
-Afectados: `GOAL KAK`, `GOAL EXP`, `KIZUNA FRS/GHY`, `BECKS BUR/PUR/RED`, `BECKS X SLV`.
-**Cómo verlos**: al cargar el maestro, la web lista cada fila rechazada con su modelo, color, ref, talla
-y el EAN13 duplicado concreto. No se pierde nada en silencio.
+> No confundir con la **re-referenciación** (mismo modelo+color con dos refs, p.ej. `GOAL MIX`
+> 7643409 ↔ 7673119): eso es legítimo, el EAN se conserva y la BD ya lo admite. Sólo se avisa de lo de
+> arriba.
 
-**Acción pendiente**: pasarle el listado a Silvia para que corrija los duplicados en el maestro.
+**Otros defectos del maestro** (asumidos, no bloquean):
+- **6 EAN13 con texto** en vez de código (`"bl"`, `"ice green"`, `"vanill"`, `"pink"`, `"white leat"`, `"1"`)
+  en DUCK, GOAL TAN y MILE → modelos antiguos. Las filas entran **sin EAN** (nunca se inventa).
+- **210 filas sin EAN13** (GOAL 70, BLAKE MID 42, MILE 32, BECKS 30, BARESI 14, KIRO 9, 2003 7, DUCK 5,
+  KIZUNA 1) → colección aún sin sacar. Entran y esperan código.
+- **33 filas con (ref, talla) repetida** dentro del Excel (todas en `BECKS-BECKS X`) → duplicidad
+  deprecada; la segunda fila pisa a la primera.
+
+**Acción pendiente**: pasarle a Silvia los 33 EAN compartidos entre productos distintos.
 
 ## Cómo probarlo (qué fichero subir)
 
@@ -90,6 +109,7 @@ Si eliges el destino equivocado, aparecerán "faltantes" que en realidad son cor
 | `validaciones/4603552.pdf` | USA | 112 pares |
 | `validaciones/Update Order 4603338.pdf` | Italia | Sólo EAN, 1.840 pares |
 | `validaciones/UPDATE Order 4603187- (1).pdf` | **Valencia** | El gordo: cajas surtidas + CODE128, 8.444 pares, 265 filas |
+| `validaciones/4603662.pdf` | USA | Cajas **monotalla** (`M36`…`M46`) y **colores compuestos** (`W-B`): 11.028 pares, 448 filas |
 
 **Maestro**: `docs/requerimientos/REFERENCIAS COOLWAY.xlsx` (súbelo como fichero, o cárgalo antes en la
 BD y elige *maestro = base de datos*).

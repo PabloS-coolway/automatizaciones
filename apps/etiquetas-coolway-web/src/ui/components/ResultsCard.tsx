@@ -42,7 +42,11 @@ export function ResultsCard({ files, onDownloadOne, onDownloadAll }: Props) {
 
   const totalGen = files.reduce((s, f) => s + f.reconciliation.labelPairs, 0);
   const totalMissing = files.reduce((s, f) => s + f.missing.length, 0);
-  const okCount = files.filter((f) => f.reconciliation.balanced && f.missing.length === 0).length;
+  // Un pedido sólo está "ok" si además se ha leído ENTERO (matchesDeclared): un PDF a medias
+  // cuadra consigo mismo y parecería correcto.
+  const okCount = files.filter(
+    (f) => f.reconciliation.balanced && f.reconciliation.matchesDeclared && f.missing.length === 0,
+  ).length;
 
   return (
     <Card>
@@ -91,7 +95,7 @@ export function ResultsCard({ files, onDownloadOne, onDownloadAll }: Props) {
           </thead>
           <tbody>
             {files.map((f) => {
-              const ok = f.reconciliation.balanced && f.missing.length === 0;
+              const ok = f.reconciliation.balanced && f.reconciliation.matchesDeclared && f.missing.length === 0;
               const isOpen = expanded.has(f.orderNumber);
               return (
                 <Fragment key={f.orderNumber}>
@@ -116,7 +120,11 @@ export function ResultsCard({ files, onDownloadOne, onDownloadAll }: Props) {
                       )}
                     </td>
                     <td>
-                      {f.reconciliation.balanced ? (
+                      {!f.reconciliation.matchesDeclared ? (
+                        <Badge bg="danger-subtle" text="danger">
+                          PDF incompleto: faltan {f.reconciliation.missedPairs}
+                        </Badge>
+                      ) : f.reconciliation.balanced ? (
                         <Badge bg="success-subtle" text="success">
                           <CheckCircleFill className="me-1" /> cuadra
                         </Badge>
@@ -160,8 +168,19 @@ export function ResultsCard({ files, onDownloadOne, onDownloadAll }: Props) {
                               )}
                             </div>
 
-                            {(!f.reconciliation.balanced || f.missing.length > 0) && (
-                              <Alert variant={!f.reconciliation.balanced ? 'danger' : 'warning'} className="py-2 mb-3 small">
+                            {(!f.reconciliation.balanced || !f.reconciliation.matchesDeclared || f.missing.length > 0) && (
+                              <Alert
+                                variant={!f.reconciliation.balanced || !f.reconciliation.matchesDeclared ? 'danger' : 'warning'}
+                                className="py-2 mb-3 small"
+                              >
+                                {!f.reconciliation.matchesDeclared && (
+                                  <div>
+                                    <strong>El PDF no se ha leído entero.</strong> El pedido declara{' '}
+                                    {f.reconciliation.declaredPairs} pares y sólo se han leído {f.reconciliation.orderPairs}:{' '}
+                                    <strong>faltan {f.reconciliation.missedPairs} pares</strong> por etiquetar. No uses este
+                                    fichero: avisa para que se corrija la lectura del PDF.
+                                  </div>
+                                )}
                                 {!f.reconciliation.balanced && (
                                   <div>
                                     <strong>No cuadra:</strong> {f.reconciliation.labelPairs} de {f.reconciliation.orderPairs} pares

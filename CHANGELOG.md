@@ -3,6 +3,40 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-13] Maestro y lectura del PDF — un bug que imprimía etiquetas de menos
+
+Al cargar el maestro nuevo (`REFERENCIAS COOLWAY_13_07_2026_2.xlsx`) y probar el pedido 4603662
+salieron a la luz tres problemas, uno de ellos **grave y silencioso**.
+
+### Corregido
+- **🚨 El parser se comía líneas enteras del pedido, sin avisar.** Reconocía el código de color con
+  `/^[A-Z]{2,4}$/` (sólo letras), así que los colores **compuestos** (`W-B` blanco-negro, `B-W`, `W-R`)
+  no encajaban: no detectaba la cabecera del ítem y **descartaba la línea completa**. En el pedido 4603662
+  eran **37 refs · 133 cajas · 798 pares** que nunca se habrían etiquetado. Y el cuadre decía "OK".
+- **El cuadre era CIRCULAR y no podía detectarlo**: comparaba las etiquetas contra el pedido leído, pero
+  ambos lados salen del mismo catálogo de surtidos. Ahora se contrasta también contra el **total que el
+  propio PDF declara al pie** (`TOTAL BOXES` / `TOTAL PAIRS`) — la única fuente independiente. Si no
+  coincide, la web avisa en rojo: *"El PDF no se ha leído entero: faltan N pares"*. Verificado contra los
+  4 pedidos de muestra (60, 1.840, 8.444 y 11.028 pares): todos coinciden con lo declarado.
+- **`POST /api/labels/generate` ya no devuelve un 500 genérico** ante un surtido desconocido: responde
+  **422** diciendo cuál es (*"El pedido usa el surtido M36, que no está en el catálogo"*).
+
+### Añadido
+- **Surtido `M<nn>`** (caja monotalla: 6 pares, todos de la misma talla), junto al `S<nn>` que ya existía.
+  Confirmado contra el propio PDF: 1.838 cajas × 6 = 11.028 pares, el total que declara.
+- **Migración `ean13_deja_de_ser_unico`**: el EAN13 deja de tener restricción de unicidad. Un producto
+  **re-referenciado** en SAP conserva su código en la ref vieja y en la nueva (mismo modelo+color, dos
+  refs): era legítimo y la BD lo rechazaba. La identidad del SKU sigue siendo `(ref, talla)`.
+  Desbloquea **47 SKU** (maestro: 5.689 → **5.736**).
+- **El EAN13 repetido ahora AVISA, no rechaza**: `findSharedEan13` distingue la re-referenciación
+  (legítima, entra sin ruido) de dos **productos distintos** compartiendo código de barras (entra, pero se
+  reporta en cada carga). Hoy son **33 avisos** — ver ESTADO.
+
+### Cambiado
+- **Un código vacío en el Excel ya no borra el que hay en la BD.** El upsert omitía los campos vacíos…
+  no: los escribía como `NULL`. Cargar el maestro nuevo habría **borrado 76 UPC** (familia 2003), dejando
+  esas tallas sin poder etiquetarse para USA. Ahora vacío significa *"no lo sé"*, no *"bórralo"*.
+
 ## [2026-07-12] Entorno — se comprueba `pdftotext` antes de fallar, y el error se entiende
 
 Generar etiquetas moría con un **`⚠ Internal server error`** opaco en una máquina sin `pdftotext`.

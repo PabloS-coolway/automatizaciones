@@ -18,10 +18,17 @@ export interface LabelRowDto {
 }
 
 export interface ReconciliationDto {
-  orderPairs: number;
-  labelPairs: number;
-  balanced: boolean;
+  orderPairs: number; // pares LEÍDOS del pedido
+  labelPairs: number; // pares de las etiquetas generadas
+  balanced: boolean; // etiquetas == pedido leído (comprobación interna)
   diff: number;
+
+  declaredPairs?: number; // lo que el PDF declara al pie ("TOTAL PAIRS")
+  declaredBoxes?: number;
+  parsedBoxes: number;
+  /** false = el parser se dejó líneas del PDF → las etiquetas están INCOMPLETAS. */
+  matchesDeclared: boolean;
+  missedPairs: number; // pares que el PDF declara y no hemos leído
 }
 
 export interface MissingCodeDto {
@@ -110,16 +117,38 @@ export interface SeedIssueDto {
   detail?: string;
 }
 
+/** Una fila del maestro implicada en un EAN13 compartido. */
+export interface SharedEanRowDto {
+  style: string;
+  color: string;
+  ref: string;
+  size: string;
+}
+
+/**
+ * Un EAN13 que aparece en más de un PRODUCTO (modelo/color distinto). No bloquea la carga
+ * —la fila entra—, pero es un error del maestro: el mismo código de barras identificaría a
+ * dos productos que se venden por separado. Se avisa en cada carga hasta que se corrija.
+ *
+ * OJO: un mismo modelo+color con dos referencias (re-referenciación en SAP) NO aparece aquí:
+ * es legítimo y se carga sin ruido.
+ */
+export interface SharedEan13Dto {
+  ean13: string;
+  rows: SharedEanRowDto[];
+}
+
 /** Resultado de POST /api/maestro/seed (subir REFERENCIAS COOLWAY.xlsx completo). */
 export interface SeedReportDto {
   rows: number; // filas leídas del Excel
   valid: number; // filas utilizables (con modelo, color, ref y talla)
   upserted: number; // filas guardadas
-  failed: number; // rechazadas (p.ej. EAN13 duplicado)
+  failed: number; // rechazadas (errores de BD; ya NO incluye el EAN13 duplicado)
   created: number;
   updated: number;
   total: number; // SKU en el maestro tras la carga
   issues: SeedIssueDto[]; // qué filas se quedaron fuera y por qué
+  sharedEan13: SharedEan13Dto[]; // avisos: mismo EAN13 en productos distintos (entran, pero hay que corregirlo)
 }
 
 /** Resultado de POST /api/maestro/import (subir EAN.xlsm + UPC.xlsm). */

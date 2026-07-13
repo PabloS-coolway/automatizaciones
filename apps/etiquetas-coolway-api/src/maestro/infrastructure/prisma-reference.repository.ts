@@ -24,6 +24,11 @@ export class PrismaReferenceRepository implements ReferenceRepository {
   /**
    * Carga del maestro completo: una fila rechazada (p.ej. EAN13 duplicado) no tumba el resto,
    * pero se devuelve identificada para que el informe diga QUÉ talla se quedó fuera.
+   *
+   * ⚠️ Un código VACÍO en el Excel significa "no lo sé", no "bórralo": el maestro no siempre trae
+   * todos los códigos de cada SKU (el UPC sólo aplica a USA, y a veces llega más tarde). Por eso
+   * los campos vacíos se OMITEN del update y se conserva lo que ya hubiera en la BD. Nunca se
+   * inventa un código, pero tampoco se pierde uno bueno por una celda en blanco.
    */
   async upsertManySeed(rows: SeedRow[]): Promise<{ ok: number; failures: SeedFailure[] }> {
     let ok = 0;
@@ -34,9 +39,9 @@ export class PrismaReferenceRepository implements ReferenceRepository {
         style: r.style,
         color: r.color,
         sku: r.sku,
-        ean13: r.ean13 ?? null,
-        upc: r.upc ?? null,
-        colorNameWeb: r.colorNameWeb ?? null,
+        ...(r.ean13 ? { ean13: r.ean13 } : {}),
+        ...(r.upc ? { upc: r.upc } : {}),
+        ...(r.colorNameWeb ? { colorNameWeb: r.colorNameWeb } : {}),
       };
       try {
         await this.prisma.reference.upsert({
