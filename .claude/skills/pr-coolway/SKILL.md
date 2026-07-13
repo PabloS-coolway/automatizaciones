@@ -15,6 +15,9 @@ no un extra opcional.
 - **Siempre por `origin`** → alias SSH `github-coolway` (`git@github-coolway:PabloS-coolway/automatizaciones.git`).
   Nunca HTTPS ni `github.com` directo: el usuario tiene varias identidades de GitHub en la máquina.
 - **No se pushea sin que la puerta de calidad esté en verde** (typecheck + tests + build).
+- **Todo cambio de código de producto trae tests.** Si el bloque tocó `src/` y no hay tests que ejerciten
+  lo nuevo, **se escriben ANTES de commitear**. No se pide permiso para eso: es parte del trabajo.
+- **La cobertura no baja del 75%.** Está enganchada a `npm test`: si baja, los tests fallan solos.
 - **No inventes lo que cambió**: la descripción de la PR sale de leer el diff real, no de la memoria.
 
 ## Pasos
@@ -37,15 +40,42 @@ Nombre: `<tipo>/<descripcion-corta-en-kebab>`, donde tipo es `feat` | `fix` | `d
 git checkout -b feat/lo-que-sea
 ```
 
-### 3. Puerta de calidad
+### 3. ¿Trae tests lo que has hecho?
+
+**Antes de la puerta de calidad**, revisa el diff y pregúntate: *¿qué comportamiento nuevo hay aquí, y qué
+test lo ejercita?* Si el bloque toca `src/` (API o web) y no hay test que cubra lo nuevo, **escríbelo ya**.
+
+Qué se prueba y dónde:
+
+| Lo que cambiaste | Dónde va el test |
+|---|---|
+| Regla de negocio, cálculo, parser (dominio) | `apps/etiquetas-coolway-api/test/*.spec.ts` |
+| Caso de uso (orquestación, informes) | ídem, con fakes de los puertos |
+| Lógica del front (motor de tabla, validaciones, casos de uso) | `apps/etiquetas-coolway-web/test/*.spec.ts(x)` |
+| Componente con comportamiento (filtros, orden, estados) | ídem, con `@testing-library/react` |
+
+**Un test debe poder fallar.** Antes de darlo por bueno, rompe a propósito el código que cubre y comprueba
+que el test se pone en rojo. Un test que pasa igual con el bug es peor que no tenerlo: da falsa seguridad.
+
+**Lo que NO se cubre con tests** (y por qué): controladores HTTP, adapters de Prisma/Excel, páginas React y
+cableado de dependencias. Son pegamento e I/O: se verifican **ejecutando la app de verdad** (curl a la API,
+o el navegador). Están excluidos de la medición de cobertura a propósito — meterlos sólo hundiría el
+porcentaje sin decir nada útil. Ojo con la consecuencia: **los fallos de presentación (un sticky roto, un
+checkbox que no desmarca) NO los caza la cobertura.** Eso se caza probando la app.
+
+### 4. Puerta de calidad (incluye cobertura ≥ 75%)
 
 ```bash
 npm run typecheck && npm test && npm run build
 ```
 
-Si algo falla, **se arregla antes de seguir**. No se pushea en rojo.
+`npm test` **mide la cobertura y falla si baja del 75%** (statements/functions/lines; 70% en branches), tanto
+en la API (Jest) como en la web (Vitest). No hay que acordarse: está en `jest.config.js` y en `vite.config.ts`.
 
-### 4. Actualizar la memoria del proyecto
+Si algo falla, **se arregla antes de seguir**. No se pushea en rojo, y **no se baja el umbral para que pase**:
+si la cobertura cae, es que falta un test.
+
+### 5. Actualizar la memoria del proyecto
 
 - **`CHANGELOG.md`**: entrada nueva arriba del todo, formato *Keep a Changelog* en español, con fecha
   `## [AAAA-MM-DD] Título`, y secciones `### Añadido` / `### Corregido` / `### Cambiado` /
@@ -54,7 +84,7 @@ Si algo falla, **se arregla antes de seguir**. No se pushea en rojo.
   técnica nueva, cambia el "siguiente hilo", o cambia un requisito de arranque). Ajusta también la fecha
   de "Última actualización".
 
-### 5. Commit
+### 6. Commit
 
 Mensaje: una línea corta en español, con prefijo de área (`api:`, `front:`, `docs:`, `setup:`…), igual
 que el historial existente. Cuerpo con el porqué si el cambio no es obvio.
@@ -65,7 +95,7 @@ Termina el mensaje con:
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
 ```
 
-### 6. Push por `origin`
+### 7. Push por `origin`
 
 ```bash
 git push -u origin <rama>
@@ -77,7 +107,7 @@ Verifica antes que `origin` apunta a `github-coolway`:
 git remote -v   # debe decir git@github-coolway:PabloS-coolway/automatizaciones.git
 ```
 
-### 7. Dejar la PR lista (la abre el usuario, a mano)
+### 8. Dejar la PR lista (la abre el usuario, a mano)
 
 **No uses `gh`, y no propongas instalarlo.** Decisión tomada: el usuario tiene varias identidades de
 GitHub en la máquina (Coolway e Iberia) y `gh auth` toca configuración global de git — el riesgo de

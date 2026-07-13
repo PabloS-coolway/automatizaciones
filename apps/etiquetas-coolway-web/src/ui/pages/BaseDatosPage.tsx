@@ -1,12 +1,73 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Button, Card, Form, InputGroup, Pagination, Spinner, Table } from 'react-bootstrap';
 import { Database, FileEarmarkExcel, Search, Upload } from 'react-bootstrap-icons';
-import type { ImportReportDto, MaestroStatsDto, ReferenceDto, SeedReportDto } from '@yorga/contracts';
+import type {
+  ImportReportDto,
+  MaestroStatsDto,
+  ReferenceDto,
+  SeedIssueDto,
+  SeedReportDto,
+  SharedEan13Dto,
+} from '@yorga/contracts';
 import { maestroGateway } from '../composition';
 import { FileDropzone } from '../components/FileDropzone';
 import { useAuth } from '../auth/AuthContext';
+import { Column, DataTable, useMemoryTable } from '../components/table';
 
 const PAGE_SIZE = 50;
+
+/** Filas rechazadas al cargar el maestro. Filtrable por modelo/motivo: así se atacan por lotes. */
+function TablaRechazadas({ issues }: { issues: SeedIssueDto[] }) {
+  const columns = useMemo<Column<SeedIssueDto>[]>(
+    () => [
+      { key: 'style', label: 'modelo', value: (i) => i.style, render: (i) => <strong>{i.style}</strong> },
+      { key: 'color', label: 'color', value: (i) => i.color },
+      { key: 'ref', label: 'ref.', value: (i) => i.ref },
+      { key: 'size', label: 'talla', value: (i) => i.size },
+      {
+        key: 'reason',
+        label: 'motivo',
+        value: (i) => (i.reason === 'duplicate_ean13' ? 'EAN13 duplicado' : 'rechazada'),
+        render: (i) => (
+          <>
+            {i.reason === 'duplicate_ean13' ? 'EAN13 duplicado' : 'rechazada'}
+            {i.detail && <div className="text-secondary">{i.detail}</div>}
+          </>
+        ),
+      },
+    ],
+    [],
+  );
+  const model = useMemoryTable(issues, columns);
+  return <DataTable model={model} allRows={issues} rowKey={(i) => `${i.ref}-${i.size}`} />;
+}
+
+/** EAN13 que comparten productos distintos. El modelo es lo que se quiere filtrar (GOAL, BECKS…). */
+function TablaEanCompartidos({ shared }: { shared: SharedEan13Dto[] }) {
+  const columns = useMemo<Column<SharedEan13Dto>[]>(
+    () => [
+      { key: 'ean13', label: 'EAN13', value: (s) => s.ean13, render: (s) => <strong>{s.ean13}</strong> },
+      {
+        key: 'productos',
+        label: 'productos que lo comparten',
+        // El valor crudo junta los productos: así se puede filtrar por "GOAL" o "BECKS" y ordenar.
+        value: (s) => s.rows.map((r) => `${r.style} ${r.color}`).join(' · '),
+        render: (s) => (
+          <>
+            {s.rows.map((r) => (
+              <div key={`${r.ref}-${r.size}`}>
+                {r.style} {r.color} · ref {r.ref} · talla {r.size}
+              </div>
+            ))}
+          </>
+        ),
+      },
+    ],
+    [],
+  );
+  const model = useMemoryTable(shared, columns);
+  return <DataTable model={model} allRows={shared} rowKey={(s) => s.ean13} />;
+}
 
 /** Construye la lista de páginas a mostrar con elipsis alrededor de la actual. */
 function pageWindow(current: number, totalPages: number): (number | '…')[] {
@@ -190,31 +251,7 @@ export function BaseDatosPage() {
                     Estas filas del Excel <strong>no han entrado</strong> en el maestro. Son tallas que faltarán al generar
                     etiquetas: hay que corregirlas en el Excel y volver a cargarlo.
                   </div>
-                  <Table size="sm" borderless className="mb-0 missing-table">
-                    <thead>
-                      <tr className="small text-secondary">
-                        <th>modelo</th>
-                        <th>color</th>
-                        <th>ref.</th>
-                        <th>talla</th>
-                        <th>motivo</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {seedReport.issues.map((i) => (
-                        <tr key={`${i.ref}-${i.size}`} className="small">
-                          <td><strong>{i.style}</strong></td>
-                          <td>{i.color}</td>
-                          <td>{i.ref}</td>
-                          <td>{i.size}</td>
-                          <td>
-                            {i.reason === 'duplicate_ean13' ? 'EAN13 duplicado' : 'rechazada'}
-                            {i.detail && <div className="text-secondary">{i.detail}</div>}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </Table>
+                  <TablaRechazadas issues={seedReport.issues} />
                 </div>
               )}
 
@@ -225,28 +262,7 @@ export function BaseDatosPage() {
                     Estas filas <strong>sí han entrado</strong> en el maestro, pero el mismo código de barras identifica a
                     dos productos que se venden por separado: en caja sería ambiguo. Hay que corregirlo en el Excel.
                   </div>
-                  <Table size="sm" borderless className="mb-0 missing-table">
-                    <thead>
-                      <tr className="small text-secondary">
-                        <th>EAN13</th>
-                        <th>productos que lo comparten</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {seedReport.sharedEan13.map((s) => (
-                        <tr key={s.ean13} className="small">
-                          <td><strong>{s.ean13}</strong></td>
-                          <td>
-                            {s.rows.map((r) => (
-                              <div key={`${r.ref}-${r.size}`}>
-                                {r.style} {r.color} · ref {r.ref} · talla {r.size}
-                              </div>
-                            ))}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </Table>
+                  <TablaEanCompartidos shared={seedReport.sharedEan13} />
                 </div>
               )}
             </>

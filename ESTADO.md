@@ -128,6 +128,13 @@ BD y elige *maestro = base de datos*).
 - **Roles operador/admin**: lo que hay que proteger de verdad es la escritura del maestro.
 - Formato de salida simplificado (lo que prefiere Silvia); los bultos se quedan en SAP.
 
+### REQ-002 · Tablas explorables (fase 1 ✅)
+Todas las tablas que caben en memoria (etiquetas, faltantes, avisos, usuarios) ya se **ordenan y filtran
+por columna** con un componente único (`DataTable`), con autofiltro tipo Excel y facetas cruzadas.
+**Pendiente: fases 2 y 3** → llevar filtro y orden del **maestro** al servidor (hoy no tiene filtros a
+propósito: en cliente sólo miraría las 100 filas de la página y mentiría). Fase 4 opcional: exportar la
+vista filtrada a Excel.
+
 ## Siguiente hilo (elige uno)
 
 1. **Fase 2 · Bloque 3 — gobernanza del maestro**: publicar el maestro a Excel/Sheets para los
@@ -135,6 +142,16 @@ BD y elige *maestro = base de datos*).
 2. **Demo a Silvia** con la herramienta, y pasarle los 29 EAN13 duplicados.
 3. **Fase 3**: ficheros de tarifas/surtidos SAP. **Fase 4**: plantillas de ventas.
 4. Próximos requerimientos anunciados: gestión de email, listados de stocks, listados de ventas.
+
+## Calidad: la puerta exige cobertura
+
+```bash
+npm run typecheck && npm test && npm run build
+```
+
+`npm test` **mide la cobertura y falla por debajo del 75%** (API con Jest, web con Vitest). Se mide sólo la
+**lógica** (dominio, casos de uso, parsers, motor de la tabla), no el pegamento. Hoy: **API 82,5%** (52 tests)
+y **front 94,7%** (33 tests). Si la cobertura cae, **falta un test** — no se baja el umbral.
 
 ## Deuda técnica conocida
 
@@ -145,5 +162,9 @@ BD y elige *maestro = base de datos*).
   dependencia del sistema operativo y `npm ci` no la instala**: el servidor se comería el mismo fallo que
   en local. Cuando se sepa dónde se despliega, es una línea (`apt-get install -y poppler-utils` en la imagen
   o en el aprovisionamiento). Mitigado de momento: la API lo avisa al arrancar y responde 503 explicándolo.
-- No hay tests del front ni del controlador HTTP (sí del dominio: 36 en verde).
+- **Sin tests**: controladores HTTP, adapters (Prisma/Excel), páginas React y el módulo `auth`. Están
+  **excluidos de la cobertura a propósito** (son pegamento e I/O). La consecuencia hay que tenerla presente:
+  **los fallos de presentación no los caza el 75%** — se cazan probando la app en el navegador.
+- `import-master.use-case.ts` y `maestro-query.service.ts` siguen al 0%. El segundo se cubrirá en la fase 2
+  de REQ-002 (la lista blanca de columnas para ordenar **es seguridad**: sin ella el `orderBy` sería inyectable).
 - El maestro se sube a mano; leerlo del Drive por API sigue pendiente (DEP-02).
