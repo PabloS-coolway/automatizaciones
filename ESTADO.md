@@ -143,6 +143,16 @@ vista filtrada a Excel.
 3. **Fase 3**: ficheros de tarifas/surtidos SAP. **Fase 4**: plantillas de ventas.
 4. Próximos requerimientos anunciados: gestión de email, listados de stocks, listados de ventas.
 
+## Calidad: la puerta exige cobertura
+
+```bash
+npm run typecheck && npm test && npm run build
+```
+
+`npm test` **mide la cobertura y falla por debajo del 75%** (API con Jest, web con Vitest). Se mide sólo la
+**lógica** (dominio, casos de uso, parsers, motor de la tabla), no el pegamento. Hoy: **API 82,5%** (52 tests)
+y **front 94,7%** (33 tests). Si la cobertura cae, **falta un test** — no se baja el umbral.
+
 ## Deuda técnica conocida
 
 - **Al desplegar**: definir `JWT_SECRET` en el entorno (hoy hay un secreto de desarrollo por defecto
@@ -152,7 +162,9 @@ vista filtrada a Excel.
   dependencia del sistema operativo y `npm ci` no la instala**: el servidor se comería el mismo fallo que
   en local. Cuando se sepa dónde se despliega, es una línea (`apt-get install -y poppler-utils` en la imagen
   o en el aprovisionamiento). Mitigado de momento: la API lo avisa al arrancar y responde 503 explicándolo.
-- **No hay tests del front** ni del controlador HTTP (sí del dominio: 43 en verde). Duele ya: el motor de
-  filtrado (`useMemoryTable`) tiene lógica real —facetas cruzadas, selección vacía— y su bug de
-  "(Seleccionar todo)" lo cazó el usuario a mano, no un test. Montar Vitest en la web es lo siguiente.
+- **Sin tests**: controladores HTTP, adapters (Prisma/Excel), páginas React y el módulo `auth`. Están
+  **excluidos de la cobertura a propósito** (son pegamento e I/O). La consecuencia hay que tenerla presente:
+  **los fallos de presentación no los caza el 75%** — se cazan probando la app en el navegador.
+- `import-master.use-case.ts` y `maestro-query.service.ts` siguen al 0%. El segundo se cubrirá en la fase 2
+  de REQ-002 (la lista blanca de columnas para ordenar **es seguridad**: sin ella el `orderBy` sería inyectable).
 - El maestro se sube a mano; leerlo del Drive por API sigue pendiente (DEP-02).
