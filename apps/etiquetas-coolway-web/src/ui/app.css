@@ -203,6 +203,33 @@ button, a, [role='button'], .form-control, .form-select { touch-action: manipula
 .summary.warn { background: #fff4e0; color: #8a5a00; }
 
 .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+
+/* KPIs fijos: al explorar 5.736 referencias se pierde de vista cuántas hay en total, que es
+   justo la referencia para interpretar lo que estás viendo. El fondo es opaco a propósito:
+   si no, las filas de la tabla se transparentarían por debajo. */
+.kpis-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 3; /* por encima del header sticky de la tabla (z-index: 2) */
+  background: var(--bg);
+  padding: 12px 0;
+  margin-bottom: 0 !important;
+}
+.kpis-sticky .kpi { padding: 12px 14px; } /* más compactos: van a estar siempre en pantalla */
+.kpis-sticky .kpi-val { font-size: 1.35rem; }
+
+/* Barra de la tabla de referencias: título · buscador (crece) · exportar. En una sola línea. */
+.refs-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.refs-toolbar .refs-search {
+  flex: 1 1 260px; /* se come el espacio libre, pero nunca baja de 260px */
+  max-width: 560px;
+  width: auto;
+}
 .kpi {
   background: var(--kpi-bg);
   border: 1px solid var(--border);

@@ -6,6 +6,7 @@ import { filtersToParams } from '../src/infrastructure/http-maestro-gateway';
 import type { MaestroGateway } from '../src/application/ports/maestro-gateway.port';
 
 const COLUMNAS: Column<ReferenceDto>[] = [
+  { key: 'size', label: 'talla', value: (r) => r.size, filter: 'values' },
   { key: 'style', label: 'modelo', value: (r) => r.style, filter: 'values' },
   { key: 'sku', label: 'SKU', value: (r) => r.sku, filter: 'text' },
 ];
@@ -137,5 +138,50 @@ describe('Exportar la vista filtrada (fase 4)', () => {
     expect(p.getAll('style')).toEqual(['GOAL']);
     expect(p.get('upc')).toBe('8433');
     expect(p.get('sort')).toBe('size');
+  });
+});
+
+describe('useServerTable · el desplegable NO se vacía al desmarcar (bug reportado)', () => {
+  it('al cambiar el filtro de una columna, SUS valores siguen ahí (no hay que cerrar y reabrir)', async () => {
+    const g = fake();
+    const { result } = montar(g);
+    await waitFor(() => expect(g.listReferences).toHaveBeenCalled());
+
+    // Se abre el desplegable de modelo y llegan sus valores.
+    act(() => result.current.requestFacets!('style'));
+    await waitFor(() => expect(result.current.facets('style')).toHaveLength(1));
+
+    // Se desmarca un valor (el popover sigue abierto).
+    act(() => result.current.setColumnFilter('style', { selected: ['GOAL'] }));
+
+    // Antes: la caché se tiraba entera y la lista quedaba VACÍA hasta cerrar y volver a abrir.
+    // Ahora: los valores de esa columna siguen (se calculan ignorando su propio filtro).
+    expect(result.current.facets('style')).toEqual([{ value: 'GOAL', count: 3 }]);
+  });
+
+  it('…pero las facetas de las OTRAS columnas sí caducan (sus valores dependen del nuevo filtro)', async () => {
+    const g = fake();
+    const { result } = montar(g);
+    await waitFor(() => expect(g.listReferences).toHaveBeenCalled());
+
+    act(() => result.current.requestFacets!('size'));
+    await waitFor(() => expect(result.current.facets('size')).toHaveLength(1));
+
+    act(() => result.current.setColumnFilter('style', { selected: ['GOAL'] }));
+
+    // Filtrando por GOAL, las tallas disponibles pueden ser otras: no se puede reusar lo cacheado.
+    expect(result.current.facets('size')).toEqual([]);
+  });
+
+  it('"Quitar filtros" caduca TODAS las facetas', async () => {
+    const g = fake();
+    const { result } = montar(g);
+    await waitFor(() => expect(g.listReferences).toHaveBeenCalled());
+
+    act(() => result.current.requestFacets!('style'));
+    await waitFor(() => expect(result.current.facets('style')).toHaveLength(1));
+
+    act(() => result.current.clearFilters());
+    expect(result.current.facets('style')).toEqual([]);
   });
 });
