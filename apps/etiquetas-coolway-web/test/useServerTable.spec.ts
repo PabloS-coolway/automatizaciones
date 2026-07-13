@@ -119,3 +119,23 @@ describe('useServerTable · el maestro se filtra en la BD', () => {
     await waitFor(() => expect(result.current.page).toBe(1));
   });
 });
+
+describe('Exportar la vista filtrada (fase 4)', () => {
+  it('se exporta con LOS MISMOS filtros y orden que se ven en la tabla', () => {
+    // Es el mismo traductor que usa la tabla para pedir los datos: así el Excel y la pantalla
+    // no pueden divergir. Si se duplicara la lógica, acabarían diciendo cosas distintas.
+    const filtros = toApiFilters(
+      { style: { selected: ['GOAL'] }, upc: { text: '8433' } },
+      { key: 'size', dir: 'desc' },
+      'nilo',
+    );
+    expect(filtros).toEqual({ search: 'nilo', style: ['GOAL'], upc: '8433', sort: 'size', dir: 'desc' });
+  });
+
+  it('la query de exportación lleva esos filtros', () => {
+    const p = filtersToParams({ style: ['GOAL'], upc: '8433', sort: 'size', dir: 'desc' });
+    expect(p.getAll('style')).toEqual(['GOAL']);
+    expect(p.get('upc')).toBe('8433');
+    expect(p.get('sort')).toBe('size');
+  });
+});

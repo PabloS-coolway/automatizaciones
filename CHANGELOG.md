@@ -3,6 +3,33 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-13] REQ-002 · Exportar la vista filtrada del maestro a Excel (fase 4) — REQ-002 COMPLETO
+
+Cierra REQ-002. Cuando Silvia puede filtrar, lo siguiente que quiere es **llevarse eso a Excel**.
+
+### Añadido
+- **`GET /api/maestro/export`**: genera el Excel de **la vista filtrada** (los mismos filtros y el mismo
+  orden que hay en pantalla). Se genera **en el servidor**, no en el navegador: puede ser el maestro entero
+  (5.736 filas), y traérselas al front sólo para volcarlas a un fichero es tirar datos por la red.
+- **Botón "Exportar … a Excel"** en Base de datos. El texto cambia solo: *"Exportar todo"* si no hay filtros,
+  *"Exportar lo filtrado"* si los hay — que nadie se lleve un fichero creyendo que trae más de lo que trae.
+- El fichero sale con el **autofiltro de Excel ya puesto** y la cabecera congelada. El nombre distingue el
+  caso: `maestro-coolway-2026-07-13.xlsx` vs `maestro-coolway-filtrado-2026-07-13.xlsx`.
+- **Tope de 50.000 filas** por exportación: si se supera, **avisa con un 400**. No se recorta en silencio —
+  un Excel a medias es peor que ninguno.
+
+### Corregido (un bug que sólo cazó el test porque REABRE el fichero)
+- **Los códigos se escriben como TEXTO, celda a celda.** Estaban marcados con el `numFmt` **de columna**…
+  y `exceljs` **no guarda ese formato en el fichero**. Al abrir el Excel, un EAN13 volvería a ser un número:
+  saldría en **notación científica** (`8,43385E+12`) y los ceros a la izquierda se perderían. Exportar
+  corrompiendo el dato es peor que no exportar. Un test que sólo mirase el objeto en memoria habría pasado
+  en verde y Silvia habría recibido un fichero con los códigos rotos.
+
+### Verificado abriendo los ficheros generados
+- Exportación completa: **5.736 filas** (Postgres: 5.736). Filtrada por GOAL/talla 42: **167** (Postgres: 167).
+- La exportación reusa `toApiFilters`, **el mismo traductor que usa la tabla** para pedir los datos: así el
+  Excel y la pantalla no pueden divergir.
+
 ## [2026-07-13] REQ-002 · El maestro filtra y ordena EN LA BD (fases 2 y 3)
 
 La tabla del maestro se quedó sin filtros en la fase 1 **a propósito**: es la única paginada en servidor
