@@ -3,6 +3,45 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-13] REQ-002 · Tablas explorables: filtrar por columna y ordenar (fase 1)
+
+Silvia viene de Excel, donde ordenar y filtrar es un reflejo. En la app las tablas eran de sólo lectura,
+así que para responder a *"¿qué referencias de GOAL no tienen UPC?"* tocaba mirar a ojo o volver al Excel
+— el trabajo manual que estamos eliminando. **Fase 1: todas las tablas que caben en memoria.**
+
+### Añadido
+- **Componente único `DataTable`** ([`ui/components/table/`](apps/etiquetas-coolway-web/src/ui/components/table/)),
+  usado ya en **etiquetas, faltantes, avisos de carga y usuarios**. Cabecera clicable para ordenar
+  (asc → desc → sin orden) y **autofiltro por columna**.
+- **El filtro se adapta a la columna según su cardinalidad**: casillas tipo Excel (con recuento) donde hay
+  pocos valores distintos; "contiene" donde son casi únicos (sku, ean13, upc) — un desplegable con 5.736
+  casillas no lo usa nadie. No hay que configurarlo columna a columna: se decide solo.
+- **Facetas cruzadas, como Excel**: los valores que ofrece el desplegable de una columna **respetan los
+  filtros ya aplicados en las demás** (si filtras modelo = GOAL, el color sólo ofrece los de GOAL).
+- **Contador "N de M filas"** siempre visible + "Quitar N filtros". Es la salvaguarda contra confundir
+  *lo que veo* con *lo que hay* — el mismo error que costó los 798 pares del pedido 4603662.
+- En la tabla de etiquetas, **Copiar y CSV exportan la vista filtrada**, no el listado entero.
+
+### Corregido
+- **El header sticky de las tablas no funcionaba.** El CSS estaba, pero el `responsive` de react-bootstrap
+  envuelve la tabla en un `div` con su propio `overflow`: el sticky se anclaba a ese wrapper, que no hace
+  scroll vertical, y no se pegaba a nada. Arreglado para **todas** las tablas.
+- **"(Seleccionar todo)" no se podía desmarcar**: una selección vacía se interpretaba como "sin filtro" y
+  reaparecían todas las filas. Ahora vaciar la selección **es un filtro** (0 filas), que es lo que permite
+  el gesto de Excel: desmarcar todo y marcar sólo lo que interesa. Con selección parcial, la casilla sale
+  en estado **indeterminado**.
+
+### Arquitectura
+- La `DataTable` es **tonta**: recibe un `TableModel` y no sabe de dónde salen los datos. Hoy lo produce
+  `useMemoryTable`; en la fase 3 lo producirá `useServerTable` para el maestro (5.736 SKU, paginado en BD)
+  **sin tocar la UI ni las páginas**.
+- **El maestro se queda sin filtros a propósito hasta la fase 3**: filtrarlo en cliente sólo miraría las 100
+  filas de la página y daría un resultado **falso con apariencia de correcto**.
+
+### Diseño
+- [`diseño/iniciativas/REQ-002-tablas-filtro-orden/`](diseño/iniciativas/REQ-002-tablas-filtro-orden/diseño.md)
+  y REQ-002 en el backlog.
+
 ## [2026-07-13] Maestro y lectura del PDF — un bug que imprimía etiquetas de menos
 
 Al cargar el maestro nuevo (`REFERENCIAS COOLWAY_13_07_2026_2.xlsx`) y probar el pedido 4603662
