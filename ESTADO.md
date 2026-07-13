@@ -128,12 +128,18 @@ BD y elige *maestro = base de datos*).
 - **Roles operador/admin**: lo que hay que proteger de verdad es la escritura del maestro.
 - Formato de salida simplificado (lo que prefiere Silvia); los bultos se quedan en SAP.
 
-### REQ-002 · Tablas explorables (fase 1 ✅)
-Todas las tablas que caben en memoria (etiquetas, faltantes, avisos, usuarios) ya se **ordenan y filtran
-por columna** con un componente único (`DataTable`), con autofiltro tipo Excel y facetas cruzadas.
-**Pendiente: fases 2 y 3** → llevar filtro y orden del **maestro** al servidor (hoy no tiene filtros a
-propósito: en cliente sólo miraría las 100 filas de la página y mentiría). Fase 4 opcional: exportar la
-vista filtrada a Excel.
+### REQ-002 · Tablas explorables (fases 1, 2 y 3 ✅)
+**Todas** las tablas se ordenan y filtran por columna con un componente único (`DataTable`), con autofiltro
+tipo Excel y facetas cruzadas (los valores de un desplegable respetan los filtros de las demás columnas).
+
+- **Etiquetas, faltantes, avisos y usuarios**: en memoria (`useMemoryTable`).
+- **Maestro** (5.736 SKU): **en la BD** (`useServerTable` + `GET /maestro/references` con filtros y
+  `GET /maestro/facets`). Filtrar en cliente habría mirado sólo las 100 filas de la página → resultado
+  falso con apariencia de correcto. El `sort` va contra **lista blanca**: sin ella sería inyectable.
+
+**Pendiente — fase 4:** exportar **la vista filtrada** del maestro a Excel. Hoy `allFilteredRows()` del motor
+de servidor devuelve **sólo la página cargada** (exportar las 5.736 exigiría traérselas todas), así que la
+página no ofrece exportar: mejor eso que fingir que exporta lo que no tiene.
 
 ## Siguiente hilo (elige uno)
 
@@ -165,6 +171,6 @@ y **front 94,7%** (33 tests). Si la cobertura cae, **falta un test** — no se b
 - **Sin tests**: controladores HTTP, adapters (Prisma/Excel), páginas React y el módulo `auth`. Están
   **excluidos de la cobertura a propósito** (son pegamento e I/O). La consecuencia hay que tenerla presente:
   **los fallos de presentación no los caza el 75%** — se cazan probando la app en el navegador.
-- `import-master.use-case.ts` y `maestro-query.service.ts` siguen al 0%. El segundo se cubrirá en la fase 2
-  de REQ-002 (la lista blanca de columnas para ordenar **es seguridad**: sin ella el `orderBy` sería inyectable).
+- `import-master.use-case.ts` sigue al 0%. (`maestro-query.service.ts` ya está cubierto: 18 tests, incluida
+  la lista blanca de columnas para ordenar, que **es seguridad**.)
 - El maestro se sube a mano; leerlo del Drive por API sigue pendiente (DEP-02).

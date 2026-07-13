@@ -70,6 +70,13 @@ export interface TableModel<T> {
 
   /** Valores del desplegable de una columna, YA respetando los filtros de las demás (como Excel). */
   facets: (key: string) => Facet[];
+  /**
+   * Aviso de que se ha abierto el desplegable de una columna. En memoria no hace falta (las facetas
+   * se calculan al vuelo); contra el servidor es la señal para ir a buscarlas.
+   */
+  requestFacets?: (key: string) => void;
+  /** Vuelve a pedir los datos (tras cargar/importar el maestro, la tabla debe reflejarlo). */
+  reload?: () => void;
 
   page: number;
   setPage: (p: number) => void;

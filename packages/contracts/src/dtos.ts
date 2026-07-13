@@ -96,8 +96,53 @@ export interface MaestroStatsDto {
 
 /** GET /api/maestro/references */
 export interface ReferencesPageDto {
-  total: number;
+  total: number; // filas que cumplen el filtro
   items: ReferenceDto[];
+  grandTotal: number; // filas del maestro SIN filtrar → permite enseñar siempre "N de M"
+}
+
+/* ───────────────────────── Maestro · filtrar y ordenar (REQ-002, fases 2-3) ─────────────────────────
+ * El maestro se pagina en la BD (5.736 SKU): filtrar y ordenar en el navegador sólo miraría las filas
+ * de la página y daría un resultado FALSO con apariencia de correcto. Por eso viaja al servidor.
+ */
+
+/** Columnas por las que se puede ORDENAR. Lista blanca: nunca un `orderBy` que venga del cliente. */
+export const REFERENCE_SORT_COLUMNS = ['style', 'color', 'ref', 'size', 'sku', 'ean13', 'upc', 'colorNameWeb'] as const;
+export type ReferenceSortColumn = (typeof REFERENCE_SORT_COLUMNS)[number];
+
+/** Columnas con autofiltro de casillas (pocos valores distintos → desplegable usable). */
+export const REFERENCE_FACET_COLUMNS = ['style', 'color', 'size', 'colorNameWeb'] as const;
+export type ReferenceFacetColumn = (typeof REFERENCE_FACET_COLUMNS)[number];
+
+/** Cómo se representa "la celda está vacía" en un filtro de valores. Compartido API↔web. */
+export const VALOR_VACIO = '(vacío)';
+
+export type SortDir = 'asc' | 'desc';
+
+/** Filtros del maestro. Los de casillas son multivalor; los de texto, "contiene". */
+export interface ReferenceFiltersDto {
+  search?: string; // búsqueda global (la que ya existía)
+  style?: string[];
+  color?: string[];
+  size?: string[];
+  colorNameWeb?: string[];
+  ref?: string;
+  sku?: string;
+  ean13?: string;
+  upc?: string;
+  sort?: ReferenceSortColumn;
+  dir?: SortDir;
+}
+
+export interface FacetDto {
+  value: string;
+  count: number;
+}
+
+/** Valores que ofrece el desplegable de una columna, ya con los filtros de las DEMÁS aplicados. */
+export interface FacetsDto {
+  column: ReferenceFacetColumn;
+  values: FacetDto[];
 }
 
 export interface ImportIssueDto {

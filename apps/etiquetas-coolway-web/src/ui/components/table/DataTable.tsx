@@ -77,7 +77,11 @@ export function DataTable<T>({
               rootClose
               placement="bottom-start"
               show={abierta === col.key}
-              onToggle={(next) => setAbierta(next ? col.key : null)}
+              onToggle={(next) => {
+                setAbierta(next ? col.key : null);
+                // Contra el servidor, las facetas hay que pedirlas: no se pueden deducir de la página.
+                if (next) model.requestFacets?.(col.key);
+              }}
               overlay={
                 <Popover>
                   <ColumnFilterPopover
@@ -161,17 +165,27 @@ export function DataTable<T>({
             Página {model.page} de {model.totalPages}
           </span>
           <Pagination size="sm" className="mb-0">
-            <Pagination.Prev disabled={model.page === 1} onClick={() => model.setPage(Math.max(1, model.page - 1))} />
+            <Pagination.Prev
+              aria-label="Página anterior"
+              disabled={model.page === 1}
+              onClick={() => model.setPage(Math.max(1, model.page - 1))}
+            />
             {ventana(model.page, model.totalPages).map((p, i) =>
               p === '…' ? (
                 <Pagination.Ellipsis key={`e${i}`} disabled />
               ) : (
-                <Pagination.Item key={p} active={p === model.page} onClick={() => model.setPage(p)}>
+                <Pagination.Item
+                  key={p}
+                  active={p === model.page}
+                  aria-label={`Página ${p}`}
+                  onClick={() => model.setPage(p)}
+                >
                   {p}
                 </Pagination.Item>
               ),
             )}
             <Pagination.Next
+              aria-label="Página siguiente"
               disabled={model.page === model.totalPages}
               onClick={() => model.setPage(Math.min(model.totalPages, model.page + 1))}
             />
