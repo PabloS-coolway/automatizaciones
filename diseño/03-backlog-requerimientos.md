@@ -13,7 +13,7 @@ Cuando madura, se le crea su carpeta en `diseño/iniciativas/REQ-XXX-nombre/` co
 | ID | Título | Área | Estado | Resumen |
 |----|--------|------|--------|---------|
 | REQ-001 | Creación de colección COOLWAY: BD maestra, ficheros SAP, plantillas y etiquetas | Catálogo | 🔍 En análisis | Epic de 4 sub-entregables (BD maestra → tarifas/surtidos → plantillas ventas → etiquetas) que hoy hace Silvia a mano puenteando Prepedidos/400, Access, SAP y Drive. Diseño: [`iniciativas/REQ-001-coleccion-coolway/`](iniciativas/REQ-001-coleccion-coolway/diseño.md) |
-| REQ-002 | Tablas explorables: filtrar por columna y ordenar (como en Excel) | Catálogo (UX de la herramienta) | 🔍 En análisis | Las tablas de la web (maestro, etiquetas generadas, avisos, usuarios) sólo se leen: no se pueden ordenar ni filtrar por columna. Quien viene de Excel espera hacerlo. Ojo: el maestro se pagina en servidor (5.736 SKU), así que filtrar en cliente daría resultados falsos. Diseño: [`iniciativas/REQ-002-tablas-filtro-orden/`](iniciativas/REQ-002-tablas-filtro-orden/diseño.md) |
+| REQ-002 | Tablas explorables: filtrar por columna y ordenar (como en Excel) | Catálogo (UX de la herramienta) | ✅ Hecho | Las tablas de la web (maestro, etiquetas generadas, avisos, usuarios) sólo se leen: no se pueden ordenar ni filtrar por columna. Quien viene de Excel espera hacerlo. Ojo: el maestro se pagina en servidor (5.736 SKU), así que filtrar en cliente daría resultados falsos. Diseño: [`iniciativas/REQ-002-tablas-filtro-orden/`](iniciativas/REQ-002-tablas-filtro-orden/diseño.md) |
 
 ---
 

@@ -5,10 +5,13 @@ import {
   Get,
   Post,
   Query,
+  Res,
+  StreamableFile,
   UploadedFile,
   UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { FileFieldsInterceptor, FileInterceptor } from '@nestjs/platform-express';
 import {
   FacetsDto,
@@ -21,7 +24,8 @@ import {
   SeedReportDto,
   SortDir,
 } from '@yorga/contracts';
-import { MaestroQuery, esColumnaDeFacetas } from '../../application/maestro-query.service';
+import { MAX_EXPORT, MaestroQuery, esColumnaDeFacetas } from '../../application/maestro-query.service';
+import { MaestroExcelSerializer } from '../../infrastructure/maestro-excel-serializer';
 import { ImportMasterUseCase } from '../../application/import-master.use-case';
 import { SeedMasterUseCase } from '../../application/seed-master.use-case';
 import { ExcelCodesReader } from '../../infrastructure/excel-codes-reader';
@@ -38,6 +42,7 @@ export class MaestroController {
   constructor(
     private readonly query: MaestroQuery,
     private readonly prisma: PrismaService,
+    private readonly excel: MaestroExcelSerializer,
   ) {}
 
   @Get('stats')
@@ -63,6 +68,35 @@ export class MaestroController {
       );
     }
     return this.query.facets(column, parseFilters(q));
+  }
+
+  /**
+   * Exporta a Excel LA VISTA FILTRADA (los mismos filtros y orden que se ven en pantalla).
+   * Se genera aquí, no en el navegador: puede ser el maestro entero (5.736 filas).
+   * Lo puede usar un operador: es lectura, y es justo lo que necesita para trabajar en Excel.
+   */
+  @Get('export')
+  async export(@Query() q: Record<string, unknown>, @Res({ passthrough: true }) res: Response): Promise<StreamableFile> {
+    const filters = parseFilters(q);
+    const rows = await this.query.allForExport(filters);
+
+    const filtrada = Object.entries(filters).some(([k, v]) => !['sort', 'dir'].includes(k) && v !== undefined);
+    const fileName = this.excel.fileName(filtrada, new Date());
+
+    if (rows.length === MAX_EXPORT) {
+      // No se recorta en silencio: un Excel a medias es peor que ninguno.
+      throw new BadRequestException(
+        `La exportación supera el límite de ${MAX_EXPORT.toLocaleString('es-ES')} filas. Afina el filtro y vuelve a intentarlo.`,
+      );
+    }
+
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="${fileName}"`,
+      // El navegador necesita ver esta cabecera para poder leer el nombre del fichero.
+      'Access-Control-Expose-Headers': 'Content-Disposition',
+    });
+    return new StreamableFile(await this.excel.serialize(rows));
   }
 
   @Roles('admin') // cargar el maestro completo reescribe la fuente de verdad: sólo administradores
