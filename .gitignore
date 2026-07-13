@@ -20,6 +20,9 @@ dist/
 .turbo/
 *.tsbuildinfo
 
+# Informes de cobertura (se regeneran con `npm test`)
+coverage/
+
 # Temporales de Office
 ~$*
 

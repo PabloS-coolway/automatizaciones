@@ -3,6 +3,32 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-13] Calidad — tests del front y cobertura mínima del 75% en la puerta
+
+Los dos bugs de la fase 1 (el sticky roto y el "(Seleccionar todo)" que no desmarcaba) los cazó **Pablo a
+mano, no un test**. El front no tenía tests y el motor de la tabla ya no es trivial. Se cierra el hueco.
+
+### Añadido
+- **Vitest en la web** (+ `@testing-library/react`, jsdom), enganchado a `npm test`. **33 tests**: motor de
+  la tabla (facetas cruzadas, selección vacía, orden numérico, paginación), el componente `DataTable` con
+  clics reales, y el dominio + casos de uso del front.
+- **Tests de `SeedMasterUseCase`** (9): estaba **al 0%** — ahí vive `findSharedEan13`, la lógica de EAN
+  compartidos que se shippeó el día anterior **sin un solo test**. Cubre la distinción clave:
+  re-referenciación (legítima, no avisa) vs mismo EAN en productos distintos (avisa).
+- **Umbral de cobertura del 75%** enganchado a `npm test` (Jest y Vitest): si baja, los tests **fallan**.
+  No es decoración — se comprobó subiendo el listón al 99% y viendo a Jest rechazarlo.
+
+### Cambiado
+- **La cobertura se mide sobre la LÓGICA**, no sobre el pegamento: quedan fuera controladores HTTP, adapters
+  de Prisma/Excel, páginas React y cableado de dependencias. Medido todo junto salía 34% (API) y 5,7% (web),
+  un número que no dice nada y que habría acabado con el umbral desactivado. Con el alcance correcto:
+  **API 82,5%** (52 tests) y **front 94,7%** (33 tests).
+- **Skill `/pr-coolway`**: ahora exige que **todo cambio de código traiga tests** (paso 3) y que la cobertura
+  no baje del 75% (paso 4), con la regla explícita de **no bajar el umbral para que pase**.
+
+> ⚠️ Lo que la cobertura **no** cubre, y conviene no olvidar: los fallos de **presentación** (un sticky roto,
+> un checkbox que no desmarca) no los caza un porcentaje. Eso se caza **probando la app**.
+
 ## [2026-07-13] REQ-002 · Tablas explorables: filtrar por columna y ordenar (fase 1)
 
 Silvia viene de Excel, donde ordenar y filtrar es un reflejo. En la app las tablas eran de sólo lectura,
