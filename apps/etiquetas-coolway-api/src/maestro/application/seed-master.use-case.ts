@@ -70,6 +70,8 @@ export class SeedMasterUseCase {
         color: r.color,
         ref: r.ref,
         size: r.size,
+        tallaSap: r.tallaSap,
+        tallaTiendas: r.tallaTiendas,
         sku: r.sku || buildSku(r.ref, r.size),
         ean13: isValidEan13(r.ean13) ? r.ean13 : undefined,
         upc: isValidUpc(r.upc) ? r.upc : undefined,

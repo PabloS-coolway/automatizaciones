@@ -5,9 +5,15 @@ import { genderFromRef } from './gender';
 const key = (style: string, color: string, size: Size, gender: Gender) =>
   `${style.toUpperCase()}|${color.toUpperCase()}|${size}|${gender}`;
 
+/** La talla POR LA QUE SE BUSCA es la del PDF (talla SAP). En calzado coincide con la impresa. */
+export const tallaDeBusqueda = (row: MasterReference): string => row.tallaSap || row.size;
+
 /**
  * Índice del maestro. Es la AUTORIDAD de códigos: solo se busca y se lee, nunca se inventa.
  * El género de cada fila se deduce del prefijo de su `ref` (76→W / 86→M).
+ *
+ * ⚠️ REQ-003 · Se indexa por la **talla SAP**, que es la que viene en el PDF del pedido. Indexar por
+ * la talla impresa haría que la ropa no se encontrase nunca: el PDF dice `31` y el maestro guarda `S`.
  */
 export class MasterIndex {
   private readonly byKey = new Map<string, MasterReference>();
@@ -15,7 +21,7 @@ export class MasterIndex {
   constructor(rows: MasterReference[]) {
     for (const row of rows) {
       const gender = genderFromRef(row.ref);
-      this.byKey.set(key(row.style, row.color, row.size, gender), row);
+      this.byKey.set(key(row.style, row.color, tallaDeBusqueda(row), gender), row);
     }
   }
 

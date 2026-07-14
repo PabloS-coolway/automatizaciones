@@ -37,7 +37,8 @@ export interface MissingCodeDto {
   size: string;
   qty: number;
   ref?: string;
-  reason: 'no_master_row' | 'missing_ean13' | 'missing_upc';
+  /** `excluded_model`: el negocio decidió no etiquetar ese modelo (no es un fallo, pero se reporta). */
+  reason: 'no_master_row' | 'missing_ean13' | 'missing_upc' | 'excluded_model';
 }
 
 /** Resultado de generar etiquetas de UN pedido. */
