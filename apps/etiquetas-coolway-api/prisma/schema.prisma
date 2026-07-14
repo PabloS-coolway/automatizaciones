@@ -16,6 +16,12 @@ model Reference {
   ref          String
   size         String
   sku          String
+  /// REQ-003 · Un SKU tiene hasta TRES tallas y confundirlas imprime el código de otro producto:
+  /// `size` es la que se IMPRIME (40 · S · 36-38 · U), `tallaSap` la que viene en el PDF del pedido
+  /// (40 · 31 · C01) y `tallaTiendas` la que va al CÓDIGO DE BARRAS (40 · 11 · 35).
+  /// En calzado las tres coinciden y estas dos van vacías.
+  tallaSap     String?  @map("talla_sap")
+  tallaTiendas String?  @map("talla_tiendas")
   /// El EAN13 NO es único: un producto re-referenciado en SAP conserva su código en la ref vieja
   /// y en la nueva (mismo modelo+color, dos refs). La identidad del SKU es (ref, size).
   /// Si un mismo EAN aparece en productos DISTINTOS, es un error del maestro: la carga lo AVISA

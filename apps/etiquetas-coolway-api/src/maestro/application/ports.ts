@@ -21,6 +21,9 @@ export interface SeedRowInput {
   color: string;
   ref: string;
   size: string;
+  /** REQ-003 · la del PDF y la del código de barras (vacías en calzado: valen lo mismo que `size`). */
+  tallaSap?: string;
+  tallaTiendas?: string;
   sku?: string;
   ean13?: string;
   upc?: string;

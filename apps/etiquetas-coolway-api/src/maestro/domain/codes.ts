@@ -7,12 +7,18 @@ export interface CodeRow {
   code: string; // EAN o UPC según el fichero
 }
 
-/** Referencia consolidada del maestro (una por ref+talla). */
+/**
+ * Referencia consolidada del maestro (una por ref+talla).
+ * REQ-003 · `size` es la talla que se IMPRIME; `tallaSap` la que viene en el PDF y `tallaTiendas` la
+ * que va al código de barras. En calzado las dos últimas van vacías (valen lo mismo que `size`).
+ */
 export interface MasterReference {
   style: string;
   color: string;
   ref: string;
   size: string;
+  tallaSap?: string;
+  tallaTiendas?: string;
   sku: string;
   ean13?: string;
   upc?: string;

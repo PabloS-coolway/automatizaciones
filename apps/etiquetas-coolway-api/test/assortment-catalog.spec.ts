@@ -50,3 +50,26 @@ describe('Catálogo de surtidos', () => {
     }
   });
 });
+
+describe('Surtidos del pedido 4603661 (D, CD, DE4)', () => {
+  // Composición leída de la REJILLA del propio PDF (coordenadas, no a ojo) y validada contra sus
+  // totales al pie: 1.068 cajas y 5.080 pares. Cuadra exacto.
+  it('D → 4 pares de chica: 36, 37, 38, 39', () => {
+    expect(expandAssortment('D')).toEqual({ gender: 'W', pairs: { '36': 1, '37': 1, '38': 1, '39': 1 } });
+    expect(assortmentTotalPairs('D')).toBe(4);
+  });
+
+  it('CD → 4 pares de chico: 40, 41, 42, 43', () => {
+    expect(expandAssortment('CD')).toEqual({ gender: 'M', pairs: { '40': 1, '41': 1, '42': 1, '43': 1 } });
+    expect(assortmentTotalPairs('CD')).toBe(4);
+  });
+
+  it('DE4 → 4 pares de chica, con la 38 DOBLADA (37, 38×2, 39)', () => {
+    expect(expandAssortment('DE4')).toEqual({ gender: 'W', pairs: { '37': 1, '38': 2, '39': 1 } });
+    expect(assortmentTotalPairs('DE4')).toBe(4);
+  });
+
+  it('no se pisan con los que ya había: E sigue siendo 37-40', () => {
+    expect(Object.keys(expandAssortment('E').pairs)).toEqual(['37', '38', '39', '40']);
+  });
+});
