@@ -1,7 +1,7 @@
 # Estado del proyecto · dónde vamos y qué sigue
 
 > Documento de traspaso. Si retomas el trabajo (o cambias de ordenador), **empieza por aquí**.
-> Última actualización: **2026-07-13**. Historial detallado en [`CHANGELOG.md`](CHANGELOG.md).
+> Última actualización: **2026-07-14**. Historial detallado en [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Arranque en un ordenador nuevo
 
@@ -111,6 +111,11 @@ Si eliges el destino equivocado, aparecerán "faltantes" que en realidad son cor
 | `validaciones/UPDATE Order 4603187- (1).pdf` | **Valencia** | El gordo: cajas surtidas + CODE128, 8.444 pares, 265 filas |
 | `validaciones/4603662.pdf` | USA | Cajas **monotalla** (`M36`…`M46`) y **colores compuestos** (`W-B`): 11.028 pares, 448 filas |
 | `validaciones/4603661.pdf` | USA | Surtidos `D` / `CD` / `DE4`: 5.080 pares, 1.068 cajas. **0 faltantes** desde que se arregló el UPC de GOAL |
+| `validaciones/14-07-2026/ORDER 4603015.pdf` | **Valencia** | **ROPA** (REQ-003): imprime `S/M/L/XL`, el CODE128 lleva `11-14`. 1.280 pares |
+| `validaciones/14-07-2026/ORDER 4603016.pdf` | **USA** | La misma ropa con UPC+EAN. 1.220 pares |
+| `validaciones/14-07-2026/4603670.pdf` | **Valencia** | **CALCETINES** (ZEBRA: imprime `36-38`, código `11`) + ropa. 1.000 pares |
+| `validaciones/14-07-2026/4603671.pdf` | Valencia | Ropa (STORM). 200 pares |
+| `validaciones/14-07-2026/4602991.pdf` | Valencia | **BACKPACK: excluido a propósito** (no se vende) → 0 filas y 1 aviso |
 
 **Maestro**: `docs/requerimientos/REFERENCIAS COOLWAY.xlsx` (súbelo como fichero, o cárgalo antes en la
 BD y elige *maestro = base de datos*).
@@ -141,19 +146,34 @@ tipo Excel y facetas cruzadas (los valores de un desplegable respetan los filtro
   filtros y orden que se ven. Los códigos se escriben como **texto celda a celda** (si no, Excel convierte
   el EAN13 en notación científica y pierde los ceros a la izquierda: sería corromper el dato al exportarlo).
 
-## ⏭ Bloqueado esperando a Silvia (REQ-003)
+### REQ-003 · Ropa, calcetines y bolsas ✅
+Ya se etiquetan. Su SKU tiene **tres tallas** y confundirlas imprime el código de barras de otro producto:
+`talla_sap` (viene en el PDF: 31, C01) · `talla_tiendas` (va al código: 11, 35) · `size` (se imprime: S,
+36-38, U). En calzado las tres coinciden y no cambia nada. **La traducción se LEE del maestro, fila a fila.**
 
-**Ropa, calcetines y bolsas no se pueden etiquetar todavía**: su SKU tiene **tres tallas** (la que viene en
-el PDF, la que va al código de barras y la que se imprime) y la BD sólo guarda una. Diseño en
-[`diseño/iniciativas/REQ-003-tallas-ropa-calcetines-bolsas/`](diseño/iniciativas/REQ-003-tallas-ropa-calcetines-bolsas/diseño.md).
+Validado con los **6 pedidos reales** de Silvia (`validaciones/14-07-2026/`): ropa y calcetines salen con
+0 faltantes y el cuadre exacto. `BACKPACK` está **excluido** (no se vende) pero se **reporta** en el pedido.
 
-Falta de Silvia, y son **bloqueantes**:
-1. **Un PDF de pedido real con ropa / calcetines / bolsas.** Sin muestra, estaríamos adivinando cómo vienen
-   las líneas y la rejilla de tallas — y ya sabemos cómo acaba eso (los 798 pares del 4603662).
-2. **La regla del CODE128 con refs cortas**: las bolsas tienen ref de 6 dígitos (`556596`) y saldría un
-   código de 13, no de 14.
-3. Normalizar las cabeceras de la hoja **`ROPA`** (están mal rotuladas) y rellenar las **9 refs de ropa sin
-   talla tiendas**. Y decidir si **llaveros/cleaner** entra en el alcance (hoy esa hoja **no se carga**).
+⚠ **Deuda:** la hoja `ROPA` del Excel tiene los rótulos mal (los datos, bien). Se lee **por contenido**, con
+aviso en cada carga. Si algún día Silvia la rotula como `CALCETINES`, el parche se desactiva solo. Mientras,
+es frágil: se rompe si alguien inserta una columna en esa hoja.
+
+## Despliegue (DigitalOcean)
+
+**La trampa nº1, y ya nos mordió en local:** `pdftotext` es dependencia del **sistema operativo** y
+**`npm ci` NO la instala**. Sin ella, generar etiquetas responde 503 y no funciona nada.
+
+Checklist:
+1. `apt-get install -y poppler-utils` en la imagen/droplet (o en el Dockerfile).
+2. `DATABASE_URL` apuntando a la Postgres gestionada.
+3. **`JWT_SECRET`** definido en el entorno (hoy hay un secreto de desarrollo **en el código**: sin definirlo,
+   los tokens son falsificables). Servir por **HTTPS**.
+4. `npm run db:migrate` (`prisma migrate deploy`) — hay migraciones nuevas: `ean13_deja_de_ser_unico` y
+   `tallas_sap_y_tiendas`.
+5. `npm run auth:create-user` para el primer admin (no hay registro abierto).
+6. Cargar el maestro desde la web (Base de datos → Cargas) y **revisar los avisos** de la consola del
+   servidor (cabeceras duplicadas / hoja `ROPA` mal rotulada).
+7. `npm run preflight` comprueba 1 y verifica que no falta nada de sistema.
 
 ## Siguiente hilo (elige uno)
 

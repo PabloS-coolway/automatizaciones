@@ -37,6 +37,13 @@ export const ASSORTMENTS: Record<string, AssortmentDef> = {
 const PARES_SUELTOS = /^S(\d{2})$/;
 const MONOTALLA = /^M(\d{2})$/;
 
+/**
+ * REQ-003 · Surtido de bolsas/mochilas/gorras: **1 unidad** de la talla `C01` (talla única).
+ * Validado con los pedidos 4602991 (750 cajas = 750 pares) y 4602992 (250 = 250).
+ * `C01` es a la vez el código de surtido y la TALLA SAP con la que se busca en el maestro.
+ */
+const TALLA_UNICA = /^C0\d$/;
+
 /** Pares de una caja monotalla `M<nn>` (validado en el pedido 4603662: 448 líneas, siempre 6). */
 const PARES_POR_CAJA_MONOTALLA = 6;
 
@@ -65,6 +72,9 @@ export function expandAssortment(code: string): AssortmentDef {
 
   const mono = MONOTALLA.exec(code);
   if (mono) return { gender: 'W', pairs: { [mono[1]]: PARES_POR_CAJA_MONOTALLA } };
+
+  // Bolsas/gorras: 1 unidad de talla única. La talla ES el propio código (`C01`).
+  if (TALLA_UNICA.test(code)) return { gender: 'W', pairs: { [code]: 1 } };
 
   throw new UnknownAssortmentError(code);
 }

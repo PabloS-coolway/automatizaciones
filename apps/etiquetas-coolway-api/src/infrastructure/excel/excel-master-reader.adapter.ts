@@ -3,7 +3,7 @@ import * as ExcelJS from 'exceljs';
 import { MasterReaderPort } from '../../application/ports/master-reader.port';
 import { MasterReference } from '../../domain/model/reference';
 
-type Campo = 'name' | 'color' | 'ref' | 'size' | 'ean13' | 'sku' | 'colorWeb' | 'upc';
+type Campo = 'name' | 'color' | 'ref' | 'size' | 'tallaSap' | 'tallaTiendas' | 'ean13' | 'sku' | 'colorWeb' | 'upc';
 type ColMap = Partial<Record<Campo, number>>;
 
 const norm = (s: string) => s.trim().toUpperCase().replace(/\s+/g, ' ');
@@ -21,6 +21,10 @@ function campoDe(cabecera: string): Campo | undefined {
       return 'ref';
     case 'SIZE':
       return 'size';
+    case 'TALLA SAP':
+      return 'tallaSap'; // REQ-003: la talla que viene en el PDF del pedido
+    case 'TALLA TIENDAS':
+      return 'tallaTiendas'; // REQ-003: la talla que va al código de barras
     case 'EAN 13':
     case 'EAN13':
       return 'ean13';
@@ -33,6 +37,52 @@ function campoDe(cabecera: string): Campo | undefined {
     default:
       return undefined;
   }
+}
+
+/**
+ * ⚠️ EXCEPCIÓN · La hoja `ROPA` tiene los rótulos mal puestos (los DATOS son correctos):
+ *
+ *   ROPA        D="SIZE"→11   E=(sin título)→31   F="SIZE"→S   G=EAN 13   H="TALLA TIENDAS"→(vacía)
+ *   CALCETINES  D="SIZE"→36-38  E="TALLA SAP"→31  F=EAN 13     G="TALLA TIENDAS"→11
+ *
+ * O sea: la columna que dice `TALLA TIENDAS` está vacía y el `11` vive en una que se llama `SIZE`.
+ * Un humano lo lee bien; el programa no puede adivinarlo por el nombre. Se resuelve por CONTENIDO:
+ *   · de las dos columnas `SIZE`, la que trae letras (`S`, `M`, `XL`) es la que se imprime;
+ *   · la otra (numérica, 11-14) es la talla tiendas;
+ *   · y la columna sin rótulo que hay entre medias (31-34) es la talla SAP.
+ *
+ * El día que se normalicen las cabeceras, este parche deja de aplicarse solo: las tres se mapean
+ * por nombre como en `CALCETINES` y `BOLSAS`. Mientras tanto, se avisa en cada carga.
+ */
+function parcheHojaRopa(ws: ExcelJS.Worksheet, map: ColMap, dupsSize: number[]): void {
+  // OJO: `ROPA` SÍ tiene la cabecera `TALLA TIENDAS`; lo que pasa es que su columna está VACÍA.
+  // Por eso no basta con mirar si el rótulo existe: hay que mirar si trae datos.
+  const tiendasVacia = map.tallaTiendas === undefined || celdasConValor(ws, map.tallaTiendas) === 0;
+  if (dupsSize.length !== 2 || !tiendasVacia) return;
+
+  const [a, b] = dupsSize;
+  const conLetras = (col: number) => {
+    let letras = 0;
+    ws.eachRow((row, i) => {
+      if (i > 1 && /[A-Za-z]/.test(String(row.getCell(col).text ?? ''))) letras++;
+    });
+    return letras;
+  };
+
+  // La que se imprime es la que trae letras (S/M/L/XL); la otra es el código de tiendas.
+  const [impresa, tiendas] = conLetras(a) > conLetras(b) ? [a, b] : [b, a];
+  map.size = impresa;
+  map.tallaTiendas = tiendas;
+
+  // La talla SAP es la columna SIN rótulo que queda entre las dos.
+  const enMedio = Math.min(a, b) + 1;
+  if (enMedio < Math.max(a, b) && !Object.values(map).includes(enMedio)) map.tallaSap = enMedio;
+
+  console.warn(
+    `[maestro] La hoja "${ws.name}" tiene los rótulos de talla mal puestos (la columna "TALLA TIENDAS" ` +
+      `está vacía y el código vive bajo "SIZE"). Se leen por contenido: imprime=col ${map.size}, ` +
+      `tiendas=col ${map.tallaTiendas}, SAP=col ${map.tallaSap ?? '?'}. Conviene rotularla como CALCETINES.`,
+  );
 }
 
 /** Cuántas celdas con valor tiene una columna (para desempatar cabeceras repetidas). */
@@ -86,6 +136,9 @@ function mapHeader(ws: ExcelJS.Worksheet): ColMap {
         `Conviene corregir el Excel.`,
     );
   }
+
+  // La hoja ROPA repite `SIZE` y deja `TALLA TIENDAS` vacía: se resuelve por contenido (ver arriba).
+  parcheHojaRopa(ws, map, candidatas.get('size') ?? []);
   return map;
 }
 
@@ -124,7 +177,9 @@ export class ExcelMasterReader implements MasterReaderPort {
           style,
           color,
           ref,
-          size,
+          size, // la que se IMPRIME
+          tallaSap: text(row, cols.tallaSap), // la que viene en el PDF (vacía en calzado)
+          tallaTiendas: text(row, cols.tallaTiendas), // la del CÓDIGO DE BARRAS (vacía en calzado)
           ean13: text(row, cols.ean13),
           upc: text(row, cols.upc),
           sku: text(row, cols.sku),

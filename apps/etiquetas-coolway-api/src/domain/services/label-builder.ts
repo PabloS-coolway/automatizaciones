@@ -11,6 +11,13 @@ export interface BuildResult {
   missing: MissingCode[];
 }
 
+/**
+ * Modelos que el negocio ha decidido NO etiquetar. Hoy sólo `BACKPACK`: Silvia confirma que no se
+ * vende (y su fila del maestro está mal: `SIZE = 35` en vez de `U`, y sin UPC). No se etiqueta, pero
+ * sus líneas se REPORTAN en cada pedido — nunca desaparecen en silencio.
+ */
+const MODELOS_EXCLUIDOS = new Set(['BACKPACK']);
+
 const needsEan = (v: LabelVariant) => v === 'EAN' || v === 'CODE128_EAN' || v === 'UPC_EAN';
 const needsUpc = (v: LabelVariant) => v === 'UPC' || v === 'UPC_EAN';
 const needsCode128 = (v: LabelVariant) => v === 'CODE128_EAN';
@@ -35,18 +42,31 @@ export function buildLabels(
     const gender = genderFromRef(line.refSap);
     const def = expandAssortment(line.assortment);
 
-    for (const [size, perBox] of Object.entries(def.pairs)) {
+    // `tallaSap` es la que trae el PDF (40 en calzado, 31 en ropa, C01 en bolsas).
+    for (const [tallaSap, perBox] of Object.entries(def.pairs)) {
       const qty = perBox * line.boxes;
       if (qty === 0) continue;
 
-      const row = master.find(line.style, line.color, size, gender);
-      if (!row) {
-        missing.push({ style: line.style, color: line.color, size, qty, reason: 'no_master_row' });
+      // Decisión de negocio (Silvia): este modelo no se vende y no se etiqueta. Se REPORTA,
+      // no se descarta en silencio: el pedido no sale entero y hay que saberlo.
+      if (MODELOS_EXCLUIDOS.has(line.style.toUpperCase())) {
+        missing.push({ style: line.style, color: line.color, size: tallaSap, qty, reason: 'excluded_model' });
         continue;
       }
 
+      const row = master.find(line.style, line.color, tallaSap, gender);
+      if (!row) {
+        missing.push({ style: line.style, color: line.color, size: tallaSap, qty, reason: 'no_master_row' });
+        continue;
+      }
+
+      // REQ-003 · Las tres tallas: se busca por la del PDF, se IMPRIME la del maestro y el código
+      // de barras lleva la de tiendas. En calzado las tres son la misma y esto no cambia nada.
+      const size = row.size;
+      const tallaTiendas = row.tallaTiendas || row.size;
+
       const ean13 = row.ean13;
-      const upc = master.resolveUpc(line.style, line.color, size, gender);
+      const upc = master.resolveUpc(line.style, line.color, tallaSap, gender);
       if (needsEan(variant) && !ean13) {
         missing.push({ style: line.style, color: line.color, size, qty, ref: row.ref, reason: 'missing_ean13' });
       }
@@ -70,7 +90,7 @@ export function buildLabels(
         qty,
         ean13: needsEan(variant) ? ean13 : undefined,
         upc: needsUpc(variant) ? upc : undefined,
-        code128: needsCode128(variant) ? buildCode128(row.ref, size) : undefined,
+        code128: needsCode128(variant) ? buildCode128(row.ref, tallaTiendas) : undefined,
         importadoPor,
       });
     }
@@ -87,8 +107,27 @@ function sortRows(rows: LabelRow[]): LabelRow[] {
       a.style.localeCompare(b.style) ||
       a.color.localeCompare(b.color) ||
       a.ref.localeCompare(b.ref) ||
-      Number(a.size) - Number(b.size),
+      compararTallas(a.size, b.size),
   );
+}
+
+/**
+ * Las tallas de calzado son números (36 < 40) pero las de ropa no (S, M, L, XL). Comparar con
+ * `Number()` daba `NaN` y dejaba el orden al azar. Se ordenan como números cuando lo son, y por el
+ * orden natural de la ropa cuando no.
+ */
+const ORDEN_ROPA = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'U'];
+
+function compararTallas(a: string, b: string): number {
+  const na = Number(a);
+  const nb = Number(b);
+  if (!Number.isNaN(na) && !Number.isNaN(nb)) return na - nb;
+
+  const ia = ORDEN_ROPA.indexOf(a.toUpperCase());
+  const ib = ORDEN_ROPA.indexOf(b.toUpperCase());
+  if (ia !== -1 && ib !== -1) return ia - ib;
+
+  return a.localeCompare(b, 'es', { numeric: true }); // 36-38 < 39-41 < 42-45
 }
 
 const genderRank = (ref: string) => (ref.startsWith('86') ? 1 : 0);

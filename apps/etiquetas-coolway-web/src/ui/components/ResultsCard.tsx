@@ -15,6 +15,9 @@ const REASON_LABEL: Record<MissingCodeDto['reason'], string> = {
   no_master_row: 'no está en el maestro',
   missing_ean13: 'sin EAN13 en el maestro',
   missing_upc: 'sin UPC en el maestro',
+  // No es un fallo: el negocio decidió no etiquetar ese modelo. Se lista igual, para que nadie
+  // piense que el pedido salió entero.
+  excluded_model: 'modelo excluido (no se etiqueta)',
 };
 
 /** Agrupa los faltantes por modelo+color+motivo → tallas y pares. */

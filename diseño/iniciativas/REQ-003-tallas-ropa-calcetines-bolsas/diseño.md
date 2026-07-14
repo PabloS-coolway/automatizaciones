@@ -1,6 +1,6 @@
 # REQ-003 · Etiquetar ropa, calcetines y bolsas: el SKU tiene TRES tallas
 
-- Estado: 🔍 En análisis · Fecha: 2026-07-13
+- Estado: ✅ Hecho · Fecha: 2026-07-13 · Implementado: 2026-07-14
 - Área: Catálogo
 
 ## Problema de negocio
@@ -101,6 +101,51 @@ código de barras). En calzado, las tres coinciden y se rellenan con el mismo va
 
 **Recomendación: opción A.** Y una decisión de producto que la refuerza: al cargar el maestro, **avisar** de
 las referencias sin talla tiendas (como ya avisamos de los EAN compartidos), en vez de descubrirlo al generar.
+
+## ✅ Bloqueantes resueltos (Silvia, 14/07/2026) — validado contra los 6 PDFs reales
+
+Silvia envió **6 pedidos de prueba** (`docs/requerimientos/validaciones/14-07-2026/`), que cubren las tres
+familias y las dos variantes de códigos:
+
+| Pedido | Familia | Modelos | Códigos | Declara |
+|---|---|---|---|---|
+| `ORDER 4603015` | Ropa | ICONIC, WASHED | CODE128 + EAN | 1.280 cajas / 1.280 pares |
+| `ORDER 4603016` | Ropa (los mismos) | ICONIC, WASHED | **UPC + EAN** | 1.220 / 1.220 |
+| `4603670` | Calcetines + ropa | KNIT, ZEBRA | CODE128 + EAN | 1.000 / 1.000 |
+| `4603671` | Ropa | STORM | CODE128 + EAN | 200 / 200 |
+| `4602991` | Mochila | BACKPACK | CODE128 + EAN | 750 / 750 |
+| `4602992` | Mochila (la misma) | BACKPACK | **UPC + EAN** | 250 / 250 |
+
+**El parser los lee ENTEROS**: en los seis, las líneas y las cajas cuadran con el total que declara el
+propio PDF. Cero líneas perdidas — que era el riesgo nº1 con un formato nuevo.
+
+### 1. La regla del CODE128 (RN-02) — RESUELTA
+> *"Todas las referencias que tengan un dígito menos, como en este caso, debe añadir un cero delante."*
+
+La ref YORGA se **rellena con ceros por la izquierda hasta 7 dígitos** antes de componer el CODE128. La
+mochila (`308280`) pasa a `0308280`, y el código vuelve a tener 14 dígitos. **El PDF lo confirma**: su ref
+SAP es `03082800000C01` — el cero delante **ya viene puesto por SAP**.
+
+### 2. Cómo vienen estas familias en el PDF — DESCUBIERTO EN LOS PDFs
+
+| Familia | Surtido en el PDF | Rango | Unidades por caja |
+|---|---|---|---|
+| Ropa y calcetines | `S31`, `S32`, `S33`, `S34` | `16/35` | 1 |
+| Mochilas / bolsas | **`C01`** | `XS/U` | 1 |
+
+- Los `S<nn>` **ya los entiende el parser** (patrón de "par suelto"), y su `nn` **es la talla SAP** (31…34).
+  Encaja: 1.000 cajas = 1.000 pares.
+- **`C01` es un surtido nuevo**: 1 unidad por caja. Y a la vez es **la talla SAP** de las bolsas.
+
+## ⚠ Defectos de datos encontrados en el maestro (para Silvia)
+
+1. **`BACKPACK` tiene `SIZE = 35` en vez de `U`.** En la hoja `BOLSAS MOCHILAS GORRAS`, la fila de BACKPACK
+   repite en `SIZE` la talla tiendas (`35`) en lugar de la talla que se imprime (`U`), que sí está bien en
+   las demás filas (`SYA CAP`, `C CAP`). Tal cual, **la etiqueta imprimiría "35"**.
+2. **`BACKPACK` no tiene UPC**, y el pedido **4602992 va a USA** (que exige UPC + EAN). Se reportará como
+   faltante — no se inventa.
+3. **La hoja `ROPA` sigue mal rotulada** (ver arriba). Es lo único que impide mapear sus tres tallas por
+   nombre de cabecera, como sí se puede en `CALCETINES` y `BOLSAS`.
 
 ## Preguntas abiertas y riesgos
 
