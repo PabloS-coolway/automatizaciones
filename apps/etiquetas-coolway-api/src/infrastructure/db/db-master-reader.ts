@@ -14,6 +14,8 @@ export class DbMasterReader {
       color: r.color,
       ref: r.ref,
       size: r.size,
+      tallaSap: r.tallaSap ?? undefined,
+      tallaTiendas: r.tallaTiendas ?? undefined,
       sku: r.sku,
       ean13: r.ean13 ?? undefined,
       upc: r.upc ?? undefined,

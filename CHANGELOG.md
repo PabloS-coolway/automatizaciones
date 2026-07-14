@@ -3,6 +3,56 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-14] REQ-003 ✅ · Etiquetar ropa, calcetines y bolsas: el SKU tiene TRES tallas
+
+Hasta hoy la herramienta sólo sabía etiquetar **calzado**, donde la talla es la misma en todas partes: el
+PDF dice `40`, el código de barras lleva `40` y la etiqueta imprime `40`. En **ropa, calcetines y bolsas
+NO se cumple**, y confundirlas imprime **el código de barras de otro producto** — en tienda se cobraría lo
+que no es. Estas familias se hacían **a mano**.
+
+| Familia | Talla SAP (viene en el PDF) | Talla tiendas (va al código) | Size (se imprime) |
+|---|---|---|---|
+| Calzado | 40 | 40 | 40 |
+| Ropa | 31 | 11 | S, M, L, XL |
+| Calcetines | 31 | 11 | 36-38, 39-41… |
+| Bolsas / gorras | C01 | 35 | U |
+
+**El puente `31 → 11` es el mismo en ropa y calcetines, pero la talla impresa cambia** (`S` vs `36-38`). Por
+eso la traducción **no se calcula con una tabla en el código: se LEE del maestro, fila a fila** — que es la
+regla de oro del proyecto.
+
+### Añadido
+- **Migración `tallas_sap_y_tiendas`**: `reference` guarda ahora `talla_sap` y `talla_tiendas` además de
+  `size`. En calzado van vacías (las tres coinciden), así que **no hay excepciones ni `if` especiales**.
+- **La búsqueda se hace por la talla SAP** (`MasterIndex`), que es la que trae el PDF. Antes, la ropa no se
+  habría encontrado nunca: el PDF dice `31` y el maestro guarda `S`.
+- **El CODE128 lleva la talla TIENDAS**, no la que se imprime. Meter la impresa daría `...0000S`: un código
+  inválido, una etiqueta inservible.
+- **RN-02 ampliada — la ref se rellena con ceros hasta 7 dígitos** (regla de Silvia: *"las referencias que
+  tengan un dígito menos deben añadir un cero delante"*). La mochila `308280` → `0308280`. Lo confirma el
+  propio SAP: en el PDF su ref viene ya como `03082800000C01`.
+- **Surtido `C01`** (bolsas/gorras): 1 unidad de talla única. Validado con 4602991 (750 cajas = 750 pares).
+- **`BACKPACK` excluido** por decisión de negocio (no se vende): no se etiqueta, **pero se REPORTA** en cada
+  pedido como *"modelo excluido"*. Nunca desaparece en silencio.
+- **La hoja `ROPA` se lee por CONTENIDO** (excepción documentada): sus rótulos están mal —la columna
+  `TALLA TIENDAS` está vacía y el `11` vive bajo `SIZE`—, aunque los datos son correctos. De las dos
+  columnas `SIZE`, la que trae letras es la que se imprime; la numérica es la de tiendas; la de en medio,
+  sin rótulo, es la SAP. **Se avisa en cada carga**, y el día que se normalice, el parche se desactiva solo.
+
+### Verificado con los 6 pedidos reales de Silvia (`validaciones/14-07-2026/`)
+| Pedido | Familia | Códigos | Resultado |
+|---|---|---|---|
+| ORDER 4603015 | Ropa | CODE128+EAN | **1.280/1.280 pares · 0 faltantes** |
+| ORDER 4603016 | Ropa (los mismos) | UPC+EAN | **1.220/1.220 · 0 faltantes** |
+| 4603670 | Calcetines + ropa | CODE128+EAN | **1.000/1.000 · 0 faltantes** |
+| 4603671 | Ropa | CODE128+EAN | **200/200 · 0 faltantes** |
+| 4602991 / 4602992 | Mochila | — | excluidos y **reportados** |
+
+Ejemplo real de la salida: `ICONIC BLK` imprime **`S`** y su CODE128 es **`90087670000011`**; `ZEBRA FRS`
+imprime **`36-38`** y su CODE128 es **`93882260000011`**.
+
+**Sin regresión en calzado**: 4603418 (60/60), 4603662 (11.028), 4603661 (5.080), 4603187 (8.444).
+
 ## [2026-07-13] BUG-003 · Los UPC de GOAL estaban en el Excel y no se cargaban · y MEJ-002 (surtidos nuevos)
 
 Salió al probar el pedido **4603661**, que no se podía etiquetar. Detrás había dos cosas.

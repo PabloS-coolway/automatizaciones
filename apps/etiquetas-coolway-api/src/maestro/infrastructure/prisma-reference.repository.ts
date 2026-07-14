@@ -39,6 +39,8 @@ export class PrismaReferenceRepository implements ReferenceRepository {
         style: r.style,
         color: r.color,
         sku: r.sku,
+        ...(r.tallaSap ? { tallaSap: r.tallaSap } : {}),
+        ...(r.tallaTiendas ? { tallaTiendas: r.tallaTiendas } : {}),
         ...(r.ean13 ? { ean13: r.ean13 } : {}),
         ...(r.upc ? { upc: r.upc } : {}),
         ...(r.colorNameWeb ? { colorNameWeb: r.colorNameWeb } : {}),
