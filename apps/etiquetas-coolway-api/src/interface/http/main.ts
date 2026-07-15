@@ -9,6 +9,13 @@ import {
   PDFTOTEXT_MISSING_MESSAGE,
   isPdftotextInstalled,
 } from '../../infrastructure/pdf/pdf-text-extractor';
+import { bootstrapAdmin } from '../../auth/bootstrap-admin';
+import {
+  PASSWORD_HASHER,
+  PasswordHasher,
+  USER_REPOSITORY,
+  UserRepository,
+} from '../../auth/application/ports';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(HttpModule);
@@ -30,6 +37,20 @@ async function bootstrap(): Promise<void> {
 
   // Arranca igual (el maestro y los usuarios funcionan), pero generar etiquetas fallaría.
   if (!isPdftotextInstalled()) console.warn(`\n⚠  ${PDFTOTEXT_MISSING_MESSAGE}\n`);
+
+  // Primer admin por variables de entorno (para el despliegue, donde no hay CLI a mano). Idempotente.
+  try {
+    const users = app.get<UserRepository>(USER_REPOSITORY, { strict: false });
+    const hasher = app.get<PasswordHasher>(PASSWORD_HASHER, { strict: false });
+    const msg = await bootstrapAdmin({
+      findByEmail: (e) => users.findByEmail(e),
+      create: (u) => users.create(u),
+      hash: (p) => hasher.hash(p),
+    });
+    console.log(`[bootstrap] ${msg}`);
+  } catch (e) {
+    console.warn(`[bootstrap] no se pudo comprobar el admin de arranque: ${(e as Error).message}`);
+  }
 }
 
 void bootstrap();
