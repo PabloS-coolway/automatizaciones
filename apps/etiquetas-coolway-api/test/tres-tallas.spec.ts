@@ -2,7 +2,7 @@ import { MasterReference } from '../src/domain/model/reference';
 import { PurchaseOrder } from '../src/domain/model/order';
 import { buildCode128 } from '../src/domain/services/code128';
 import { MasterIndex } from '../src/domain/services/master-index';
-import { buildLabels } from '../src/domain/services/label-builder';
+import { MODELOS_EXCLUIDOS, buildLabels } from '../src/domain/services/label-builder';
 import { assortmentTotalPairs, expandAssortment } from '../src/domain/services/assortment-catalog';
 import { reconcile } from '../src/domain/services/reconciliation';
 
@@ -134,16 +134,36 @@ describe('buildLabels · la etiqueta imprime una talla y el código lleva otra',
   });
 
   it('un modelo EXCLUIDO no se etiqueta, pero se REPORTA (no desaparece en silencio)', () => {
+    MODELOS_EXCLUIDOS.add('MODELO_PRUEBA');
+    try {
+      const { rows, missing } = buildLabels(
+        pedido('MODELO_PRUEBA', 'BLK', '03082800000C01', 'C01', 750),
+        new MasterIndex([]),
+        'CODE128_EAN',
+      );
+      expect(rows).toHaveLength(0);
+      expect(missing).toEqual([
+        { style: 'MODELO_PRUEBA', color: 'BLK', size: 'C01', qty: 750, reason: 'excluded_model' },
+      ]);
+    } finally {
+      MODELOS_EXCLUIDOS.delete('MODELO_PRUEBA');
+    }
+  });
+
+  it('BACKPACK ya NO está excluido: se etiqueta con la ref corta + cero delante', () => {
+    // Silvia confirmó que los pedidos 4602991/4602992 sí se etiquetan (antes estuvo excluido).
+    const mochila: MasterReference = {
+      style: 'BACKPACK', color: 'BLK', ref: '308280', // 6 dígitos → 0308280
+      size: 'U', tallaSap: 'C01', tallaTiendas: '35', ean13: '8433852613807', sku: '308280-U',
+    };
     const { rows, missing } = buildLabels(
       pedido('BACKPACK', 'BLK', '03082800000C01', 'C01', 750),
-      new MasterIndex([]),
+      new MasterIndex([mochila]),
       'CODE128_EAN',
     );
-
-    expect(rows).toHaveLength(0);
-    expect(missing).toEqual([
-      { style: 'BACKPACK', color: 'BLK', size: 'C01', qty: 750, reason: 'excluded_model' },
-    ]);
+    expect(missing).toHaveLength(0);
+    expect(rows[0].code128).toBe('03082800000035'); // 308280 -> 0308280 + 00000 + 35
+    expect(rows[0].size).toBe('U'); // lo que se imprime (cuando el maestro está bien)
   });
 });
 
@@ -151,8 +171,10 @@ describe('Cuadre · un modelo excluido NO es un descuadre', () => {
   it('los pares excluidos EXPLICAN el pedido: cuadra igual', () => {
     // Antes salía "No cuadra: 0 de 750 (faltan 750)" en rojo, y mandaba a buscar unos códigos
     // que no hay que buscar. Excluir es una decisión de negocio, no un fallo.
-    const order = pedido('BACKPACK', 'BLK', '03082800000C01', 'C01', 750);
+    MODELOS_EXCLUIDOS.add('MODELO_PRUEBA');
+    const order = pedido('MODELO_PRUEBA', 'BLK', '03082800000C01', 'C01', 750);
     const { rows, missing } = buildLabels(order, new MasterIndex([]), 'CODE128_EAN');
+    MODELOS_EXCLUIDOS.delete('MODELO_PRUEBA');
     const r = reconcile(order, rows, missing);
 
     expect(r.orderPairs).toBe(750);
