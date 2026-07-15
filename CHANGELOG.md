@@ -3,6 +3,35 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-14] Despliegue · DigitalOcean App Platform + Managed Postgres
+
+La herramienta corría sólo en local. Se prepara para desplegarla en **App Platform** (PaaS de DO):
+front + API bajo el mismo dominio, y el maestro en **Managed Postgres** (con backups: es la fuente de
+verdad, no puede depender de backups manuales).
+
+### Añadido
+- **`Dockerfile`** de la API — su razón de ser es `pdftotext`: dependencia del **sistema operativo** que
+  `npm ci` no instala. La imagen la trae con `poppler-utils` (+ `openssl`, que el motor de Prisma necesita).
+- **`.do/app.yaml`** — el app spec: static site (web) en `/`, servicio (api) en `/api` con
+  `preserve_path_prefix` (Nest usa el prefijo global `/api`), Managed Postgres, y las migraciones que
+  corren solas al arrancar (`migrate deploy`, idempotente).
+- **`docs/despliegue.md`** — paso a paso reproducible (crear la app, el secreto, el primer admin, cargar
+  el maestro, comprobar que vive).
+- **`.dockerignore`** — fuera de la imagen `node_modules`, `dist`, `docs`, y **el `.env`** (llevaba el
+  secreto de dev y pisaba la config de producción).
+
+### Corregido (seguridad) — `JWT_SECRET` obligatorio en producción
+- Hasta ahora, sin `JWT_SECRET` la API arrancaba con un secreto de desarrollo **en el código**: desplegada
+  así, **cualquiera podría firmarse un token de admin**. Ahora, con `NODE_ENV=production` y sin secreto, la
+  app **no arranca** (cae al iniciar, con mensaje claro). Fuera de producción, sigue el secreto de dev.
+
+### Verificado construyendo y arrancando la imagen de verdad
+- `pdftotext` está en la imagen · el `.env` local no se cuela · login OK con el secreto de producción ·
+  **genera etiquetas** (pedido 4603418: 7 filas, 60 pares, cuadra) · y en producción **sin `JWT_SECRET` se
+  niega a arrancar**, como debe.
+- Lo que NO se puede hacer desde aquí (requiere la cuenta de DO): crear la app, provisionar la base de datos
+  y lanzar el deploy. Queda todo listo y documentado; lo ejecuta el usuario desde el panel o con `doctl`.
+
 ## [2026-07-14] REQ-003 ✅ · Etiquetar ropa, calcetines y bolsas: el SKU tiene TRES tallas
 
 Hasta hoy la herramienta sólo sabía etiquetar **calzado**, donde la talla es la misma en todas partes: el
