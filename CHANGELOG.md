@@ -3,6 +3,24 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-15] BACKPACK vuelve a etiquetarse (Silvia: los pedidos 4602991/4602992 sí van)
+
+Estuvo excluido ("no se vende"), pero Silvia confirma que esos dos pedidos de mochila **sí** se
+etiquetan. Se revierte la exclusión.
+
+### Cambiado
+- **`MODELOS_EXCLUIDOS` queda vacío**: BACKPACK sale de la lista y se etiqueta como cualquier modelo. El
+  mecanismo de exclusión se mantiene (con test) por si vuelve a hacer falta.
+- Verificado: **4602991 (Valencia, code128+ean) → 750/750, 0 faltantes**, con `CODE128 = 03082800000035`
+  (la ref `308280` de 6 dígitos lleva el cero delante: `0308280`, regla RN-02 de REQ-003).
+
+### ⚠ Pendiente de Silvia (defectos del maestro, no de código)
+Para que BACKPACK salga **perfecto**, hay que corregir su fila en `REFERENCIAS COOLWAY.xlsx`:
+1. **`SIZE` debe ser `U`, no `35`.** Hoy imprime `35` (se coló la talla-tiendas en la columna que se
+   imprime). El `35` es correcto en el código de barras, pero la etiqueta debe decir `U`.
+2. **Falta el UPC.** El pedido **4602992 va a USA** (UPC+EAN) y BACKPACK no tiene UPC → sale como faltante.
+   El de Valencia (4602991) no lo necesita.
+
 ## [2026-07-15] BUG · Cargar el maestro daba 504 en producción (seed demasiado lento)
 
 - **Síntoma:** en producción, *"Error al cargar el maestro"*. La API respondía **504 a los ~14 s** (el
