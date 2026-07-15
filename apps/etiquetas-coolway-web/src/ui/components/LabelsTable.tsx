@@ -14,6 +14,10 @@ const BASE: Def[] = [
   { key: 'sku', label: 'SKU' },
   { key: 'qty', label: 'QTY' },
 ];
+/**
+ * ⚠️ Las columnas de esta tabla NO se tocan: el fichero es la ENTRADA de otro proceso.
+ * La conversión de tallas (REQ-003) se explica en un cuadro aparte, `ConversionTallas`.
+ */
 const OPCIONALES: Def[] = [
   { key: 'ean13', label: 'ean13' },
   { key: 'upc', label: 'upc' },

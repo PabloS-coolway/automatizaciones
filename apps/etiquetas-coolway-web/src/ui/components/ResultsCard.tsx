@@ -1,8 +1,9 @@
 import { Fragment, useMemo, useState } from 'react';
 import { Alert, Badge, Button, Card, Collapse, Table } from 'react-bootstrap';
-import { CheckCircleFill, ChevronDown, ChevronRight, Download, Eye } from 'react-bootstrap-icons';
+import { ArrowLeftRight, CheckCircleFill, ChevronDown, ChevronRight, Download, Eye } from 'react-bootstrap-icons';
 import type { GeneratedFileDto, MissingCodeDto } from '@yorga/contracts';
 import { LabelsTable } from './LabelsTable';
+import { ConversionTallas } from './ConversionTallas';
 import { Column, DataTable, useMemoryTable } from './table';
 
 interface Props {
@@ -19,6 +20,15 @@ const REASON_LABEL: Record<MissingCodeDto['reason'], string> = {
   // piense que el pedido salió entero.
   excluded_model: 'modelo excluido (no se etiqueta)',
 };
+
+/**
+ * Un modelo EXCLUIDO no es un código que falte: el negocio decidió no etiquetarlo. Mezclarlos hacía
+ * que el pedido saliera en rojo ("no cuadra", "hay que completar el maestro") y mandaba a buscar unos
+ * códigos que no hay que buscar.
+ */
+const esExclusion = (m: MissingCodeDto) => m.reason === 'excluded_model';
+const faltantesReales = (ms: MissingCodeDto[]) => ms.filter((m) => !esExclusion(m));
+const exclusiones = (ms: MissingCodeDto[]) => ms.filter(esExclusion);
 
 /** Agrupa los faltantes por modelo+color+motivo → tallas y pares. */
 function groupMissing(missing: MissingCodeDto[]) {
@@ -63,6 +73,7 @@ function TablaFaltantes({ missing }: { missing: MissingCodeDto[] }) {
 
 export function ResultsCard({ files, onDownloadOne, onDownloadAll }: Props) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [conversionAbierta, setConversionAbierta] = useState<Set<string>>(new Set());
   if (files.length === 0) return null;
 
   const toggle = (id: string) =>
@@ -72,12 +83,22 @@ export function ResultsCard({ files, onDownloadOne, onDownloadAll }: Props) {
       return next;
     });
 
+  const toggleConversion = (id: string) =>
+    setConversionAbierta((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  /** Sólo ropa/calcetines/bolsas tienen conversión: en calzado las tres tallas son la misma. */
+  const tieneConversion = (f: GeneratedFileDto) => f.rows.some((r) => r.tallaSap && r.tallaTiendas);
+
   const totalGen = files.reduce((s, f) => s + f.reconciliation.labelPairs, 0);
-  const totalMissing = files.reduce((s, f) => s + f.missing.length, 0);
+  const totalMissing = files.reduce((s, f) => s + faltantesReales(f.missing).length, 0);
   // Un pedido sólo está "ok" si además se ha leído ENTERO (matchesDeclared): un PDF a medias
   // cuadra consigo mismo y parecería correcto.
   const okCount = files.filter(
-    (f) => f.reconciliation.balanced && f.reconciliation.matchesDeclared && f.missing.length === 0,
+    (f) => f.reconciliation.balanced && f.reconciliation.matchesDeclared && faltantesReales(f.missing).length === 0,
   ).length;
 
   return (
@@ -127,7 +148,10 @@ export function ResultsCard({ files, onDownloadOne, onDownloadAll }: Props) {
           </thead>
           <tbody>
             {files.map((f) => {
-              const ok = f.reconciliation.balanced && f.reconciliation.matchesDeclared && f.missing.length === 0;
+              const ok =
+                f.reconciliation.balanced &&
+                f.reconciliation.matchesDeclared &&
+                faltantesReales(f.missing).length === 0;
               const isOpen = expanded.has(f.orderNumber);
               return (
                 <Fragment key={f.orderNumber}>
@@ -167,9 +191,13 @@ export function ResultsCard({ files, onDownloadOne, onDownloadAll }: Props) {
                       )}
                     </td>
                     <td>
-                      {f.missing.length ? (
+                      {faltantesReales(f.missing).length ? (
                         <Badge bg="warning-subtle" text="warning" role="button" onClick={() => toggle(f.orderNumber)}>
-                          {f.missing.length} ver
+                          {faltantesReales(f.missing).length} ver
+                        </Badge>
+                      ) : exclusiones(f.missing).length ? (
+                        <Badge bg="secondary-subtle" text="secondary" role="button" onClick={() => toggle(f.orderNumber)}>
+                          {exclusiones(f.missing).length} excluido{exclusiones(f.missing).length > 1 ? 's' : ''}
                         </Badge>
                       ) : (
                         <span className="text-secondary">—</span>
@@ -179,9 +207,34 @@ export function ResultsCard({ files, onDownloadOne, onDownloadAll }: Props) {
                       <Button variant="outline-secondary" size="sm" className="me-2" onClick={() => toggle(f.orderNumber)}>
                         <Eye className="me-1" /> {isOpen ? 'Ocultar' : 'Ver en línea'}
                       </Button>
+                      {tieneConversion(f) && (
+                        <Button
+                          variant="outline-secondary"
+                          size="sm"
+                          className="me-2"
+                          onClick={() => toggleConversion(f.orderNumber)}
+                          aria-expanded={conversionAbierta.has(f.orderNumber)}
+                        >
+                          <ArrowLeftRight className="me-1" aria-hidden="true" />
+                          {conversionAbierta.has(f.orderNumber) ? 'Ocultar conversión' : 'Ver conversión de tallas'}
+                        </Button>
+                      )}
                       <Button variant={ok ? 'outline-success' : 'outline-warning'} size="sm" onClick={() => onDownloadOne(f)}>
                         <Download className="me-1" /> Descargar
                       </Button>
+                    </td>
+                  </tr>
+                  {/* REQ-003 · La conversión va en su propio panel: la tabla de etiquetas NO se toca
+                      (sus columnas son la entrada de otro proceso). */}
+                  <tr className="detail-row">
+                    <td colSpan={6} className="pt-0 pb-0">
+                      <Collapse in={conversionAbierta.has(f.orderNumber)}>
+                        <div>
+                          <div className="detail-panel">
+                            <ConversionTallas rows={f.rows} />
+                          </div>
+                        </div>
+                      </Collapse>
                     </td>
                   </tr>
                   <tr className="detail-row">
@@ -200,7 +253,19 @@ export function ResultsCard({ files, onDownloadOne, onDownloadAll }: Props) {
                               )}
                             </div>
 
-                            {(!f.reconciliation.balanced || !f.reconciliation.matchesDeclared || f.missing.length > 0) && (
+                            {/* Un modelo excluido NO es un error: se informa en gris, no en rojo. */}
+                            {exclusiones(f.missing).length > 0 && (
+                              <Alert variant="secondary" className="py-2 mb-3 small">
+                                <strong>
+                                  {f.reconciliation.excludedPairs} pares de modelos que no se etiquetan
+                                </strong>{' '}
+                                ({[...new Set(exclusiones(f.missing).map((m) => m.style))].join(', ')}). Es una decisión de
+                                negocio, no un fallo: no hay nada que corregir en el maestro. Se listan abajo para que el
+                                pedido no parezca completo cuando no lo está.
+                              </Alert>
+                            )}
+
+                            {(!f.reconciliation.balanced || !f.reconciliation.matchesDeclared || faltantesReales(f.missing).length > 0) && (
                               <Alert
                                 variant={!f.reconciliation.balanced || !f.reconciliation.matchesDeclared ? 'danger' : 'warning'}
                                 className="py-2 mb-3 small"
@@ -219,10 +284,14 @@ export function ResultsCard({ files, onDownloadOne, onDownloadAll }: Props) {
                                     generados (faltan {Math.abs(f.reconciliation.diff)}).
                                   </div>
                                 )}
-                                {f.missing.length > 0 && (
+                                {faltantesReales(f.missing).length > 0 && (
                                   <div>
-                                    <strong>{f.missing.length} código{f.missing.length > 1 ? 's' : ''}</strong> sin resolver en el
-                                    maestro, {f.missing.reduce((s, m) => s + m.qty, 0)} pares afectados (detalle abajo).
+                                    <strong>
+                                      {faltantesReales(f.missing).length} código
+                                      {faltantesReales(f.missing).length > 1 ? 's' : ''}
+                                    </strong>{' '}
+                                    sin resolver en el maestro,{' '}
+                                    {faltantesReales(f.missing).reduce((s, m) => s + m.qty, 0)} pares afectados (detalle abajo).
                                   </div>
                                 )}
                               </Alert>
@@ -231,8 +300,9 @@ export function ResultsCard({ files, onDownloadOne, onDownloadAll }: Props) {
                             {f.missing.length > 0 && (
                               <div className="missing-box mb-3">
                                 <div className="small text-secondary mb-2">
-                                  Estos códigos no se pudieron resolver en el maestro (no se inventan — hay que
-                                  añadirlos/completarlos en el maestro):
+                                  {faltantesReales(f.missing).length > 0
+                                    ? 'Estos códigos no se pudieron resolver en el maestro (no se inventan — hay que añadirlos/completarlos en el maestro):'
+                                    : 'Lo que NO ha entrado en el fichero de etiquetas:'}
                                 </div>
                                 <TablaFaltantes missing={f.missing} />
                               </div>

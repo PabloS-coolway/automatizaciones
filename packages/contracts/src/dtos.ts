@@ -8,7 +8,10 @@ export interface LabelRowDto {
   style: string;
   color: string;
   ref: string;
-  size: string;
+  size: string; // la que se IMPRIME
+  /** REQ-003 · de dónde vino (PDF) y qué talla lleva el código. Vacías en calzado (las tres coinciden). */
+  tallaSap?: string;
+  tallaTiendas?: string;
   sku: string;
   qty: number;
   ean13?: string;
@@ -20,7 +23,9 @@ export interface LabelRowDto {
 export interface ReconciliationDto {
   orderPairs: number; // pares LEÍDOS del pedido
   labelPairs: number; // pares de las etiquetas generadas
-  balanced: boolean; // etiquetas == pedido leído (comprobación interna)
+  /** Pares de modelos excluidos a propósito (no se etiquetan). No son un fallo. */
+  excludedPairs: number;
+  balanced: boolean; // etiquetas + excluidos == pedido leído
   diff: number;
 
   declaredPairs?: number; // lo que el PDF declara al pie ("TOTAL PAIRS")
