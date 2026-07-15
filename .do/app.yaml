@@ -69,7 +69,11 @@ static_sites:
     catchall_document: index.html
 
 databases:
+  # Base de datos gestionada por la propia app (dev database): un solo paso y CON backups automáticos
+  # de DO (no manuales). El maestro es la fuente de verdad, así que nunca en un contenedor efímero.
+  # Para más aislamiento/retención (point-in-time), migrar a un clúster Managed dedicado:
+  #   1) doctl databases create coolway-db --engine pg --version 16 --size db-s-1vcpu-1gb --region fra
+  #   2) aquí: production: true  +  cluster_name: coolway-db
   - name: db
     engine: PG
     version: "16"
-    production: true # Managed (con backups). El maestro es la fuente de verdad: no puede ir en contenedor.
