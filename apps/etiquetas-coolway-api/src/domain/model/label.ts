@@ -3,7 +3,15 @@ export interface LabelRow {
   style: string;
   color: string;
   ref: string;
+  /** La talla que se IMPRIME (40 · S · 36-38 · U). */
   size: string;
+  /**
+   * REQ-003 · Trazabilidad de la conversión, para poder VALIDAR de un vistazo que es correcta:
+   * de dónde salió la fila (la talla del PDF) y qué talla acabó en el código de barras.
+   * Sólo se rellenan cuando difieren de `size` — en calzado las tres coinciden y no se muestran.
+   */
+  tallaSap?: string;
+  tallaTiendas?: string;
   sku: string;
   qty: number;
   ean13?: string;
