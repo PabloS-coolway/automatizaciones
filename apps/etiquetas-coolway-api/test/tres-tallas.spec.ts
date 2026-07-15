@@ -4,6 +4,7 @@ import { buildCode128 } from '../src/domain/services/code128';
 import { MasterIndex } from '../src/domain/services/master-index';
 import { buildLabels } from '../src/domain/services/label-builder';
 import { assortmentTotalPairs, expandAssortment } from '../src/domain/services/assortment-catalog';
+import { reconcile } from '../src/domain/services/reconciliation';
 
 /**
  * REQ-003 · Un SKU tiene hasta TRES tallas y confundirlas imprime el código de barras de OTRO
@@ -143,5 +144,53 @@ describe('buildLabels · la etiqueta imprime una talla y el código lleva otra',
     expect(missing).toEqual([
       { style: 'BACKPACK', color: 'BLK', size: 'C01', qty: 750, reason: 'excluded_model' },
     ]);
+  });
+});
+
+describe('Cuadre · un modelo excluido NO es un descuadre', () => {
+  it('los pares excluidos EXPLICAN el pedido: cuadra igual', () => {
+    // Antes salía "No cuadra: 0 de 750 (faltan 750)" en rojo, y mandaba a buscar unos códigos
+    // que no hay que buscar. Excluir es una decisión de negocio, no un fallo.
+    const order = pedido('BACKPACK', 'BLK', '03082800000C01', 'C01', 750);
+    const { rows, missing } = buildLabels(order, new MasterIndex([]), 'CODE128_EAN');
+    const r = reconcile(order, rows, missing);
+
+    expect(r.orderPairs).toBe(750);
+    expect(r.labelPairs).toBe(0);
+    expect(r.excludedPairs).toBe(750);
+    expect(r.balanced).toBe(true); // 0 etiquetados + 750 excluidos = 750 del pedido
+    expect(r.diff).toBe(0);
+  });
+
+  it('pero un código que de verdad falta SÍ descuadra', () => {
+    const order = pedido('ICONIC', 'BLK', '90087670000S31', 'S31', 40);
+    const { rows, missing } = buildLabels(order, new MasterIndex([]), 'CODE128_EAN'); // maestro vacío
+    const r = reconcile(order, rows, missing);
+
+    expect(missing[0].reason).toBe('no_master_row');
+    expect(r.excludedPairs).toBe(0);
+    expect(r.balanced).toBe(false); // faltan 40 pares y nadie los explica
+  });
+});
+
+describe('Trazabilidad de la conversión en la vista previa', () => {
+  it('ropa: la fila lleva de dónde vino (PDF) y qué talla fue al código', () => {
+    const { rows } = buildLabels(
+      pedido('ICONIC', 'BLK', '90087670000S31', 'S31'),
+      new MasterIndex([ropa]),
+      'CODE128_EAN',
+    );
+    // Permite comprobar de un vistazo: 31 (PDF) → S (imprime) → 11 (código).
+    expect(rows[0]).toMatchObject({ tallaSap: '31', size: 'S', tallaTiendas: '11' });
+  });
+
+  it('calzado: no se muestran (las tres tallas son la misma; serían ruido)', () => {
+    const { rows } = buildLabels(
+      pedido('NILO', 'RED', '76033980200S40', 'S40'),
+      new MasterIndex([zapato]),
+      'CODE128_EAN',
+    );
+    expect(rows[0].tallaSap).toBeUndefined();
+    expect(rows[0].tallaTiendas).toBeUndefined();
   });
 });

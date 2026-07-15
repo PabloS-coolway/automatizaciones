@@ -1,12 +1,19 @@
-import { LabelRow } from '../model/label';
+import { LabelRow, MissingCode } from '../model/label';
 import { PurchaseOrder } from '../model/order';
 import { assortmentTotalPairs } from './assortment-catalog';
 
 export interface Reconciliation {
   orderPairs: number; // pares según lo que hemos LEÍDO del pedido (cajas × pares/surtido)
   labelPairs: number; // pares de las etiquetas generadas
-  balanced: boolean; // etiquetas == lo leído del pedido
-  diff: number; // labelPairs - orderPairs
+  /**
+   * Pares de modelos EXCLUIDOS por el negocio (BACKPACK: no se vende). No son un fallo ni un código
+   * que falte: son pares que a propósito no se etiquetan. Si no se contaran, el pedido saldría como
+   * "no cuadra" en rojo y alguien iría a buscar unos códigos que no hay que buscar.
+   */
+  excludedPairs: number;
+  /** Las etiquetas + lo excluido a propósito explican TODO el pedido. */
+  balanced: boolean;
+  diff: number; // (labelPairs + excludedPairs) - orderPairs
 
   /** Lo que el PROPIO PDF declara al pie. undefined si el pie no se reconoció. */
   declaredPairs?: number;
@@ -31,20 +38,25 @@ export interface Reconciliation {
  *     es la única fuente independiente. Sin ella, un fallo del parser pasaba desapercibido
  *     (pedido 4603662: 37 líneas ignoradas por un color con guión → 798 pares de menos, "cuadrando").
  */
-export function reconcile(order: PurchaseOrder, rows: LabelRow[]): Reconciliation {
+export function reconcile(order: PurchaseOrder, rows: LabelRow[], missing: MissingCode[] = []): Reconciliation {
   const orderPairs = order.lines.reduce((sum, l) => sum + assortmentTotalPairs(l.assortment) * l.boxes, 0);
   const labelPairs = rows.reduce((sum, r) => sum + r.qty, 0);
+  const excludedPairs = missing
+    .filter((m) => m.reason === 'excluded_model')
+    .reduce((sum, m) => sum + m.qty, 0);
   const parsedBoxes = order.lines.reduce((sum, l) => sum + l.boxes, 0);
 
   const declaredPairs = order.declared?.pairs;
   const matchesDeclared = declaredPairs === undefined || declaredPairs === orderPairs;
   const missedPairs = declaredPairs === undefined ? 0 : Math.max(0, declaredPairs - orderPairs);
 
+  const explicados = labelPairs + excludedPairs;
   return {
     orderPairs,
     labelPairs,
-    balanced: orderPairs === labelPairs,
-    diff: labelPairs - orderPairs,
+    excludedPairs,
+    balanced: orderPairs === explicados,
+    diff: explicados - orderPairs,
     declaredPairs,
     declaredBoxes: order.declared?.boxes,
     parsedBoxes,

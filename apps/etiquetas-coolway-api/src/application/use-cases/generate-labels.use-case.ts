@@ -49,7 +49,7 @@ export class GenerateLabelsUseCase {
         importadoPor: input.importadoPor,
         rows,
         missing,
-        reconciliation: reconcile(order, rows),
+        reconciliation: reconcile(order, rows, missing),
       });
     }
     return results;

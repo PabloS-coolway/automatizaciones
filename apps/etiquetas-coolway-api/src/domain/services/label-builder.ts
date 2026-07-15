@@ -81,11 +81,14 @@ export function buildLabels(
         continue;
       }
 
+      const conversion = tallaSap !== size || tallaTiendas !== size; // en calzado, las tres son la misma
       acc.set(dedupeKey, {
         style: line.style,
         color: line.color,
         ref: row.ref,
         size,
+        tallaSap: conversion ? tallaSap : undefined,
+        tallaTiendas: conversion ? tallaTiendas : undefined,
         sku: row.sku || `${row.ref}-${size}`, // RF-08: componer sólo si falta (no acuñar)
         qty,
         ean13: needsEan(variant) ? ean13 : undefined,

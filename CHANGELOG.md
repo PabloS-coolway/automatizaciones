@@ -39,6 +39,20 @@ regla de oro del proyecto.
   columnas `SIZE`, la que trae letras es la que se imprime; la numérica es la de tiendas; la de en medio,
   sin rótulo, es la SAP. **Se avisa en cada carga**, y el día que se normalice, el parche se desactiva solo.
 
+### Corregido · un modelo excluido ya NO sale como "descuadre"
+- Al generar un pedido de **BACKPACK** (excluido), la pantalla decía *"No cuadra: faltan 750"* en rojo y
+  *"1 código sin resolver — hay que completar el maestro"*. Todo falso: no es un código que falte, es un
+  modelo que **a propósito** no se etiqueta. Mandaba a Silvia a buscar unos códigos que no existen.
+- Ahora el cuadre **cuenta los pares excluidos como explicados** (`excludedPairs`): el pedido cuadra, el
+  KPI de faltantes no los cuenta, el badge sale en gris ("1 excluido") y el aviso es informativo, no de
+  error. Lo que sí falta de verdad sigue en rojo (hay test que lo separa).
+
+### Añadido · cuadro de conversión de tallas (botón "Ver conversión de tallas")
+- En ropa/calcetines/bolsas, un panel aparte muestra la conversión completa —**talla del PDF → se imprime →
+  talla del código → CODE128**— para poder validar de un vistazo que cada código de barras es el que toca.
+- **La tabla de etiquetas NO se toca**: sus columnas son la entrada de otro proceso. El cuadro es
+  informativo y sólo aparece cuando hay conversión (en calzado las tres tallas coinciden).
+
 ### Verificado con los 6 pedidos reales de Silvia (`validaciones/14-07-2026/`)
 | Pedido | Familia | Códigos | Resultado |
 |---|---|---|---|
