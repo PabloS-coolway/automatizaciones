@@ -1,0 +1,75 @@
+# DigitalOcean App Platform · una sola "app" con tres componentes.
+#
+#   ┌──────────────── etiquetas-coolway (App Platform) ─────────────────┐
+#   │  static_site "web"  →  ruta /       (el front, build de Vite)      │
+#   │  service     "api"  →  ruta /api    (NestJS, con Dockerfile)       │
+#   └────────────────────────────┬──────────────────────────────────────┘
+#                                ▼
+#                     database "db" (Managed Postgres, con backups)
+#
+# El front llama a /api con rutas RELATIVAS, así que no hay que tocar su código: App Platform
+# enruta /api → service y el resto → static_site. Igual que el proxy de Vite en local.
+#
+# Cómo se usa (una vez conectada la cuenta y el repo):
+#   doctl apps create --spec .do/app.yaml          # primera vez
+#   doctl apps update <APP_ID> --spec .do/app.yaml  # cambios posteriores
+# (o subir este fichero desde el panel de App Platform → Create App → import app spec)
+
+name: etiquetas-coolway
+region: fra # Frankfurt (lo más cerca de España en DO)
+
+services:
+  - name: api
+    # Se construye desde la raíz del monorepo con el Dockerfile de la API (trae poppler-utils).
+    dockerfile_path: apps/etiquetas-coolway-api/Dockerfile
+    source_dir: /
+    github:
+      repo: PabloS-coolway/automatizaciones
+      branch: main
+      deploy_on_push: true
+    http_port: 3000
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-0.5gb # el más pequeño; subir si hace falta
+    # ⚠️ Nest usa globalPrefix "/api". `preserve_path_prefix` hace que el servicio reciba la ruta
+    # ENTERA (/api/health), no recortada (/health) — si no, ninguna ruta respondería.
+    routes:
+      - path: /api
+        preserve_path_prefix: true
+    health_check:
+      http_path: /api/health
+    envs:
+      - key: NODE_ENV
+        value: production
+      # La Managed Postgres inyecta su cadena de conexión aquí (con SSL). No se escribe a mano.
+      - key: DATABASE_URL
+        value: ${db.DATABASE_URL}
+        scope: RUN_TIME
+      # ⚠️ OBLIGATORIO. Sin esto la API NO ARRANCA (los tokens serían falsificables). Se pone como
+      # SECRET en el panel de App Platform (o `doctl`), nunca en este fichero versionado.
+      #   genera uno con:  openssl rand -base64 32
+      - key: JWT_SECRET
+        scope: RUN_TIME
+        type: SECRET
+      - key: JWT_EXPIRES_IN
+        value: 12h
+        scope: RUN_TIME
+
+static_sites:
+  - name: web
+    source_dir: /
+    github:
+      repo: PabloS-coolway/automatizaciones
+      branch: main
+      deploy_on_push: true
+    build_command: npm ci && npm run build -w @yorga/etiquetas-coolway-web
+    output_dir: apps/etiquetas-coolway-web/dist
+    routes:
+      - path: /
+    # La web es una SPA (react-router): cualquier ruta desconocida sirve index.html.
+    catchall_document: index.html
+
+databases:
+  - name: db
+    engine: PG
+    version: "16"
+    production: true # Managed (con backups). El maestro es la fuente de verdad: no puede ir en contenedor.
