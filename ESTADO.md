@@ -158,24 +158,23 @@ Validado con los **6 pedidos reales** de Silvia (`validaciones/14-07-2026/`): ro
 aviso en cada carga. Si algún día Silvia la rotula como `CALCETINES`, el parche se desactiva solo. Mientras,
 es frágil: se rompe si alguien inserta una columna en esa hoja.
 
-## Despliegue (DigitalOcean)
+## Despliegue (DigitalOcean App Platform) — LISTO para desplegar
 
-**La trampa nº1, y ya nos mordió en local:** `pdftotext` es dependencia del **sistema operativo** y
-**`npm ci` NO la instala**. Sin ella, generar etiquetas responde 503 y no funciona nada.
+Todo el andamiaje está hecho y **probado construyendo la imagen de verdad**. Guía completa en
+[`docs/despliegue.md`](docs/despliegue.md). En corto:
 
-Checklist:
-1. `apt-get install -y poppler-utils` en la imagen/droplet (o en el Dockerfile).
-2. `DATABASE_URL` apuntando a la Postgres gestionada.
-3. **`JWT_SECRET`** definido en el entorno (hoy hay un secreto de desarrollo **en el código**: sin definirlo,
-   los tokens son falsificables). Servir por **HTTPS**.
-4. `npm run db:migrate` (`prisma migrate deploy`) — hay migraciones nuevas: `ean13_deja_de_ser_unico` y
-   `tallas_sap_y_tiendas`.
-5. `npm run auth:create-user` para el primer admin (no hay registro abierto).
-6. Cargar el maestro desde la web (Base de datos → Cargas) y **revisar los avisos** de la consola del
-   servidor (cabeceras duplicadas / hoja `ROPA` mal rotulada).
-7. `npm run preflight` comprueba 1 y verifica que no falta nada de sistema.
+- **`Dockerfile`** de la API con `poppler-utils` + `openssl` (las dos dependencias de sistema que
+  `npm ci` no instala y sin las que la app no sirve).
+- **`.do/app.yaml`**: web en `/`, api en `/api` (con `preserve_path_prefix`), Managed Postgres, migraciones
+  automáticas al arrancar.
+- **`JWT_SECRET` es obligatorio en producción**: sin él la app NO arranca (antes usaba un secreto de dev
+  del código → tokens falsificables).
 
-## Siguiente hilo (elige uno)
+**Lo que falta, y sólo lo puede hacer Pablo** (necesita la cuenta de DO): crear la app (`doctl apps create
+--spec .do/app.yaml` o importar el spec en el panel), poner el `JWT_SECRET` como secreto, crear el primer
+admin por la consola del componente, y cargar el maestro desde la web. Usa el subdominio `.ondigitalocean.app`.
+
+## Siguiente hilo (elige uno)## Siguiente hilo (elige uno)
 
 1. **Fase 2 · Bloque 3 — gobernanza del maestro**: publicar el maestro a Excel/Sheets para los
    departamentos, y coordinar accesos con Tomás. *(Es lo natural ahora.)*
