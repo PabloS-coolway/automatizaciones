@@ -53,6 +53,17 @@ services:
       - key: JWT_EXPIRES_IN
         value: 12h
         scope: RUN_TIME
+      # Primer admin, creado al arrancar (idempotente). No hay CLI a mano en App Platform.
+      # ADMIN_PASSWORD va como SECRET (se pone aparte). Una vez creado el admin, se pueden quitar.
+      - key: ADMIN_EMAIL
+        value: pablo.silva@coolway.com
+        scope: RUN_TIME
+      - key: ADMIN_NAME
+        value: PabloS
+        scope: RUN_TIME
+      - key: ADMIN_PASSWORD
+        scope: RUN_TIME
+        type: SECRET
 
 static_sites:
   - name: web
