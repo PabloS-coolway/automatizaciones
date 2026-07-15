@@ -29,7 +29,9 @@ services:
       deploy_on_push: true
     http_port: 3000
     instance_count: 1
-    instance_size_slug: apps-s-1vcpu-0.5gb # el más pequeño; subir si hace falta
+    # 1 GB, no 0.5 GB: cargar el maestro lee el Excel entero con exceljs (5.769 filas, 42 hojas), que
+    # es hambriento de RAM. Con 512 MB el proceso moría con "heap out of memory" (visto en producción).
+    instance_size_slug: apps-s-1vcpu-1gb
     # ⚠️ Nest usa globalPrefix "/api". `preserve_path_prefix` hace que el servicio reciba la ruta
     # ENTERA (/api/health), no recortada (/health) — si no, ninguna ruta respondería.
     routes:
