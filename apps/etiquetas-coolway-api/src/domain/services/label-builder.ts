@@ -12,11 +12,12 @@ export interface BuildResult {
 }
 
 /**
- * Modelos que el negocio ha decidido NO etiquetar. Hoy sólo `BACKPACK`: Silvia confirma que no se
- * vende (y su fila del maestro está mal: `SIZE = 35` en vez de `U`, y sin UPC). No se etiqueta, pero
- * sus líneas se REPORTAN en cada pedido — nunca desaparecen en silencio.
+ * Modelos que el negocio ha decidido NO etiquetar. Hoy NINGUNO: `BACKPACK` estuvo excluido un tiempo
+ * ("no se vende"), pero Silvia confirmó que los pedidos 4602991/4602992 SÍ se etiquetan, así que
+ * volvió a entrar. El mecanismo se mantiene por si vuelve a hacer falta: un modelo excluido no se
+ * etiqueta pero se REPORTA (nunca desaparece en silencio). Exportado para poder testearlo.
  */
-const MODELOS_EXCLUIDOS = new Set(['BACKPACK']);
+export const MODELOS_EXCLUIDOS = new Set<string>();
 
 const needsEan = (v: LabelVariant) => v === 'EAN' || v === 'CODE128_EAN' || v === 'UPC_EAN';
 const needsUpc = (v: LabelVariant) => v === 'UPC' || v === 'UPC_EAN';
