@@ -3,6 +3,18 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-15] BUG · Cargar el maestro daba 504 en producción (seed demasiado lento)
+
+- **Síntoma:** en producción, *"Error al cargar el maestro"*. La API respondía **504 a los ~14 s** (el
+  gateway de App Platform corta ahí).
+- **Causa:** el seed hacía **5.769 upserts SECUENCIALES**. En local (BD a 0,1 ms) volaba; contra la Managed
+  Postgres (por red) tardaba >80 s → timeout. No era memoria ni el código: era el ir y venir fila a fila.
+- **Arreglo:** las filas **nuevas se crean en LOTE** (`createMany`) y las **existentes se actualizan con
+  concurrencia** limitada. Antes de procesar se **deduplica por (ref, talla)** quedándose con la última
+  (como el upsert secuencial), para que el resultado sea idéntico y determinista.
+- **Verificado en local:** carga completa (5.736 filas) en **~2 s** (antes >80 s), mismos datos exactos
+  (GOAL con UPC, las tres tallas de REQ-003), y la recarga (todo updates) también en ~2 s.
+
 ## [2026-07-14] Despliegue · DigitalOcean App Platform + Managed Postgres
 
 La herramienta corría sólo en local. Se prepara para desplegarla en **App Platform** (PaaS de DO):
