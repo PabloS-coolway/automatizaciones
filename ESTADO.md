@@ -97,6 +97,17 @@ venden por separado: **en caja sería ambiguo**. La web los lista en cada carga 
 
 **Acción pendiente**: pasarle a Silvia los 33 EAN compartidos entre productos distintos.
 
+### ⏳ BACKPACK · esperando corrección de Silvia (correo enviado 2026-07-15)
+BACKPACK volvió a etiquetarse (rama `feat/backpack-se-etiqueta`, sin mergear aún). El código está bien
+—el pedido 4602991 (Valencia) sale 750/750 con `CODE128 03082800000035`—, pero su fila del maestro (hoja
+`BOLSAS MOCHILAS GORRAS`, ref `308280`) tiene **dos defectos que corrige Silvia en el Excel**:
+1. **`SIZE = 35`, debe ser `U`** → hoy la etiqueta imprimiría "35". (El `35` es correcto, pero en la columna
+   `TALLA TIENDAS`, no en `SIZE`.)
+2. **Sin UPC** → el pedido 4602992 (USA, exige UPC+EAN) lo marca como faltante. El de Valencia no lo necesita.
+
+**Cuando Silvia responda:** confirmar el Excel corregido, recargar el maestro, verificar los dos pedidos, y
+**mergear la PR** para que llegue a producción.
+
 ## Cómo probarlo (qué fichero subir)
 
 Los pedidos de prueba están en `docs/requerimientos/`. **El destino importa**, porque determina qué
