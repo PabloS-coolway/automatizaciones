@@ -1,3 +1,4 @@
+import { LABEL_VARIANTS, variantCodes } from '@yorga/contracts';
 import { MasterReference } from '../src/domain/model/reference';
 import { PurchaseOrder } from '../src/domain/model/order';
 import { buildLabels } from '../src/domain/services/label-builder';
@@ -103,5 +104,39 @@ describe('buildLabels — columna importado por (RF-13)', () => {
   it('estampa el valor importadoPor en todas las filas', () => {
     const { rows } = buildLabels(ORDER_4603418, new MasterIndex(NILO_BRW), 'UPC_EAN', 'VANYOR');
     expect(rows.every((r) => r.importadoPor === 'VANYOR')).toBe(true);
+  });
+});
+
+describe('buildLabels — la variante sólo dice QUÉ CÓDIGOS lleva la etiqueta (REQ-004)', () => {
+  const master = new MasterIndex(NILO_BRW);
+  const codigos = (v: Parameters<typeof buildLabels>[2]) => {
+    const r = buildLabels(ORDER_4603418, master, v).rows[0];
+    return { ean13: r.ean13, upc: r.upc, code128: r.code128 };
+  };
+
+  it('CODE128 a solas se puede pedir, y sale (se compone de ref+talla, no lo da el maestro)', () => {
+    // Antes esto era imposible: no por el motor, sino porque el NOMBRE no existía en la lista.
+    const { ean13, upc, code128 } = codigos('CODE128');
+    expect(code128).toBeTruthy();
+    expect(ean13).toBeUndefined();
+    expect(upc).toBeUndefined();
+  });
+
+  it('los tres a la vez', () => {
+    const { ean13, upc, code128 } = codigos('CODE128_UPC_EAN');
+    expect(ean13).toBeTruthy();
+    expect(upc).toBeTruthy();
+    expect(code128).toBeTruthy();
+  });
+
+  it('cada variante trae EXACTAMENTE los códigos de su nombre, y ningún otro', () => {
+    // El fallo que importa aquí no es que falte un código: es que sobre uno que el cliente no pidió.
+    for (const v of LABEL_VARIANTS) {
+      const r = codigos(v);
+      for (const [campo, code] of [['ean13', 'EAN'], ['upc', 'UPC'], ['code128', 'CODE128']] as const) {
+        const esperado = variantCodes(v).includes(code);
+        expect({ v, campo, presente: r[campo] !== undefined }).toEqual({ v, campo, presente: esperado });
+      }
+    }
   });
 });

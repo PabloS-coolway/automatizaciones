@@ -178,13 +178,18 @@ Ahora vive en la tabla `destination` y lo gobierna Silvia desde **Destinos** (si
 alta, editar nombre / "importado por" / códigos que imprime, y activar/desactivar. Los 6 de siempre están
 sembrados por migración, idénticos. `GET /api/markets` sale de la BD y **sólo ofrece los activos**.
 
-**Dos límites que no se negocian:** la **variante** es lista cerrada (`EAN | UPC | CODE128_EAN | UPC_EAN`,
-lo que el motor sabe imprimir — una variante nueva es desarrollo, no configuración); y los destinos se
-**desactivan, no se borran**, y uno desactivado **no genera** (lo dice claro, en vez de sacar etiquetas de
-un destino retirado).
+**Los códigos se eligen con checkboxes** (`CODE128` · `UPC` · `EAN`): una variante es sencillamente qué
+códigos lleva la etiqueta. El motor **siempre** los trató por separado — las «4 variantes» eran 4 de las 7
+combinaciones, y CODE128 a solas no se podía pedir por el **nombre**, no por el motor. El nombre se **deriva**
+en orden canónico `CODE128 → UPC → EAN`, regla que reproduce exactamente los nombres de siempre: el fichero
+de salida (`etiquetas_4603662_UPC_EAN.xlsx`) y la celda «Variante» **no cambian**, y los consume otro proceso.
+
+**Lo que no se negocia:** al menos un código (una etiqueta sin código no es una etiqueta); la API sólo acepta
+las 7 combinaciones (es pública, la pantalla no es la única puerta); y los destinos se **desactivan, no se
+borran** — uno desactivado **no genera**, y lo dice claro.
 
 Verificado con el pedido real `4603662` por los **seis** destinos: 448 filas / 11.028 pares, cuadre OK, misma
-variante y mismo "importado por" que antes.
+variante, mismo "importado por" y mismo nombre de fichero que antes. Y CODE128 a solas, probado de punta a punta.
 
 ## Despliegue (DigitalOcean App Platform) — LISTO para desplegar
 
