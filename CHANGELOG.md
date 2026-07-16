@@ -3,6 +3,24 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-16] BUG-004 · Corregir una talla en el Excel NO surtía efecto (quedaba la fila vieja, y ganaba)
+
+Silvia corrigió el `SIZE` de la mochila (`35` → `U`), recargó el maestro… **y la etiqueta seguía
+imprimiendo "35"**. Habría dado el problema por resuelto sin estarlo. Otra de la familia: no falla, miente.
+
+- **Causa:** la identidad de una fila es `(ref, talla)`. Al cambiar la talla, la corregida es una fila
+  **nueva** y la vieja se quedaba (el seed no borraba nada, por diseño). Y como **ambas comparten la talla
+  SAP `C01`**, al generar había dos candidatas y **ganaba la vieja**.
+- **Arreglo:** al cargar el maestro se **retiran las filas huérfanas** — las que están en la BD, ya no en el
+  Excel, **y cuyo producto (modelo+color) sí viene en él** — y **se reportan en el informe** (borrar en
+  silencio sería inaceptable). Se ve en la web, en su propio cuadro.
+- **Por qué acotado al mismo producto, y no "borrar todo lo que no venga":** un Excel incompleto sería una
+  catástrofe. Ya pasó: la hoja `GOAL` no se leía por una cabecera rota, y sus **1.343 filas** habrían
+  desaparecido. Si un producto no viene, no se toca. Hay test que lo fija.
+- **Verificado con el Excel real de Silvia** (`16-07-2026/REFERENCIAS COOLWAY_16_07_3.xlsx`): retira 1 fila
+  (`BACKPACK BLK · 308280 · talla 35`), el maestro vuelve a 5.736, y **4602991 (Valencia) sale 750/750 con
+  la talla `U` impresa** y `CODE128 03082800000035`.
+
 ## [2026-07-15] BACKPACK vuelve a etiquetarse (Silvia: los pedidos 4602991/4602992 sí van)
 
 Estuvo excluido ("no se vende"), pero Silvia confirma que esos dos pedidos de mochila **sí** se
