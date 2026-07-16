@@ -73,11 +73,43 @@ export interface GenerateLabelsHttpResponse {
   files: GeneratedFileDto[];
 }
 
-/** Item de GET /api/markets. */
+/**
+ * Item de GET /api/markets (los destinos ACTIVOS, para el desplegable al generar).
+ * REQ-004: ya no viven en código, sino en la BD, y los gestiona Silvia.
+ */
 export interface MarketDto {
   code: string;
+  name: string;
   variant: LabelVariant;
   importadoPor: string;
+}
+
+/* ───────────────────────────── Destinos · REQ-004 (CRUD, sólo admin) ───────────────────────────── */
+
+/** Un destino tal como lo ve la pantalla de administración. */
+export interface DestinationDto {
+  id: number;
+  code: string;
+  name: string;
+  variant: LabelVariant;
+  importadoPor: string;
+  active: boolean;
+}
+
+/** Alta de destino. `variant` va acotada: es lo que el motor sabe imprimir, no texto libre. */
+export interface CreateDestinationDto {
+  code: string;
+  name: string;
+  variant: LabelVariant;
+  importadoPor: string;
+}
+
+/** Edición (parcial). El `code` NO se cambia: es la identidad del destino. */
+export interface UpdateDestinationDto {
+  name?: string;
+  variant?: LabelVariant;
+  importadoPor?: string;
+  active?: boolean;
 }
 
 /** Fila del maestro (BD) expuesta al front. */

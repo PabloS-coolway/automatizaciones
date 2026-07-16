@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { BoxArrowRight, BoxSeamFill, CashStack, Database, FileEarmarkText, People, PersonCircle, Tags } from 'react-bootstrap-icons';
+import { BoxArrowRight, BoxSeamFill, CashStack, Database, FileEarmarkText, GeoAlt, People, PersonCircle, Tags } from 'react-bootstrap-icons';
 import type { ReactNode } from 'react';
 import { Button } from 'react-bootstrap';
 import { ThemeSwitcher } from './ThemeSwitcher';
@@ -17,6 +17,7 @@ interface NavItem {
 const NAV: NavItem[] = [
   { to: '/etiquetas', label: 'Etiquetas', icon: <Tags />, ready: true },
   { to: '/maestro', label: 'Base de datos', icon: <Database />, ready: true },
+  { to: '/destinos', label: 'Destinos', icon: <GeoAlt />, ready: true, adminOnly: true },
   { to: '/usuarios', label: 'Usuarios', icon: <People />, ready: true, adminOnly: true },
   { to: '/tarifas', label: 'Tarifas y surtidos', icon: <CashStack /> },
   { to: '/plantillas', label: 'Plantillas de ventas', icon: <FileEarmarkText /> },

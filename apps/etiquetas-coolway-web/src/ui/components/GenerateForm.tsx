@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button, ButtonGroup, Card, Form, Spinner } from 'react-bootstrap';
 import { Database, FileEarmarkExcel, FilePdf, Tags } from 'react-bootstrap-icons';
 import type { MarketDto, MasterSourceKind } from '@yorga/contracts';
@@ -12,13 +12,20 @@ interface Props {
 }
 
 export function GenerateForm({ markets, loading, onGenerate }: Props) {
-  const [market, setMarket] = useState('VALENCIA');
+  // REQ-004 · Los destinos los gestiona un admin, así que ninguno se puede dar por seguro aquí:
+  // se elige el primero que llegue de la API. Fijar 'VALENCIA' dejaría el selector apuntando a un
+  // destino desactivado y el pedido fallaría al generar.
+  const [market, setMarket] = useState('');
   const [masterSource, setMasterSource] = useState<MasterSourceKind>('db');
   const [master, setMaster] = useState<File[]>([]);
   const [orders, setOrders] = useState<File[]>([]);
   const [importadoPor, setImportadoPor] = useState('');
 
   const selected = markets.find((m) => m.code === market);
+  useEffect(() => {
+    if (!selected && markets.length) setMarket(markets[0].code);
+  }, [markets, selected]);
+
   const ready = orders.length > 0 && (masterSource === 'db' || master.length > 0);
 
   function submit(e: React.FormEvent) {
@@ -32,11 +39,11 @@ export function GenerateForm({ markets, loading, onGenerate }: Props) {
         <Form onSubmit={submit}>
           <div className="row g-3">
             <div className="col-md-6">
-              <Form.Label className="fw-semibold">Destino</Form.Label>
-              <Form.Select value={market} onChange={(e) => setMarket(e.target.value)}>
+              <Form.Label className="fw-semibold" htmlFor="destino">Destino</Form.Label>
+              <Form.Select id="destino" value={market} onChange={(e) => setMarket(e.target.value)}>
                 {markets.map((m) => (
                   <option key={m.code} value={m.code}>
-                    {m.code}
+                    {m.name}
                   </option>
                 ))}
               </Form.Select>
