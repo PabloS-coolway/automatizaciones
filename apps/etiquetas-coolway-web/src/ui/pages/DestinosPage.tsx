@@ -1,23 +1,24 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Alert, Badge, Button, Card, Form, Spinner } from 'react-bootstrap';
-import { PlusLg } from 'react-bootstrap-icons';
-import { LABEL_VARIANTS, type DestinationDto, type LabelVariant, type UpdateDestinationDto } from '@yorga/contracts';
+import { PencilFill, PlusLg, XLg } from 'react-bootstrap-icons';
+import {
+  LABEL_CODES,
+  variantCodes,
+  variantFromCodes,
+  variantLabel,
+  type DestinationDto,
+  type LabelCode,
+} from '@yorga/contracts';
 import { destinosGateway } from '../composition';
 import { Column, DataTable, useMemoryTable } from '../components/table';
 
-/** Cómo se lee una variante en la pantalla: "UPC_EAN" no dice nada; "UPC + EAN" sí. */
-const VARIANTE_LEGIBLE: Record<LabelVariant, string> = {
-  EAN: 'EAN',
-  UPC: 'UPC',
-  CODE128_EAN: 'CODE128 + EAN',
-  UPC_EAN: 'UPC + EAN',
-};
+const VACIO = { code: '', name: '', importadoPor: '', codes: ['EAN'] as LabelCode[] };
 
 /**
  * REQ-004 · Destinos. Hasta ahora abrir un cliente nuevo (un país, una sociedad) exigía tocar código
- * y desplegar. Aquí se hace solo, pero con dos límites que no son negociables:
- * la **variante** es una lista cerrada (es lo que el motor sabe imprimir) y los destinos
- * **se desactivan, no se borran** (si no, los pedidos antiguos dejarían de tener sentido).
+ * y desplegar. Aquí se hace solo, con dos límites que no son negociables: los destinos
+ * **se desactivan, no se borran** (si no, los pedidos antiguos dejarían de tener sentido), y una
+ * etiqueta tiene que llevar **al menos un código** (si no, no es una etiqueta).
  */
 export function DestinosPage() {
   const [destinos, setDestinos] = useState<DestinationDto[]>([]);
@@ -26,12 +27,11 @@ export function DestinosPage() {
   const [notice, setNotice] = useState('');
   const [busyId, setBusyId] = useState<number | null>(null);
 
-  // Alta
-  const [code, setCode] = useState('');
-  const [name, setName] = useState('');
-  const [variant, setVariant] = useState<LabelVariant>('EAN');
-  const [importadoPor, setImportadoPor] = useState('');
-  const [creating, setCreating] = useState(false);
+  // Un solo formulario para alta y edición: `editando` dice cuál de las dos es.
+  const [editando, setEditando] = useState<DestinationDto | null>(null);
+  const [form, setForm] = useState(VACIO);
+  const [saving, setSaving] = useState(false);
+  const formRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -44,45 +44,62 @@ export function DestinosPage() {
 
   useEffect(() => load(), [load]);
 
-  async function onCreate(e: FormEvent) {
-    e.preventDefault();
+  function editar(d: DestinationDto) {
+    setEditando(d);
+    setForm({ code: d.code, name: d.name, importadoPor: d.importadoPor, codes: variantCodes(d.variant) });
     setError('');
     setNotice('');
-    setCreating(true);
+    // El formulario está arriba del todo: sin esto, pulsar "editar" en una tabla larga no parece hacer nada.
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function cancelar() {
+    setEditando(null);
+    setForm(VACIO);
+  }
+
+  function toggleCode(c: LabelCode) {
+    setForm((f) => ({ ...f, codes: f.codes.includes(c) ? f.codes.filter((x) => x !== c) : [...f.codes, c] }));
+  }
+
+  const variant = variantFromCodes(form.codes); // null = ningún código marcado
+
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (!variant) return; // el botón ya está deshabilitado; esto es el cinturón
+    setError('');
+    setNotice('');
+    setSaving(true);
     try {
-      const d = await destinosGateway.create({ code, name, variant, importadoPor });
-      setNotice(`Destino ${d.code} creado. Ya se puede elegir al generar etiquetas.`);
-      setCode('');
-      setName('');
-      setImportadoPor('');
-      setVariant('EAN');
+      if (editando) {
+        await destinosGateway.update(editando.id, { name: form.name, importadoPor: form.importadoPor, variant });
+        setNotice(`Destino ${editando.code} actualizado.`);
+      } else {
+        const d = await destinosGateway.create({ ...form, variant });
+        setNotice(`Destino ${d.code} creado. Ya se puede elegir al generar etiquetas.`);
+      }
+      cancelar();
       load();
     } catch (err) {
       setError((err as Error).message);
     } finally {
-      setCreating(false);
+      setSaving(false);
     }
   }
 
-  async function patch(id: number, data: UpdateDestinationDto, ok: string) {
+  async function toggleActivo(d: DestinationDto) {
     setError('');
     setNotice('');
-    setBusyId(id);
+    setBusyId(d.id);
     try {
-      await destinosGateway.update(id, data);
-      setNotice(ok);
+      await destinosGateway.update(d.id, { active: !d.active });
+      setNotice(`${d.code} ${d.active ? 'desactivado: ya no aparece al generar' : 'activado'}.`);
       load();
     } catch (err) {
       setError((err as Error).message);
     } finally {
       setBusyId(null);
     }
-  }
-
-  function editar(d: DestinationDto, campo: 'name' | 'importadoPor', etiqueta: string) {
-    const valor = window.prompt(`${etiqueta} de ${d.code}:`, d[campo]);
-    if (valor == null || valor.trim() === d[campo]) return;
-    patch(d.id, { [campo]: valor }, `${etiqueta} de ${d.code} actualizado.`);
   }
 
   // El valor CRUDO (`value`) es lo que se ordena y se filtra; `render` sólo decide cómo se ve.
@@ -93,8 +110,8 @@ export function DestinosPage() {
       {
         key: 'variant',
         label: 'códigos que imprime',
-        value: (d) => VARIANTE_LEGIBLE[d.variant],
-        render: (d) => <span className="variant-badge">{VARIANTE_LEGIBLE[d.variant]}</span>,
+        value: (d) => variantLabel(d.variant),
+        render: (d) => <span className="variant-badge">{variantLabel(d.variant)}</span>,
       },
       { key: 'importadoPor', label: 'importado por', value: (d) => d.importadoPor },
       {
@@ -115,54 +132,29 @@ export function DestinosPage() {
         sortable: false,
         filter: 'none',
         value: () => '',
-        render: (d) => {
-          const busy = busyId === d.id;
-          return (
-            <div className="d-inline-flex gap-2">
-              <Button size="sm" variant="outline-secondary" disabled={busy} onClick={() => editar(d, 'name', 'Nombre')}>
-                nombre
-              </Button>
-              <Button
-                size="sm"
-                variant="outline-secondary"
-                disabled={busy}
-                title="Texto que se imprime en la etiqueta"
-                onClick={() => editar(d, 'importadoPor', 'Importado por')}
-              >
-                importado por
-              </Button>
-              <Form.Select
-                size="sm"
-                style={{ width: 'auto' }}
-                value={d.variant}
-                disabled={busy}
-                title="Cambia los códigos de barras que llevará la etiqueta"
-                onChange={(e) =>
-                  patch(
-                    d.id,
-                    { variant: e.target.value as LabelVariant },
-                    `${d.code} imprimirá ${VARIANTE_LEGIBLE[e.target.value as LabelVariant]}.`,
-                  )
-                }
-              >
-                {LABEL_VARIANTS.map((v) => (
-                  <option key={v} value={v}>
-                    {VARIANTE_LEGIBLE[v]}
-                  </option>
-                ))}
-              </Form.Select>
-              <Button
-                size="sm"
-                variant={d.active ? 'outline-danger' : 'outline-success'}
-                disabled={busy}
-                title={d.active ? 'Dejará de aparecer al generar' : 'Volverá a aparecer al generar'}
-                onClick={() => patch(d.id, { active: !d.active }, `${d.code} ${d.active ? 'desactivado' : 'activado'}.`)}
-              >
-                {d.active ? 'desactivar' : 'activar'}
-              </Button>
-            </div>
-          );
-        },
+        render: (d) => (
+          <div className="d-inline-flex gap-2">
+            <Button
+              size="sm"
+              variant="outline-secondary"
+              disabled={busyId === d.id}
+              title={`Editar ${d.code}`}
+              onClick={() => editar(d)}
+            >
+              <PencilFill className="me-1" />
+              editar
+            </Button>
+            <Button
+              size="sm"
+              variant={d.active ? 'outline-danger' : 'outline-success'}
+              disabled={busyId === d.id}
+              title={d.active ? 'Dejará de aparecer al generar' : 'Volverá a aparecer al generar'}
+              onClick={() => toggleActivo(d)}
+            >
+              {d.active ? 'desactivar' : 'activar'}
+            </Button>
+          </div>
+        ),
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -184,46 +176,90 @@ export function DestinosPage() {
       {error && <Alert variant="danger" onClose={() => setError('')} dismissible>⚠ {error}</Alert>}
       {notice && <Alert variant="success" onClose={() => setNotice('')} dismissible>{notice}</Alert>}
 
-      <Card className="mb-4">
+      <Card className="mb-4" ref={formRef}>
         <Card.Body className="p-4">
-          <Card.Title className="mb-3">Nuevo destino</Card.Title>
-          <Form onSubmit={onCreate}>
-            <div className="row g-3 align-items-end">
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <Card.Title className="mb-0">
+              {editando ? `Editar destino ${editando.code}` : 'Nuevo destino'}
+            </Card.Title>
+            {editando && (
+              <Button variant="link" size="sm" className="text-secondary" onClick={cancelar}>
+                <XLg className="me-1" />
+                cancelar
+              </Button>
+            )}
+          </div>
+
+          <Form onSubmit={onSubmit}>
+            <div className="row g-3">
               <div className="col-md-2">
-                <Form.Label className="small">Código</Form.Label>
+                <Form.Label className="small" htmlFor="d-code">Código</Form.Label>
                 <Form.Control
-                  value={code}
-                  onChange={(e) => setCode(e.target.value.toUpperCase())}
+                  id="d-code"
+                  value={form.code}
+                  onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
                   placeholder="JAPON"
+                  // El código es la identidad del destino: si se pudiera cambiar, dejaría de ser el mismo.
+                  disabled={!!editando}
                   required
                 />
               </div>
-              <div className="col-md-3">
-                <Form.Label className="small">Nombre</Form.Label>
-                <Form.Control value={name} onChange={(e) => setName(e.target.value)} placeholder="Japón" required />
-              </div>
-              <div className="col-md-3">
-                <Form.Label className="small">Códigos que imprime</Form.Label>
-                <Form.Select value={variant} onChange={(e) => setVariant(e.target.value as LabelVariant)}>
-                  {LABEL_VARIANTS.map((v) => (
-                    <option key={v} value={v}>
-                      {VARIANTE_LEGIBLE[v]}
-                    </option>
-                  ))}
-                </Form.Select>
-              </div>
-              <div className="col-md-3">
-                <Form.Label className="small">Importado por</Form.Label>
+              <div className="col-md-4">
+                <Form.Label className="small" htmlFor="d-name">Nombre</Form.Label>
                 <Form.Control
-                  value={importadoPor}
-                  onChange={(e) => setImportadoPor(e.target.value)}
+                  id="d-name"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  placeholder="Japón"
+                  required
+                />
+              </div>
+              <div className="col-md-6">
+                <Form.Label className="small" htmlFor="d-importado">Importado por</Form.Label>
+                <Form.Control
+                  id="d-importado"
+                  value={form.importadoPor}
+                  onChange={(e) => setForm({ ...form, importadoPor: e.target.value })}
                   placeholder="VANYOR S.A.U"
                   required
                 />
+                <Form.Text muted>Se imprime tal cual en la etiqueta.</Form.Text>
               </div>
-              <div className="col-md-1">
-                <Button type="submit" className="btn-brand w-100" disabled={creating} title="Crear destino">
-                  {creating ? <Spinner as="span" size="sm" animation="border" /> : <PlusLg />}
+
+              <div className="col-12">
+                <Form.Label className="small d-block">Códigos que imprime</Form.Label>
+                <div className="d-flex align-items-center gap-4 flex-wrap">
+                  {LABEL_CODES.map((c) => (
+                    <Form.Check
+                      key={c}
+                      inline
+                      type="checkbox"
+                      id={`code-${c}`}
+                      label={c}
+                      checked={form.codes.includes(c)}
+                      onChange={() => toggleCode(c)}
+                    />
+                  ))}
+                  {variant ? (
+                    <span className="variant-badge">{variantLabel(variant)}</span>
+                  ) : (
+                    <span className="text-danger small">Marca al menos uno: una etiqueta sin código no sirve.</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="col-12 d-flex justify-content-end">
+                <Button type="submit" className="btn-brand" disabled={saving || !variant}>
+                  {saving ? (
+                    <Spinner as="span" size="sm" animation="border" />
+                  ) : editando ? (
+                    'Guardar cambios'
+                  ) : (
+                    <>
+                      <PlusLg className="me-1" />
+                      Crear destino
+                    </>
+                  )}
                 </Button>
               </div>
             </div>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button, ButtonGroup, Card, Form, Spinner } from 'react-bootstrap';
 import { Database, FileEarmarkExcel, FilePdf, Tags } from 'react-bootstrap-icons';
-import type { MarketDto, MasterSourceKind } from '@yorga/contracts';
+import { variantLabel, type MarketDto, type MasterSourceKind } from '@yorga/contracts';
 import type { GenerationInput } from '../../domain/generation';
 import { FileDropzone } from './FileDropzone';
 
@@ -49,7 +49,7 @@ export function GenerateForm({ markets, loading, onGenerate }: Props) {
               </Form.Select>
               {selected && (
                 <div className="mt-2">
-                  <span className="variant-badge">{selected.variant.replace('_', ' + ')}</span>
+                  <span className="variant-badge">{variantLabel(selected.variant)}</span>
                 </div>
               )}
             </div>
