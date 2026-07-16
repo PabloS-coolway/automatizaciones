@@ -175,7 +175,7 @@ El **destino** decide qué códigos lleva la etiqueta y el "importado por" que s
 `markets.ts`: abrir un cliente nuevo o cambiar una razón social exigía **tocar el repo y desplegar**.
 
 Ahora vive en la tabla `destination` y lo gobierna Silvia desde **Destinos** (sidebar, **sólo admin**):
-alta, editar nombre / "importado por" / códigos que imprime, y activar/desactivar. Los 6 de siempre están
+alta y edición en un modal, y activar/desactivar desde la columna de acciones. Los 6 de siempre están
 sembrados por migración, idénticos. `GET /api/markets` sale de la BD y **sólo ofrece los activos**.
 
 **Los códigos se eligen con checkboxes** (`CODE128` · `UPC` · `EAN`): una variante es sencillamente qué
