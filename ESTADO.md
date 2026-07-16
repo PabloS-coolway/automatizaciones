@@ -1,7 +1,7 @@
 # Estado del proyecto · dónde vamos y qué sigue
 
 > Documento de traspaso. Si retomas el trabajo (o cambias de ordenador), **empieza por aquí**.
-> Última actualización: **2026-07-14**. Historial detallado en [`CHANGELOG.md`](CHANGELOG.md).
+> Última actualización: **2026-07-16**. Historial detallado en [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Arranque en un ordenador nuevo
 
@@ -97,16 +97,16 @@ venden por separado: **en caja sería ambiguo**. La web los lista en cada carga 
 
 **Acción pendiente**: pasarle a Silvia los 33 EAN compartidos entre productos distintos.
 
-### ⏳ BACKPACK · esperando corrección de Silvia (correo enviado 2026-07-15)
-BACKPACK volvió a etiquetarse (rama `feat/backpack-se-etiqueta`, sin mergear aún). El código está bien
-—el pedido 4602991 (Valencia) sale 750/750 con `CODE128 03082800000035`—, pero su fila del maestro (hoja
-`BOLSAS MOCHILAS GORRAS`, ref `308280`) tiene **dos defectos que corrige Silvia en el Excel**:
-1. **`SIZE = 35`, debe ser `U`** → hoy la etiqueta imprimiría "35". (El `35` es correcto, pero en la columna
-   `TALLA TIENDAS`, no en `SIZE`.)
-2. **Sin UPC** → el pedido 4602992 (USA, exige UPC+EAN) lo marca como faltante. El de Valencia no lo necesita.
+### ✅ BACKPACK · resuelto (16/07)
+Silvia corrigió el `SIZE` a `U` (maestro `validaciones/16-07-2026/REFERENCIAS COOLWAY_16_07_3.xlsx`) y
+confirmó que **ese modelo NO tiene UPC** (es antiguo, nunca se creó): el aviso `missing_upc` del pedido de
+USA (4602992) es correcto y **se ignora a propósito**. El pedido 4602991 (Valencia) sale 750/750 con talla
+`U` y `CODE128 03082800000035`.
 
-**Cuando Silvia responda:** confirmar el Excel corregido, recargar el maestro, verificar los dos pedidos, y
-**mergear la PR** para que llegue a producción.
+> Corregir esa talla destapó **BUG-004**: la fila vieja se quedaba en la BD y **ganaba** al generar, así que
+> la corrección no surtía efecto. Ahora la carga del maestro **retira las huérfanas del mismo producto** y
+> las reporta. Ojo con la salvaguarda: si un producto NO viene en el Excel (p.ej. una hoja que no se lee),
+> no se toca nada suyo — evita repetir el susto de las 1.343 filas de GOAL.
 
 ## Cómo probarlo (qué fichero subir)
 
@@ -126,10 +126,11 @@ Si eliges el destino equivocado, aparecerán "faltantes" que en realidad son cor
 | `validaciones/14-07-2026/ORDER 4603016.pdf` | **USA** | La misma ropa con UPC+EAN. 1.220 pares |
 | `validaciones/14-07-2026/4603670.pdf` | **Valencia** | **CALCETINES** (ZEBRA: imprime `36-38`, código `11`) + ropa. 1.000 pares |
 | `validaciones/14-07-2026/4603671.pdf` | Valencia | Ropa (STORM). 200 pares |
-| `validaciones/14-07-2026/4602991.pdf` | Valencia | **BACKPACK: excluido a propósito** (no se vende) → 0 filas y 1 aviso |
+| `validaciones/14-07-2026/4602991.pdf` | **Valencia** | **BOLSAS**: mochila. Imprime `U`, el CODE128 lleva `35` y la ref corta va con cero delante (`03082800000035`). 750 pares |
+| `validaciones/14-07-2026/4602992.pdf` | USA | La misma mochila. Avisa `missing_upc` **a propósito**: ese modelo antiguo no tiene UPC (Silvia lo confirmó) |
 
-**Maestro**: `docs/requerimientos/REFERENCIAS COOLWAY.xlsx` (súbelo como fichero, o cárgalo antes en la
-BD y elige *maestro = base de datos*).
+**Maestro vigente**: `docs/requerimientos/validaciones/16-07-2026/REFERENCIAS COOLWAY_16_07_3.xlsx` (súbelo
+como fichero, o cárgalo antes en la BD y elige *maestro = base de datos*).
 
 **Para ver el aviso de fallos**: maestro `validaciones/MAESTRO_INCOMPLETO.xlsx` + pedido `4603434.pdf`
 → descuadre de 19 pares (NILO YEL tallas 40 y 41).

@@ -1,5 +1,6 @@
 import { buildSku, isValidEan13, isValidUpc } from '../domain/codes';
-import { MasterFileReader, ReferenceRepository, SeedFailure, SeedRow } from './ports';
+import { MasterFileReader, ReferenceRepository, RemovedRow, SeedFailure, SeedRow } from './ports';
+import { findOrphanRows } from './orphan-rows';
 
 /** Un EAN13 que aparece en productos distintos (modelo/color). Se avisa, no se rechaza. */
 export interface SharedEan13 {
@@ -17,6 +18,11 @@ export interface SeedReport {
   total: number; // total de SKU en el maestro tras la carga
   issues: SeedFailure[]; // QUÉ filas se quedaron fuera y por qué (se reporta, no se oculta)
   sharedEan13: SharedEan13[]; // avisos: el mismo código de barras en dos productos distintos
+  /**
+   * Filas BORRADAS por quedar huérfanas: estaban en la BD, ya no en el Excel, y su producto sí viene
+   * en él (típico al corregir una talla). Se reportan SIEMPRE: borrar en silencio es inaceptable.
+   */
+  removed: RemovedRow[];
 }
 
 /**
@@ -80,8 +86,14 @@ export class SeedMasterUseCase {
 
     const before = await this.repo.count();
     const { ok, failures } = await this.repo.upsertManySeed(clean);
+
+    // Huérfanas: en la BD, ya no en el Excel, y su producto SÍ viene. Es lo que deja atrás corregir
+    // una talla (la fila vieja se quedaba y además ganaba al generar). Se borran y se reportan.
+    const orphans = findOrphanRows(await this.repo.allKeys(), clean);
+    if (orphans.length) await this.repo.deleteMany(orphans.map((o) => ({ ref: o.ref, size: o.size })));
+
     const total = await this.repo.count();
-    const created = total - before;
+    const created = total - before + orphans.length;
 
     return {
       rows: rows.length,
@@ -93,6 +105,7 @@ export class SeedMasterUseCase {
       total,
       issues: failures,
       sharedEan13: findSharedEan13(clean),
+      removed: orphans,
     };
   }
 }

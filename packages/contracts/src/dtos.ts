@@ -189,6 +189,14 @@ export interface SharedEan13Dto {
   rows: SharedEanRowDto[];
 }
 
+/** Fila del maestro BORRADA por quedar huérfana al cargar (típico: se corrigió su talla). */
+export interface RemovedRowDto {
+  style: string;
+  color: string;
+  ref: string;
+  size: string;
+}
+
 /** Resultado de POST /api/maestro/seed (subir REFERENCIAS COOLWAY.xlsx completo). */
 export interface SeedReportDto {
   rows: number; // filas leídas del Excel
@@ -200,6 +208,8 @@ export interface SeedReportDto {
   total: number; // SKU en el maestro tras la carga
   issues: SeedIssueDto[]; // qué filas se quedaron fuera y por qué
   sharedEan13: SharedEan13Dto[]; // avisos: mismo EAN13 en productos distintos (entran, pero hay que corregirlo)
+  /** Filas borradas por quedar huérfanas (estaban en la BD, ya no en el Excel). Nunca en silencio. */
+  removed: RemovedRowDto[];
 }
 
 /** Resultado de POST /api/maestro/import (subir EAN.xlsm + UPC.xlsm). */
