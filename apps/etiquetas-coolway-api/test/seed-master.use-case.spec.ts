@@ -46,12 +46,18 @@ describe('SeedMasterUseCase · carga del maestro', () => {
   const reader = (rows: SeedRowInput[]): MasterFileReader => ({ read: async () => rows });
 
   /** Repo en memoria: guarda todo salvo las refs que se le digan que rechace (p.ej. error de BD). */
-  const repo = (rechaza: string[] = []) => {
+  const repo = (rechaza: string[] = [], enBd: { ref: string; size: string; style: string; color: string }[] = []) => {
     const guardadas: SeedRow[] = [];
+    const borradas: { ref: string; size: string }[] = [];
     let previas = 0;
     const r: ReferenceRepository = {
       count: async () => (guardadas.length ? guardadas.length : previas),
       upsertMany: async () => 0,
+      allKeys: async () => enBd,
+      deleteMany: async (keys) => {
+        borradas.push(...keys);
+        return keys.length;
+      },
       upsertManySeed: async (rows) => {
         const failures: SeedFailure[] = [];
         for (const row of rows) {
@@ -62,7 +68,7 @@ describe('SeedMasterUseCase · carga del maestro', () => {
         return { ok: guardadas.length, failures };
       },
     };
-    return { r, guardadas, setPrevias: (n: number) => (previas = n) };
+    return { r, guardadas, borradas, setPrevias: (n: number) => (previas = n) };
   };
 
   it('compone el SKU cuando el Excel no lo trae (nunca se inventa un CÓDIGO, el SKU sí se calcula)', async () => {
@@ -112,6 +118,33 @@ describe('SeedMasterUseCase · carga del maestro', () => {
     expect(informe.upserted).toBe(1);
     expect(informe.failed).toBe(1);
     expect(informe.issues[0].ref).toBe('8603810');
+  });
+
+  it('EL CASO REAL: corregir una talla borra la fila vieja y lo REPORTA', async () => {
+    // Silvia cambió el SIZE de la mochila de 35 → U. La corregida es una fila nueva; la vieja se
+    // quedaba y GANABA al generar (ambas con talla SAP C01), así que la etiqueta seguía diciendo "35".
+    const { r, borradas } = repo([], [
+      { ref: '308280', size: 'U', style: 'BACKPACK', color: 'BLK' },
+      { ref: '308280', size: '35', style: 'BACKPACK', color: 'BLK' }, // la vieja
+    ]);
+    const informe = await new SeedMasterUseCase(
+      reader([{ style: 'BACKPACK', color: 'BLK', ref: '308280', size: 'U', tallaSap: 'C01', tallaTiendas: '35' }]),
+      r,
+    ).execute({ source: 'x.xlsx' });
+
+    expect(borradas).toEqual([{ ref: '308280', size: '35' }]);
+    expect(informe.removed).toEqual([{ style: 'BACKPACK', color: 'BLK', ref: '308280', size: '35' }]);
+  });
+
+  it('NO borra nada de un producto que el Excel no trae (la salvaguarda de GOAL)', async () => {
+    const { r, borradas } = repo([], [{ ref: '7603298', size: '40', style: 'GOAL', color: 'RED' }]);
+    const informe = await new SeedMasterUseCase(
+      reader([{ style: 'BACKPACK', color: 'BLK', ref: '308280', size: 'U' }]),
+      r,
+    ).execute({ source: 'x.xlsx' });
+
+    expect(borradas).toEqual([]);
+    expect(informe.removed).toEqual([]);
   });
 
   it('el informe incluye los avisos de EAN compartido entre productos distintos', async () => {

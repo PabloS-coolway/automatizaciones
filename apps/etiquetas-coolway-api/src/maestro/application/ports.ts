@@ -43,10 +43,28 @@ export interface SeedFailure {
   detail?: string;
 }
 
+/** Identifica una fila del maestro. La identidad del SKU es (ref, talla). */
+export interface RefSize {
+  ref: string;
+  size: string;
+}
+
+/** Una fila del maestro que se borró por haber quedado huérfana (ver `SeedReport.removed`). */
+export interface RemovedRow {
+  style: string;
+  color: string;
+  ref: string;
+  size: string;
+}
+
 /** Puerto: repositorio del maestro (Postgres). */
 export interface ReferenceRepository {
   count(): Promise<number>;
   upsertMany(refs: MasterReference[]): Promise<number>; // nº de filas procesadas
   /** Upsert tolerante: una fila que falle (p.ej. EAN13 duplicado) no aborta el resto, pero se reporta. */
   upsertManySeed(rows: SeedRow[]): Promise<{ ok: number; failures: SeedFailure[] }>;
+  /** Todas las filas del maestro (identidad + producto), para detectar huérfanas. */
+  allKeys(): Promise<(RefSize & { style: string; color: string })[]>;
+  /** Borra las filas indicadas por (ref, talla). Devuelve cuántas se borraron. */
+  deleteMany(keys: RefSize[]): Promise<number>;
 }
