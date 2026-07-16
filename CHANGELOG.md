@@ -3,6 +3,43 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-16] REQ-004 · Los destinos se gestionan desde la web (ya no viven en el código)
+
+Abrir un cliente nuevo (un país, una sociedad) o cambiar el "importado por" exigía tocar el repo y
+desplegar: Silvia dependía del CTO para un dato que es **suyo**. Ya no.
+
+### Añadido
+- **Pantalla «Destinos»** (sidebar, **sólo admin**): alta, edición del nombre / del "importado por" /
+  de los códigos que imprime, y activar/desactivar. Con los mismos filtros y orden que el resto de tablas.
+- **Tabla `destination`** en Postgres (migración `20260716094817_destinos`), **sembrada con los 6
+  destinos actuales** exactamente como estaban en `markets.ts`. Nadie nota el cambio.
+- `GET /api/destinos` · `POST /api/destinos` · `PATCH /api/destinos/:id` (rol `admin`).
+
+### Cambiado
+- `GET /api/markets` (el desplegable al generar) sale ahora de la BD y **sólo ofrece los ACTIVOS**.
+  Trae además un **nombre legible** ("Valencia / tiendas" en vez de `VALENCIA`).
+- **La CLI y la web comparten la misma fuente de verdad**: `resolveMarket()` y la constante `MARKETS`
+  desaparecen del código.
+
+### Dos límites deliberados
+- **La variante NO es texto libre**: sólo `EAN | UPC | CODE128_EAN | UPC_EAN`, lo que el motor sabe
+  imprimir. Si se aceptara cualquier texto se podría guardar un destino que **falla en mitad de un
+  pedido** — o peor, que no imprime lo que se cree. Una variante nueva es desarrollo, no configuración.
+- **Los destinos se desactivan, no se borran**: si no, los pedidos antiguos dejarían de tener sentido.
+  Y un destino desactivado **no genera**: se dice claro, en vez de sacar etiquetas de un destino retirado.
+
+### Verificado
+- **Los 6 destinos generan igual que antes**: pedido real `4603662` por los seis, `448 filas / 11.028
+  pares`, **cuadre OK** en todos, con la misma variante y el mismo "importado por" que la constante vieja.
+  El diff no toca el dominio ni el generador: sólo de dónde sale el preset.
+- El test del destino desactivado se **rompió a propósito** (se anuló el corte) y se puso **rojo**.
+- `npm run typecheck && npm test && npm run build` en verde. 142 tests de API; coverage API 90%, web 98%.
+
+### Arreglado de paso
+- El selector de destino fijaba `'VALENCIA'` a pelo: al poder desactivarse, se habría quedado apuntando
+  a un destino inexistente y el pedido fallaría al generar, sin que la pantalla mostrara nada raro.
+  Ahora toma el primero que llega de la API. La etiqueta «Destino» tampoco estaba asociada al `<select>`.
+
 ## [2026-07-16] BUG-004 · Corregir una talla en el Excel NO surtía efecto (quedaba la fila vieja, y ganaba)
 
 Silvia corrigió el `SIZE` de la mochila (`35` → `U`), recargó el maestro… **y la etiqueta seguía

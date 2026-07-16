@@ -9,11 +9,15 @@ import { LabelExcelSerializer } from './infrastructure/excel/label-excel-seriali
 import { PrismaService } from './infrastructure/db/prisma.service';
 import { DbMasterReader } from './infrastructure/db/db-master-reader';
 import { DefaultMasterProvider } from './infrastructure/master/default-master-provider';
+import { DESTINATION_REPOSITORY } from './destinos/application/ports';
+import { DestinationsService } from './destinos/application/destinations.service';
+import { PrismaDestinationRepository } from './destinos/infrastructure/prisma-destination.repository';
 
 /**
  * Proveedores comunes (hexágono) que comparten la CLI y la API HTTP:
  * liga puertos → adapters, arma el caso de uso y expone el serializador.
  * El maestro se carga desde BD (Postgres) o desde un Excel, según MasterSource.
+ * Los destinos (REQ-004) también salen de la BD: los comparten la CLI y la web.
  */
 export const coreProviders: Provider[] = [
   PrismaService,
@@ -23,6 +27,9 @@ export const coreProviders: Provider[] = [
   LabelExcelSerializer,
   { provide: ORDER_READER, useExisting: PdfOrderReader },
   { provide: MASTER_PROVIDER, useClass: DefaultMasterProvider },
+  PrismaDestinationRepository,
+  { provide: DESTINATION_REPOSITORY, useExisting: PrismaDestinationRepository },
+  DestinationsService,
   {
     provide: GENERATE_LABELS_USE_CASE,
     useFactory: (order: OrderReaderPort, master: MasterProvider) => new GenerateLabelsUseCase(order, master),

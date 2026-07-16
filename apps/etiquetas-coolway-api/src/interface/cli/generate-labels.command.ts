@@ -2,7 +2,7 @@ import { writeFile } from 'node:fs/promises';
 import { Inject } from '@nestjs/common';
 import { Command, CommandRunner, Option } from 'nest-commander';
 import { LabelVariant } from '../../domain/model/types';
-import { resolveMarket } from '../../domain/model/destination';
+import { DestinationsService } from '../../destinos/application/destinations.service';
 import { GenerateLabelsUseCase } from '../../application/use-cases/generate-labels.use-case';
 import { GENERATE_LABELS_USE_CASE } from '../../application/tokens';
 import { LabelExcelSerializer } from '../../infrastructure/excel/label-excel-serializer';
@@ -26,6 +26,7 @@ export class GenerateLabelsCommand extends CommandRunner {
   constructor(
     @Inject(GENERATE_LABELS_USE_CASE) private readonly useCase: GenerateLabelsUseCase,
     private readonly serializer: LabelExcelSerializer,
+    private readonly destinations: DestinationsService,
   ) {
     super();
   }
@@ -37,7 +38,8 @@ export class GenerateLabelsCommand extends CommandRunner {
       return;
     }
 
-    const preset = opts.market ? resolveMarket(opts.market) : undefined;
+    // REQ-004 · Los destinos salen de la BD, igual que en la web: una sola fuente de verdad.
+    const preset = opts.market ? await this.destinations.resolve(opts.market) : undefined;
     const variant = opts.variant ?? preset?.variant ?? 'UPC_EAN';
     const importadoPor = opts.importadoPor ?? preset?.importadoPor;
     const master = opts.master === 'db' ? ({ kind: 'db' } as const) : ({ kind: 'file', path: opts.master } as const);
@@ -83,7 +85,7 @@ export class GenerateLabelsCommand extends CommandRunner {
     return v as LabelVariant;
   }
 
-  @Option({ flags: '-d, --market <code>', description: 'Destino: VALENCIA | USA | AUSTRALIA | ITALIA | UK | COSTA_RICA (fija variante + importado por)' })
+  @Option({ flags: '-d, --market <code>', description: 'Código del destino (fija variante + importado por). Los da de alta un admin desde la web.' })
   parseMarket(v: string): string {
     return v;
   }

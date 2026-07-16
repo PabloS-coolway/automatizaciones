@@ -12,20 +12,15 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
-import {
-  GenerateLabelsHttpResponse,
-  LabelVariant,
-  MARKETS,
-  MARKET_CODES,
-  MarketDto,
-  resolveMarket,
-} from '@yorga/contracts';
+import { GenerateLabelsHttpResponse, LabelVariant, MarketDto } from '@yorga/contracts';
 import { GENERATE_LABELS_USE_CASE } from '../../application/tokens';
 import { GenerateLabelsUseCase } from '../../application/use-cases/generate-labels.use-case';
 import { LabelExcelSerializer } from '../../infrastructure/excel/label-excel-serializer';
 import { PdftotextNotInstalledError } from '../../infrastructure/pdf/pdf-text-extractor';
 import { UnknownAssortmentError } from '../../domain/services/assortment-catalog';
 import { Public } from '../../auth/interface/http/decorators';
+import { DestinationsService } from '../../destinos/application/destinations.service';
+import { InvalidDestinationError } from '../../destinos/domain/destination';
 
 type Uploaded = { master?: Express.Multer.File[]; orders?: Express.Multer.File[] };
 interface GenerateBody {
@@ -40,6 +35,7 @@ export class LabelsController {
   constructor(
     @Inject(GENERATE_LABELS_USE_CASE) private readonly useCase: GenerateLabelsUseCase,
     private readonly serializer: LabelExcelSerializer,
+    private readonly destinations: DestinationsService,
   ) {}
 
   @Public()
@@ -48,9 +44,14 @@ export class LabelsController {
     return { status: 'ok' };
   }
 
+  /**
+   * REQ-004 · El desplegable de destinos. Antes salía de una constante del código; ahora de la BD,
+   * y sólo los ACTIVOS: si Silvia desactiva un destino, deja de ofrecerse sin tocar código.
+   */
   @Get('markets')
-  markets(): { markets: MarketDto[] } {
-    return { markets: MARKET_CODES.map((code) => ({ code, ...MARKETS[code] })) };
+  async markets(): Promise<{ markets: MarketDto[] }> {
+    const activos = await this.destinations.listActive();
+    return { markets: activos.map(({ code, name, variant, importadoPor }) => ({ code, name, variant, importadoPor })) };
   }
 
   @Post('labels/generate')
@@ -62,7 +63,14 @@ export class LabelsController {
     if (orders.length === 0) throw new BadRequestException('Sube al menos un PDF de pedido (campo "orders").');
     if (!fromDb && !masterFile) throw new BadRequestException('Falta el Excel maestro (o usa masterSource=db).');
 
-    const preset = body.market ? resolveMarket(body.market) : undefined;
+    // Un destino que no existe (o está desactivado) es un dato malo del cliente, no un fallo nuestro:
+    // se responde 400 con el mensaje del dominio, que dice cuáles valen.
+    const preset = body.market
+      ? await this.destinations.resolve(body.market).catch((e) => {
+          if (e instanceof InvalidDestinationError) throw new BadRequestException(e.message);
+          throw e;
+        })
+      : undefined;
     const variant = body.variant ?? preset?.variant ?? 'UPC_EAN';
     const importadoPor = body.importadoPor ?? preset?.importadoPor;
 

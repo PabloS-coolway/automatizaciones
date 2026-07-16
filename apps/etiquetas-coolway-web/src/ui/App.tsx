@@ -5,6 +5,7 @@ import { BaseDatosPage } from './pages/BaseDatosPage';
 import { ComingSoonPage } from './pages/ComingSoonPage';
 import { LoginPage } from './pages/LoginPage';
 import { UsuariosPage } from './pages/UsuariosPage';
+import { DestinosPage } from './pages/DestinosPage';
 import { AuthProvider } from './auth/AuthContext';
 import { RequireAdmin, RequireAuth } from './auth/RequireAuth';
 
@@ -23,6 +24,7 @@ export function App() {
               <Route path="/plantillas" element={<ComingSoonPage title="Plantillas de ventas" />} />
               <Route element={<RequireAdmin />}>
                 <Route path="/usuarios" element={<UsuariosPage />} />
+                <Route path="/destinos" element={<DestinosPage />} />
               </Route>
               <Route path="*" element={<Navigate to="/etiquetas" replace />} />
             </Route>
