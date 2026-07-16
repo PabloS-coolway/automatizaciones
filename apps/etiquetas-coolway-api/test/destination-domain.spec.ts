@@ -1,3 +1,4 @@
+import { LABEL_VARIANTS } from '@yorga/contracts';
 import {
   InvalidDestinationError,
   normalizeCode,
@@ -8,18 +9,17 @@ import {
 const valido = { code: 'JAPON', name: 'Japón', variant: 'EAN', importadoPor: 'Cliente JP' };
 
 describe('validateVariant · la variante NO es texto libre', () => {
-  it('acepta las cuatro que el motor sabe construir', () => {
-    expect(validateVariant('EAN')).toBe('EAN');
-    expect(validateVariant('UPC')).toBe('UPC');
-    expect(validateVariant('CODE128_EAN')).toBe('CODE128_EAN');
-    expect(validateVariant('UPC_EAN')).toBe('UPC_EAN');
+  it('acepta las 7 combinaciones de códigos que el motor sabe construir', () => {
+    for (const v of LABEL_VARIANTS) expect(validateVariant(v)).toBe(v);
   });
 
   it('RECHAZA cualquier otra cosa (si no, se guardaría un destino que no sabe imprimir)', () => {
-    // Silvia podría escribir "UPC+EAN13" pensando que vale: el generador no sabría qué hacer.
+    // La pantalla compone el nombre a partir de los checkboxes, pero la API es pública: nada impide
+    // mandar "UPC+EAN13" a mano, y el generador no sabría qué hacer con eso.
     expect(() => validateVariant('UPC+EAN13')).toThrow(InvalidDestinationError);
+    expect(() => validateVariant('EAN_CODE128')).toThrow(/no existe/); // el orden canónico manda
     expect(() => validateVariant('')).toThrow(/no existe/);
-    expect(() => validateVariant(undefined)).toThrow(/Válidas: EAN, UPC, CODE128_EAN, UPC_EAN/);
+    expect(() => validateVariant(undefined)).toThrow(/Válidas: CODE128, UPC, EAN/);
   });
 });
 

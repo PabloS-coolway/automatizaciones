@@ -1,6 +1,6 @@
 import { LabelRow, MissingCode } from '../model/label';
 import { PurchaseOrder } from '../model/order';
-import { LabelVariant } from '../model/types';
+import { LabelVariant, variantCodes } from '../model/types';
 import { expandAssortment } from './assortment-catalog';
 import { buildCode128 } from './code128';
 import { genderFromRef } from './gender';
@@ -19,9 +19,12 @@ export interface BuildResult {
  */
 export const MODELOS_EXCLUIDOS = new Set<string>();
 
-const needsEan = (v: LabelVariant) => v === 'EAN' || v === 'CODE128_EAN' || v === 'UPC_EAN';
-const needsUpc = (v: LabelVariant) => v === 'UPC' || v === 'UPC_EAN';
-const needsCode128 = (v: LabelVariant) => v === 'CODE128_EAN';
+// Los tres códigos son independientes: la variante sólo dice cuáles de ellos lleva la etiqueta.
+// Antes esto era una lista de nombres a mano, y por eso no se podía pedir CODE128 a solas — una
+// limitación del NOMBRE, no del motor.
+const needsEan = (v: LabelVariant) => variantCodes(v).includes('EAN');
+const needsUpc = (v: LabelVariant) => variantCodes(v).includes('UPC');
+const needsCode128 = (v: LabelVariant) => variantCodes(v).includes('CODE128');
 
 /**
  * Construye las filas de etiqueta a partir del pedido + maestro.
