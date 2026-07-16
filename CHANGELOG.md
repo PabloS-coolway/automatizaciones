@@ -9,9 +9,10 @@ Abrir un cliente nuevo (un país, una sociedad) o cambiar el "importado por" exi
 desplegar: Silvia dependía del CTO para un dato que es **suyo**. Ya no.
 
 ### Añadido
-- **Pantalla «Destinos»** (sidebar, **sólo admin**): un formulario para el alta y la edición (al pulsar
-  «editar» se carga ahí el destino), y en la tabla una columna de **acciones**. Con los mismos filtros y
-  orden que el resto de tablas.
+- **Pantalla «Destinos»** (sidebar, **sólo admin**): la tabla, con los mismos filtros y orden que el
+  resto, y una columna de **acciones**. El formulario vive **en un modal**, detrás del botón «Nuevo
+  destino» o de «editar» en cada fila — el mismo para las dos cosas. Si la API rechaza el guardado, el
+  modal **se queda abierto con lo escrito** y dice por qué: cerrarlo obligaría a teclearlo todo otra vez.
 - **Tabla `destination`** en Postgres (migración `20260716094817_destinos`), **sembrada con los 6
   destinos actuales** exactamente como estaban en `markets.ts`. Nadie nota el cambio.
 - `GET /api/destinos` · `POST /api/destinos` · `PATCH /api/destinos/:id` (rol `admin`).
