@@ -5,6 +5,7 @@ import type {
   ImportReportDto,
   MaestroStatsDto,
   ReferenceDto,
+  RemovedRowDto,
   SeedIssueDto,
   SeedReportDto,
   SharedEan13Dto,
@@ -38,6 +39,21 @@ function TablaRechazadas({ issues }: { issues: SeedIssueDto[] }) {
   );
   const model = useMemoryTable(issues, columns);
   return <DataTable model={model} allRows={issues} rowKey={(i) => `${i.ref}-${i.size}`} />;
+}
+
+/** Filas BORRADAS por quedar huérfanas (típico: se corrigió su talla). Se muestran siempre. */
+function TablaBorradas({ removed }: { removed: RemovedRowDto[] }) {
+  const columns = useMemo<Column<RemovedRowDto>[]>(
+    () => [
+      { key: 'style', label: 'modelo', value: (r) => r.style, render: (r) => <strong>{r.style}</strong> },
+      { key: 'color', label: 'color', value: (r) => r.color },
+      { key: 'ref', label: 'ref.', value: (r) => r.ref },
+      { key: 'size', label: 'talla borrada', value: (r) => r.size },
+    ],
+    [],
+  );
+  const model = useMemoryTable(removed, columns);
+  return <DataTable model={model} allRows={removed} rowKey={(r) => `${r.ref}-${r.size}`} />;
 }
 
 /** EAN13 que comparten productos distintos. El modelo es lo que se quiere filtrar (GOAL, BECKS…). */
@@ -322,6 +338,21 @@ export function BaseDatosPage() {
                       {seedReport.failed ? ` · ${seedReport.failed} rechazadas` : ''} ·{' '}
                       <strong>{seedReport.total.toLocaleString('es-ES')} SKU en el maestro</strong>
                     </div>
+
+                    {seedReport.removed.length > 0 && (
+                      <div className="conversion-box mt-2">
+                        <div className="small text-secondary mb-2">
+                          <strong>
+                            {seedReport.removed.length} fila{seedReport.removed.length > 1 ? 's' : ''} retirada
+                            {seedReport.removed.length > 1 ? 's' : ''} del maestro
+                          </strong>{' '}
+                          porque ya no están en el Excel (su modelo y color sí vienen). Es lo que pasa al{' '}
+                          <strong>corregir una talla</strong>: la fila con la talla vieja se retira para que no compita
+                          con la corregida. Se listan para que puedas comprobarlo.
+                        </div>
+                        <TablaBorradas removed={seedReport.removed} />
+                      </div>
+                    )}
 
                     {seedReport.issues.length > 0 && (
                       <div className="missing-box mt-2">
