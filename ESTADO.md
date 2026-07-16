@@ -170,6 +170,22 @@ Validado con los **6 pedidos reales** de Silvia (`validaciones/14-07-2026/`): ro
 aviso en cada carga. Si algún día Silvia la rotula como `CALCETINES`, el parche se desactiva solo. Mientras,
 es frágil: se rompe si alguien inserta una columna en esa hoja.
 
+### REQ-004 · Destinos gestionables ✅
+El **destino** decide qué códigos lleva la etiqueta y el "importado por" que se imprime. Antes vivía en
+`markets.ts`: abrir un cliente nuevo o cambiar una razón social exigía **tocar el repo y desplegar**.
+
+Ahora vive en la tabla `destination` y lo gobierna Silvia desde **Destinos** (sidebar, **sólo admin**):
+alta, editar nombre / "importado por" / códigos que imprime, y activar/desactivar. Los 6 de siempre están
+sembrados por migración, idénticos. `GET /api/markets` sale de la BD y **sólo ofrece los activos**.
+
+**Dos límites que no se negocian:** la **variante** es lista cerrada (`EAN | UPC | CODE128_EAN | UPC_EAN`,
+lo que el motor sabe imprimir — una variante nueva es desarrollo, no configuración); y los destinos se
+**desactivan, no se borran**, y uno desactivado **no genera** (lo dice claro, en vez de sacar etiquetas de
+un destino retirado).
+
+Verificado con el pedido real `4603662` por los **seis** destinos: 448 filas / 11.028 pares, cuadre OK, misma
+variante y mismo "importado por" que antes.
+
 ## Despliegue (DigitalOcean App Platform) — LISTO para desplegar
 
 Todo el andamiaje está hecho y **probado construyendo la imagen de verdad**. Guía completa en

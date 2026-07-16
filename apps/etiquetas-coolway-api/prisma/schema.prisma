@@ -39,6 +39,29 @@ model Reference {
   @@map("reference")
 }
 
+/// REQ-004 · Destino de un pedido. Decide QUÉ CÓDIGOS lleva la etiqueta (`variant`) y el texto
+/// "importado por" que se imprime. Es una decisión COMERCIAL de Yorga (RF-13/RF-14), no un dato de SAP
+/// ni del maestro: por eso vive aquí y lo gobierna la app.
+/// Se DESACTIVA, no se borra: así el histórico y los pedidos antiguos siguen teniendo sentido.
+model Destination {
+  id           Int      @id @default(autoincrement())
+  /// Lo que se elige al generar (VALENCIA, USA…). En mayúsculas, único.
+  code         String   @unique
+  /// Nombre legible para la pantalla ("Costa Rica").
+  name         String
+  /// Una de las variantes que el motor sabe construir: EAN | UPC | CODE128_EAN | UPC_EAN.
+  /// NO es texto libre: si no, el generador no sabría qué imprimir. Se valida en el dominio.
+  variant      String
+  /// Texto que se imprime en la columna "importado por" (razón social o cliente/país).
+  importadoPor String   @map("importado_por")
+  /// Un destino inactivo no aparece al generar, pero no se pierde.
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("destination")
+}
+
 /// Roles de acceso: operador (genera etiquetas, lee el maestro) y admin (además importa al maestro).
 enum Role {
   operador
