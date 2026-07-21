@@ -36,11 +36,13 @@ enteraría?"**. Si el bug es de esa familia (resultado falso con apariencia de c
      (un BUG no lleva carpeta de diseño: va como línea en el backlog + CHANGELOG).
    - Si al describirlo resulta que **no** es un fallo de algo que ya funcionaba, sino valor nuevo,
      **para y propón [`requerimiento-tarea`](../requerimiento-tarea/SKILL.md)**.
-   - 🛑 **FRENO**: enseñar la captura + lo que se crearía en ClickUp, y **esperar el OK**.
+   - 🛑 **FRENO**: enseñar la captura + lo que se crearía en ClickUp, **preguntar si la disciplina de
+     arreglo va como checklist en la descripción (por defecto) o como subtareas**, y **esperar el OK**.
    - **Crear en ClickUp** (lista Automatizaciones `901219597730`, estado `pendiente`): **tarea**
      `BUG-XXX · <síntoma corto>` (tag `bug` + `bug-xxx` si existe; dedup por título + tag — el tag debe
-     existir antes) + las **subtareas de la regla de oro**: (1) reproducir con test en ROJO → (2) arreglar
-     → (3) verificar rompiendo el código a propósito. Comprobar duplicados antes de crear.
+     existir antes). La **regla de oro** —(1) reproducir con test en ROJO → (2) arreglar → (3) verificar
+     rompiendo el código a propósito— va en la descripción o como subtareas, según eligió Pablo. Comprobar
+     duplicados antes de crear.
 
 ## Lo único distinto en el contenido
 

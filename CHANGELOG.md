@@ -3,6 +3,13 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-21] Skills de tarea · las subtareas pasan a ser opcionales
+
+Feedback de Pablo estrenando `requerimiento-tarea`: **las subtareas no siempre hacen falta**. Las 4 skills
+ahora, en el freno, **preguntan** si los próximos pasos (o la disciplina de arreglo, en los bugs) van
+**en la descripción** (por defecto, menos ruido en el board) o **como subtareas** (si se van a seguir por
+separado). También se registró **REQ-006** (roles y permisos por feature, autoadministrables · 🔍 análisis).
+
 ## [2026-07-21] Skills de tarea → familia de 4 (bug/requerimiento × correo/directo)
 
 Las dos skills que vuelcan trabajo a ClickUp se reorganizan en un set claro de **4**, sobre dos ejes:
