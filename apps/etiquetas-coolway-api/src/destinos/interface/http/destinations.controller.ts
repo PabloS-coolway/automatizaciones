@@ -2,7 +2,7 @@ import { BadRequestException, Body, Controller, Get, Param, Patch, Post } from '
 import { CreateDestinationDto, DestinationDto, UpdateDestinationDto } from '@yorga/contracts';
 import { DestinationsService } from '../../application/destinations.service';
 import { InvalidDestinationError } from '../../domain/destination';
-import { Roles } from '../../../auth/interface/http/decorators';
+import { RequireFeature } from '../../../auth/interface/http/decorators';
 
 /**
  * REQ-004 · Administración de destinos. **Sólo admin**: un destino decide qué códigos lleva la
@@ -10,7 +10,7 @@ import { Roles } from '../../../auth/interface/http/decorators';
  * No hay DELETE a propósito: los destinos se **desactivan** (PATCH active:false), para no romper el
  * histórico ni perder el dato.
  */
-@Roles('admin')
+@RequireFeature('destinos.gestionar')
 @Controller('destinos')
 export class DestinationsController {
   constructor(private readonly service: DestinationsService) {}
