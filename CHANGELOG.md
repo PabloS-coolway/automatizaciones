@@ -3,6 +3,25 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-21] Skills de tarea → familia de 4 (bug/requerimiento × correo/directo)
+
+Las dos skills que vuelcan trabajo a ClickUp se reorganizan en un set claro de **4**, sobre dos ejes:
+**tipo** (bug / requerimiento) × **origen** (de un correo / descrito directamente por Pablo).
+
+| skill | tipo | origen |
+|---|---|---|
+| `requerimiento-correo-tarea` *(antes `correo-a-tareas`)* | requerimiento | correo |
+| `bug-correo-tarea` *(antes `create-bug`)* | bug | correo |
+| `requerimiento-tarea` *(nueva)* | requerimiento | directo |
+| `bug-tarea` *(nueva)* | bug | directo |
+
+- Las dos **«directo»** son gemelas concisas de su hermana «correo»: **delegan** en ella todo el
+  procedimiento (clasificar/analizar o capturar, el freno con OK, dedup, subtareas, registro en el
+  backlog) y sólo cambian el arranque (no leen Gmail: parten de lo que describe Pablo) y la línea de
+  origen (`petición directa de Pablo` en vez de `correo …`). Así no se duplican ~100 líneas por skill.
+- Renombres hechos con `git mv` (historial preservado); `.gitignore` actualizado con las 4 excepciones.
+  Las entradas de CHANGELOG anteriores conservan los nombres viejos a propósito (eran ciertos entonces).
+
 ## [2026-07-21] BUG-005 · Etiquetas: una talla re-referenciada cogía la ref sin EAN y salía "faltante"
 
 Silvia generó etiquetas EAN del pedido 4603335 y las tallas **43 y 45 de GOAL GYS** salieron como
