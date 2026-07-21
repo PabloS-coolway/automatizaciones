@@ -39,3 +39,5 @@ coverage/
 # ficheros dentro de un directorio excluido. Así los skills PROPIOS sí viajan.
 .claude/skills/*
 !.claude/skills/pr-coolway/
+!.claude/skills/correo-a-tareas/
+!.claude/skills/create-bug/

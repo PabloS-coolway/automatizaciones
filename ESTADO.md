@@ -1,7 +1,7 @@
 # Estado del proyecto · dónde vamos y qué sigue
 
 > Documento de traspaso. Si retomas el trabajo (o cambias de ordenador), **empieza por aquí**.
-> Última actualización: **2026-07-16**. Historial detallado en [`CHANGELOG.md`](CHANGELOG.md).
+> Última actualización: **2026-07-21**. Historial detallado en [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Arranque en un ordenador nuevo
 
@@ -207,13 +207,19 @@ Todo el andamiaje está hecho y **probado construyendo la imagen de verdad**. Gu
 --spec .do/app.yaml` o importar el spec en el panel), poner el `JWT_SECRET` como secreto, crear el primer
 admin por la consola del componente, y cargar el maestro desde la web. Usa el subdominio `.ondigitalocean.app`.
 
-## Siguiente hilo (elige uno)## Siguiente hilo (elige uno)
+## Siguiente hilo (elige uno)
 
-1. **Fase 2 · Bloque 3 — gobernanza del maestro**: publicar el maestro a Excel/Sheets para los
-   departamentos, y coordinar accesos con Tomás. *(Es lo natural ahora.)*
-2. **Demo a Silvia** con la herramienta, y pasarle los 29 EAN13 duplicados.
-3. **Fase 3**: ficheros de tarifas/surtidos SAP. **Fase 4**: plantillas de ventas.
-4. Próximos requerimientos anunciados: gestión de email, listados de stocks, listados de ventas.
+1. **REQ-005 · Podar los ficheros de SAP a lo realmente comprado** (materiales, tarifas 906/073,
+   surtidos) — registrado desde el correo «FUNCIONES» de Silvia. **Empieza por lo que lo desatasca:**
+   verificar si el maestro que ya tenemos contiene el **código de color de SAP** (100, 766…). Si está,
+   el mapeo color↔SAP se resuelve solo y el REQ es viable; si no, hay que pedírselo a Tomás. Diseño en
+   [`diseño/iniciativas/REQ-005-podar-ficheros-sap/`](diseño/iniciativas/REQ-005-podar-ficheros-sap/diseño.md).
+   Es, de hecho, la **Fase 3** del epic REQ-001.
+2. **Fase 2 · Bloque 3 — gobernanza del maestro**: publicar el maestro a Excel/Sheets para los
+   departamentos, y coordinar accesos con Tomás.
+3. **Demo a Silvia** con la herramienta, y pasarle los 29 EAN13 duplicados.
+4. **Fase 4**: plantillas de ventas.
+5. Próximos requerimientos anunciados: gestión de email, listados de stocks, listados de ventas.
 
 ## Cómo se clasifica lo que entra (no todo es un requerimiento)
 
