@@ -71,14 +71,51 @@ cuadra con el fichero crudo, se **reporta** — no se fabrica.
 
 ## Preguntas abiertas y riesgos
 
-1. **⚠ El mapeo color ↔ código SAP es el riesgo que decide si esto es automatizable de verdad.** Si sólo vive
-   en la cabeza de Silvia y en la columna «horma» manual, no hay automatización fiable posible sin resolver
-   su origen. A verificar, por orden de preferencia:
-   - (a) ¿El **maestro que ya tenemos** (5.736 SKU: `ref`, `color`, `colorNameWeb`…) contiene ya ese código
-     SAP de color? Si está, **tenemos la fuente** y el mapeo se resuelve solo.
-   - (b) Si no, pedir a **Tomás/SAP** una tabla de correspondencia color ↔ código.
-   - (c) Peor caso: seguir dependiendo de que Silvia lo rellene en «horma» → automatizamos la poda pero no
-     el mapeo.
+1. **✅ RESUELTO (21/07) — el riesgo del mapeo color↔SAP se deshincha: la clave de cruce es la `ref`.**
+   Verificado contra la BD y contra un fichero de SAP real:
+   - **El maestro NO guarda el código numérico de SAP** (100, 766, 460…). Guarda el código de **3 letras**
+     (BGE, NAV…), `colorNameWeb`, `ref`, `ean13`, `upc`.
+   - **Pero no hace falta.** El maestro ya liga **color (3 letras) ↔ ref**, y los **7 colores del correo
+     están cargados para el 2003 con las refs idénticas** a las de Silvia (BGE `7613425`/`8613832`, WGR
+     `7663425`/`8663832`, NBK `7603425`/`8603832`, y DBR/DGY/GHY/WPK igual).
+   - **Y el propio fichero de SAP trae el puente dentro.** El surtidos real (`docs/requerimientos/P.BARESI
+     ZCAL surtidos…txt`) tiene columnas `MATNR | MODELO | COLOR | <letras> | SURTD`: cada línea lleva la
+     **ref (`MATNR`)**, el código SAP (`460`) **y** el de letras (`NAV`) juntos. El puente que Silvia hace a
+     mano en «horma» ya está en el dato.
+   - **Conclusión:** se poda **casando por `ref` (`MATNR`)**, que está en el fichero de SAP y en el borrador
+     de prepedidos. **No hace falta pedir a Tomás una tabla de colores de SAP.**
+   - ⚠ **A normalizar:** la ref sale en **8 dígitos** en surtidos (`76035500`) y en **7** en el maestro
+     (`7603400`). Hay que igualar el formato antes de cruzar.
+2. **✅ CONFIRMADO (21/07) con el `prepedidos 2003.xlsx` real — el borrador es autosuficiente.** Cada línea
+   trae junto: `Our Reference` (la ref: `7613425`), `Horma` (el código SAP de color: `100`), `Color` (las 3
+   letras: `BGE`) y `Suma` (pares comprados: `13` o vacío). El cruce cuadra **exacto**: **14 líneas con
+   `Suma`>0** = los 7 colores × chica/chico del correo (idéntico a la tabla de materiales que puso Silvia); **6
+   con `Suma` en blanco** = continuativos (YEL, SLV, ORG) a quitar. Así que:
+   - **«Comprado» = `Suma` > 0.** Regla confirmada por el dato y por las palabras de Silvia en el correo.
+   - **Se cruza por `Our Reference`** (o por `Horma`, el código SAP — el borrador trae ambos).
+   - Para **materiales** ya tenemos el **resultado esperado** (los 14) para autovalidar sin pedir nada.
+3. **✅ FORMATO ANALIZADO (21/07) con los 4 `.txt` reales** (`docs/requerimientos/validaciones/21-07-2026/`):
+   - **Materiales** (113 cols, TAB): cartesiano de **6 familias de ref × 23 colores = 138 filas**. Familia en
+     `MATNR`/`BISMT` (col 6: `76034000`,`76034250`,`76035530` chica · `86038100`,`86038320`,`86039580` chico);
+     **color SAP en col 29** (`000`,`100`,`766`…), el mismo código que el `Horma` del borrador.
+   - **Surtidos** (TAB): `… MATNR MODELO COLOR <letras> SURTD`. Familia en `MATNR`, color SAP + letras. Una
+     fila por (familia, color, surtido).
+   - **Tarifas 906 / 073** (TAB, con filas de cabecera de SAP a ignorar): una fila por **familia** (`MATNR`),
+     **sin color**. Podar = quedarse con las familias compradas.
+   - **Filtro de color: RESUELTO.** Los 7 códigos SAP comprados salen del `Horma` del borrador (100·BGE,
+     766·WGR, 201·DBR, 801·DGY, 860·GHY, 710·WPK, 001·NBK) y casan con la col `COLOR` de materiales/surtidos.
+   - **Señal de "comprado" reforzada:** además de `Suma`>0, el borrador marca los no comprados con
+     `CONTINUATIVOS` en la descripción.
+4. **⚠ LA INCÓGNITA REAL (bloquea materiales y tarifas): ¿cómo se identifica la FAMILIA comprada?** De las 6
+   familias, hay que quedarse con `76034250` (chica) y `86038320` (chico) — Silvia las nombró en el correo,
+   **pero ese número de 8 dígitos NO está en el borrador** (que sólo trae la ref color a color, `7613425`). Se
+   *podría* derivar con una transformación posicional de la ref (`7613425`→`76034250`), pero es un atajo
+   frágil que se rompería callado con otro modelo — **no se hace sin confirmar**. Opciones:
+   - (a) Preguntar a **Silvia** cómo sabe ella cuál es la familia de la temporada (¿la lee del prepedido, de
+     SAP, del código de la ref?).
+   - (b) Buscar si otro export de prepedidos trae la familia de 8 dígitos directamente.
+   - **Surtidos NO tiene este problema:** su `MATNR` ya es la familia, y se cruza por (familia + color) contra
+     lo comprado. Se puede empezar por surtidos mientras se resuelve lo de la familia.
 2. **Formato exacto de cada `.txt` de SAP** (columnas, delimitador, posiciones): materiales, `906`, `073`,
    surtidos. Hay ya un fichero de surtidos de ejemplo en `docs/requerimientos/` de otro modelo.
 3. **Red de seguridad:** necesitamos, de cada tipo de fichero, un ejemplo **cerrado** — el crudo de entrada y
@@ -89,8 +126,8 @@ cuadra con el fichero crudo, se **reporta** — no se fabrica.
 
 ## Próximos pasos
 
-1. **Verificar si el maestro ya tiene el código de color SAP** (100, 766…). Es lo que decide si el mapeo es
-   automatizable — arranca por aquí.
+1. ~~**Verificar si el maestro ya tiene el código de color SAP** (100, 766…).~~ ✅ **Hecho (21/07):** no lo
+   tiene, pero **no hace falta** — se cruza por `ref` (`MATNR`), que está en todos lados. Ver riesgo 1.
 2. **Pedir a Silvia un ejemplo cerrado** (crudo + su versión podada a mano) de cada fichero: materiales,
    tarifas `906`/`073` y surtidos. Es la red de seguridad.
 3. **Especificar el formato** de cada `.txt` de SAP (columnas / delimitador / posiciones).
