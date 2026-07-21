@@ -40,3 +40,4 @@ coverage/
 .claude/skills/*
 !.claude/skills/pr-coolway/
 !.claude/skills/correo-a-tareas/
+!.claude/skills/create-bug/
