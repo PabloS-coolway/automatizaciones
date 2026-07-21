@@ -1,9 +1,9 @@
 ---
-name: create-bug
-description: Convierte un correo que reporta un fallo (dado su asunto) en un BUG registrado según la disciplina del proyecto y, tras el OK explícito de Pablo, en una tarea de ClickUp. Úsalo cuando Pablo diga "create-bug", "registra este bug", "esto es un bug del correo <asunto>" o similar. Lee el correo, captura síntoma + causa raíz sospechada + cómo reproducir, ENSEÑA lo que crearía y ESPERA el OK antes de tocar ClickUp. Hermano de correo-a-tareas, pero produce un BUG, no un REQ.
+name: bug-correo-tarea
+description: Convierte un correo que reporta un fallo (dado su asunto) en un BUG registrado según la disciplina del proyecto y, tras el OK explícito de Pablo, en una tarea de ClickUp. Úsalo cuando Pablo diga "bug-correo-tarea", "registra este bug del correo <asunto>", "esto es un bug del correo <asunto>" o similar. Lee el correo, captura síntoma + causa raíz sospechada + cómo reproducir, ENSEÑA lo que crearía y ESPERA el OK antes de tocar ClickUp. Familia de 4: si el origen NO es un correo usa `bug-tarea`; si es un REQUERIMIENTO usa `requerimiento-correo-tarea` (o `requerimiento-tarea`).
 ---
 
-# create-bug · De un correo que reporta un fallo, a un BUG bien registrado
+# bug-correo-tarea · De un correo que reporta un fallo, a un BUG bien registrado
 
 Coge un correo donde alguien (Silvia, el equipo) dice que **algo que debería funcionar no funciona**, lo
 captura como BUG **con la disciplina de este proyecto** (síntoma, causa raíz, reproducción) y, sólo con el
@@ -13,8 +13,8 @@ código aparte.
 ## La regla que manda sobre todas
 
 **Nunca se crea nada en ClickUp sin un OK explícito de Pablo en esta conversación.** Igual que en
-[`correo-a-tareas`](../correo-a-tareas/SKILL.md): hay un **freno duro** entre capturar y crear (paso 4). Ante
-la duda de si Pablo ha dicho que sí, **no se crea**.
+[`requerimiento-correo-tarea`](../requerimiento-correo-tarea/SKILL.md): hay un **freno duro** entre capturar
+y crear (paso 4). Ante la duda de si Pablo ha dicho que sí, **no se crea**.
 
 ## La disciplina de BUG que NO se negocia (de `CLAUDE.md` y el backlog)
 

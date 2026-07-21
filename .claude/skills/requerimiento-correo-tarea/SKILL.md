@@ -1,9 +1,9 @@
 ---
-name: correo-a-tareas
-description: Convierte un correo de Gmail (dado su asunto) en un requerimiento analizado y, tras el OK explícito de Pablo, en tareas de ClickUp. Úsalo cuando Pablo diga "correo-a-tareas", "pasa este correo a tareas", "analiza el correo <asunto>" o similar. Lee el correo, corre el ritual de /nuevo-requerimiento, ENSEÑA lo que crearía y ESPERA el OK antes de tocar ClickUp. No confundir con /nuevo-requerimiento (que sólo diseña, no lee correo ni crea tareas).
+name: requerimiento-correo-tarea
+description: Convierte un correo de Gmail (dado su asunto) en un REQUERIMIENTO analizado y, tras el OK explícito de Pablo, en tareas de ClickUp. Úsalo cuando Pablo diga "requerimiento-correo-tarea", "pasa este correo a tarea", "analiza el correo <asunto>" o similar. Lee el correo, corre el ritual de /nuevo-requerimiento, ENSEÑA lo que crearía y ESPERA el OK antes de tocar ClickUp. Familia de 4: si el origen NO es un correo usa `requerimiento-tarea`; si es un BUG usa `bug-correo-tarea` (o `bug-tarea`). No confundir con /nuevo-requerimiento (que sólo diseña, no lee correo ni crea tareas).
 ---
 
-# correo-a-tareas · Del correo al board, sin perder el análisis por el camino
+# requerimiento-correo-tarea · Del correo al board, sin perder el análisis por el camino
 
 Coge un correo (Silvia, Tomás, quien sea), lo entiende como requerimiento **con el ritual de siempre**,
 y sólo cuando Pablo da el OK lo vuelca a ClickUp. El análisis no es un paso que se salta para llegar
