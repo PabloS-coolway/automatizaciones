@@ -3,6 +3,14 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-21] Skill `create-bug` · de un correo que reporta un fallo, a un BUG bien registrado
+
+Hermano de `correo-a-tareas`, pero produce un **BUG** con la disciplina del proyecto: captura
+**síntoma + causa raíz sospechada + cómo reproducir**, se hace la pregunta *"si devolviera un resultado
+incompleto, ¿cómo me enteraría?"*, registra `BUG-XXX` en el backlog y, tras el OK, crea el bug en ClickUp
+con las subtareas de la regla de oro (test en rojo → arreglar → romper el código a propósito). Registra,
+no arregla. Estrenada de verdad: de ella salió **BUG-005** (arreglado en su propia PR). Versionada en el repo.
+
 ## [2026-07-21] Skill `correo-a-tareas` · del correo de Silvia al board de ClickUp
 
 Un correo de negocio (Silvia, Tomás…) pasaba a ser trabajo sólo si Pablo lo leía, lo analizaba y lo
