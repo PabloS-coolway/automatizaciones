@@ -3,6 +3,24 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-21] BUG-005 · Etiquetas: una talla re-referenciada cogía la ref sin EAN y salía "faltante"
+
+Silvia generó etiquetas EAN del pedido 4603335 y las tallas **43 y 45 de GOAL GYS** salieron como
+faltantes, aunque el dato está en la BD y el PDF traía la ref correcta. Otra de la familia peligrosa
+—esta vez avisó, pero por un pelo—.
+
+- **Causa:** `MasterIndex` indexa por (style, color, talla, género) y lo hacía con `set()`
+  **last-write-wins**. GOAL GYS está re-referenciado (ref nueva `8683709` con EAN en todas las tallas +
+  ref vieja `8683549` con EAN vacío); para 43/45 conviven ambas y la vacía, al entrar después,
+  **pisaba** a la buena → faltante.
+- **⚠ Por qué era peligroso:** esta vez la ref mala no tenía EAN (por eso avisó). Si hubiera tenido
+  **otro** EAN, el generador habría impreso un **código erróneo en silencio**. El arreglo cierra eso.
+- **Arreglo:** ante colisión de clave, el índice se queda con la fila **más completa** (la que trae
+  EAN/UPC), **independiente del orden de inserción**. [`master-index.ts`](apps/etiquetas-coolway-api/src/domain/services/master-index.ts).
+- **Test:** [`master-index.spec.ts`](apps/etiquetas-coolway-api/test/master-index.spec.ts) — prueba los
+  **dos órdenes** de inserción (un test de un solo orden pasaría igual con el bug). Verificado rompiendo
+  el código a propósito (vuelve a rojo) y contra la **BD real** (43/45 → `8683709`). 152 tests API en verde.
+
 ## [2026-07-16] REQ-004 · Los destinos se gestionan desde la web (ya no viven en el código)
 
 Abrir un cliente nuevo (un país, una sociedad) o cambiar el "importado por" exigía tocar el repo y
