@@ -3,6 +3,33 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-21] Skill `correo-a-tareas` · del correo de Silvia al board de ClickUp
+
+Un correo de negocio (Silvia, Tomás…) pasaba a ser trabajo sólo si Pablo lo leía, lo analizaba y lo
+apuntaba a mano. Ahora hay un camino con freno: leer el correo → analizarlo con el ritual de siempre →
+enseñar lo que se crearía → y **sólo con el OK de Pablo**, volcarlo a ClickUp.
+
+### Añadido
+- **Skill `correo-a-tareas`** (`.claude/skills/correo-a-tareas/`, versionada como `pr-coolway`): dado el
+  asunto de un correo, lo lee de Gmail (`silvap.javier@gmail.com`), corre el ritual de
+  `/nuevo-requerimiento`, y tras el **OK explícito** crea en ClickUp una **tarea madre por REQ + una
+  subtarea por cada próximo paso**. La regla que manda: **nada se crea sin ese OK**.
+- **REQ-005 registrado** (🔍 En análisis): *Podar los ficheros de SAP a lo realmente comprado*
+  (materiales, tarifas 906/073, surtidos). Origen: correo «FUNCIONES» de Silvia (17/07). Diseño en
+  [`diseño/iniciativas/REQ-005-podar-ficheros-sap/`](diseño/iniciativas/REQ-005-podar-ficheros-sap/diseño.md).
+
+### Verificado (estreno real de la skill)
+- **Gmail** leyó la cuenta correcta y el correo íntegro de Silvia.
+- **ClickUp**: creada la madre `REQ-005` + 5 subtareas en la lista *Automatizaciones*, con dedup por tag
+  `req-005` (filtrar por ese tag devuelve exactamente la madre → no se duplicará al relanzar).
+- **Aprendido y anotado en la skill:** los tags de ClickUp **deben existir antes** en el Space
+  (`add_tag_to_task` falla si no) — por eso el dedup se apoya en DOS marcas: el `REQ-005` del título
+  (siempre fiable) y el tag (mejor para filtrar, si existe).
+
+### Infra
+- **ClickUp conectado** como MCP (`mcp.clickup.com`, scope global) y **Gmail** re-autorizado a la cuenta
+  personal de Pablo. Son conexiones de la máquina, no del repo.
+
 ## [2026-07-16] REQ-004 · Los destinos se gestionan desde la web (ya no viven en el código)
 
 Abrir un cliente nuevo (un país, una sociedad) o cambiar el "importado por" exigía tocar el repo y
