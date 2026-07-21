@@ -75,20 +75,26 @@ de lo actual).
 
 ## Próximos pasos
 
-1. **Definir el catálogo de features** (cerrado, en código) mapeando las secciones + acciones actuales:
-   `etiquetas.ver`, `maestro.ver`, `maestro.cargar`, `destinos.gestionar`, `usuarios.gestionar`,
-   `roles.gestionar`.
-2. **Modelo de datos:** tabla `role` (siembra `operador`/`admin`) + `role_feature` (asignaciones). Migración
-   que siembra el estado ACTUAL (admin = todas; operador = `etiquetas.ver` + `maestro.ver`).
-3. **Enforcement en la API:** el guard pasa de comprobar el nombre del rol a comprobar que el rol tiene la
-   feature; sustituir los `@Roles('admin')` por `@RequireFeature('…')`. Con test.
-4. **Salvaguarda anti-bloqueo:** impedir dejar el sistema sin ningún rol activo con `roles.gestionar` /
-   `usuarios.gestionar`, y proteger el admin bootstrap. Con test que lo fije.
-5. **Front:** sidebar y guards de ruta leen las features del usuario (endpoint `/me/features` o del JWT) en
-   vez de `isAdmin`. Un cambio de permisos se refleja sin re-desplegar.
-6. **Pantalla de administración de roles** (crear rol, asignar features con checkboxes, activar/desactivar),
+**Fase 1 · backend (✅ hecho y verificado, 21/07):**
+1. ✅ **Catálogo de features** cerrado en `@yorga/contracts` (`FEATURES`).
+2. ✅ **Modelo de datos:** tabla `role` (features como `text[]`, más simple que un join `role_feature`) +
+   migración que siembra el estado actual (admin = todas; operador = `etiquetas.ver` + `maestro.ver`),
+   convirtiendo el enum a texto sin perder usuarios.
+3. ✅ **Enforcement:** `FeatureGuard` + `@RequireFeature` (lee features del rol **de la BD por request** →
+   cambios sin re-login); `@Roles('admin')` sustituido en usuarios/destinos/maestro. Con test
+   (`feature-guard.spec.ts`). Verificado E2E: operador/admin idénticos a hoy, y cambio de permisos sin
+   re-login.
+
+**Fase 2 · CRUD + panel + front (pendiente):**
+4. **Salvaguarda anti-bloqueo:** impedir dejar el sistema sin ningún rol activo con `roles.gestionar`, y
+   proteger el admin bootstrap. Con test que lo fije. (Va con el CRUD, que es donde se muta.)
+5. **CRUD de roles** (API): crear/editar/activar-desactivar roles, con `roles.gestionar`.
+6. **Front:** sidebar y guards de ruta leen las **features** del usuario (ya vienen en el login/`me`) en vez
+   de `isAdmin`. Un cambio de permisos se refleja sin re-desplegar.
+7. **Pantalla de administración de roles** (crear rol, asignar features con checkboxes, activar/desactivar),
    reutilizando `DataTable` + el patrón de Usuarios/Destinos.
-7. **Verificar que operador y admin siguen viendo/pudiendo lo mismo que hoy** — red de seguridad.
+8. **Verificar** que operador y admin siguen viendo/pudiendo lo mismo que hoy — red de seguridad (Fase 1 ya
+   lo comprobó en la API; falta comprobarlo en la web).
 
 > No se implementa nada hasta que Pablo valide este diseño. La salvaguarda anti-bloqueo (paso 4) y la
 > migración sin sorpresas (paso 7) son las dos cosas que, si se hacen mal, duelen.

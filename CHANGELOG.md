@@ -3,6 +3,36 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-21] REQ-006 · Fase 1: los permisos pasan de código a dato (roles + features), sin que nadie lo note
+
+Primer tramo de REQ-006 — la **fundación**: "quién puede qué" deja de estar clavado en el código y pasa a
+la BD, **con comportamiento idéntico** (operador y admin siguen viendo/pudiendo exactamente lo mismo). El
+panel autoadministrable y el front llegan en la Fase 2.
+
+### Añadido
+- **Catálogo de features cerrado** en `@yorga/contracts` (`FEATURES`): `etiquetas.ver`, `maestro.ver`,
+  `maestro.cargar`, `destinos.gestionar`, `usuarios.gestionar`, `roles.gestionar`. Es la lista que la app
+  sabe proteger; se asignan a roles, **no se inventan desde la web**.
+- **Rol como dato**: tabla `role` (`key`, `name`, `features[]`, `active`, `system`) + migración que
+  **siembra el estado actual** — `admin` = todas las features, `operador` = `etiquetas.ver` + `maestro.ver`.
+  Migración escrita a mano para convertir el enum `Role` a texto **sin perder los usuarios**.
+- **Guard por feature** (`FeatureGuard` + `@RequireFeature`): sustituye a `@Roles`. Lee las features del rol
+  **de la BD por petición**, así un cambio de permisos aplica **sin re-login**. El login/`me` devuelven las
+  features efectivas del usuario.
+
+### Cambiado
+- `@Roles('admin')` → `@RequireFeature('…')` en usuarios (`usuarios.gestionar`), destinos
+  (`destinos.gestionar`) y cargar/importar maestro (`maestro.cargar`). El enum `Role` desaparece; `role` es
+  ahora la clave de un rol gobernable.
+
+### Verificado (de verdad, con la API levantada)
+- **Nadie nota el cambio**: operador → `403` en Usuarios y Destinos, admin → `200`; ambos `200` en lo común
+  (markets). Idéntico a antes.
+- **Un cambio de permisos aplica sin re-login**: se añade `destinos.gestionar` al rol operador en la BD y,
+  con el **mismo token**, `/destinos` pasa de `403` a `200`.
+- **158 tests** de API (incl. `feature-guard.spec.ts`, que fija que el guard bloquea de más — el fallo que
+  sería un agujero). Typecheck + build + web 98% en verde.
+
 ## [2026-07-21] Skills de tarea · las subtareas pasan a ser opcionales
 
 Feedback de Pablo estrenando `requerimiento-tarea`: **las subtareas no siempre hacen falta**. Las 4 skills

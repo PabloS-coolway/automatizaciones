@@ -32,7 +32,7 @@ import { ExcelCodesReader } from '../../infrastructure/excel-codes-reader';
 import { PrismaReferenceRepository } from '../../infrastructure/prisma-reference.repository';
 import { PrismaService } from '../../../infrastructure/db/prisma.service';
 import { ExcelMasterReader } from '../../../infrastructure/excel/excel-master-reader.adapter';
-import { CurrentUser, Roles } from '../../../auth/interface/http/decorators';
+import { CurrentUser, RequireFeature } from '../../../auth/interface/http/decorators';
 import { JwtPayload } from '../../../auth/application/auth.service';
 
 type Uploaded = { ean?: Express.Multer.File[]; upc?: Express.Multer.File[] };
@@ -99,7 +99,7 @@ export class MaestroController {
     return new StreamableFile(await this.excel.serialize(rows));
   }
 
-  @Roles('admin') // cargar el maestro completo reescribe la fuente de verdad: sólo administradores
+  @RequireFeature('maestro.cargar') // cargar el maestro reescribe la fuente de verdad
   @Post('seed')
   @UseInterceptors(FileInterceptor('master'))
   async seed(@UploadedFile() master: Express.Multer.File, @CurrentUser() user: JwtPayload): Promise<SeedReportDto> {
@@ -114,7 +114,7 @@ export class MaestroController {
     }
   }
 
-  @Roles('admin') // importar sobrescribe el maestro: sólo administradores
+  @RequireFeature('maestro.cargar') // importar sobrescribe el maestro
   @Post('import')
   @UseInterceptors(FileFieldsInterceptor([{ name: 'ean', maxCount: 1 }, { name: 'upc', maxCount: 1 }]))
   async import(@UploadedFiles() files: Uploaded, @CurrentUser() user: JwtPayload): Promise<ImportReportDto> {
