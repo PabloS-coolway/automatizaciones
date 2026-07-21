@@ -62,10 +62,25 @@ model Destination {
   @@map("destination")
 }
 
-/// Roles de acceso: operador (genera etiquetas, lee el maestro) y admin (además importa al maestro).
-enum Role {
-  operador
-  admin
+/// REQ-006 · Rol como DATO gobernable (antes era un enum fijo `operador|admin`). Decide qué FEATURES tiene
+/// un usuario. `operador` y `admin` son roles de SISTEMA (system=true): no se borran. Se pueden crear más
+/// desde el panel. El catálogo de features es cerrado y vive en código (@yorga/contracts · FEATURES).
+model Role {
+  id        Int      @id @default(autoincrement())
+  /// Clave estable e identidad del rol: operador, admin, contable…
+  key       String   @unique
+  name      String
+  /// Features que tiene el rol (subconjunto del catálogo cerrado).
+  features  String[]
+  active    Boolean  @default(true)
+  /// Roles de sistema (operador/admin): no se borran ni se les cambia la clave.
+  system    Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  users     User[]
+
+  @@map("role")
 }
 
 /// Usuarios internos de la herramienta. Alta/baja por un admin (no hay registro abierto).
@@ -74,7 +89,9 @@ model User {
   email        String   @unique
   name         String
   passwordHash String   @map("password_hash")
-  role         Role     @default(operador)
+  /// Clave del rol (FK a role.key). Se conserva la columna `role` de antes.
+  role         String   @default("operador")
+  roleRef      Role     @relation(fields: [role], references: [key])
   active       Boolean  @default(true)
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
