@@ -24,10 +24,11 @@ entre el análisis y la creación. Ante la duda de si Pablo ha dicho que sí, **
    - **Clasificar** (REQ / MEJ / BUG). Si resulta ser un BUG, **para y propón [`bug-tarea`](../bug-tarea/SKILL.md)**.
    - **Analizar** (sólo REQ): ritual de `/nuevo-requerimiento` → siguiente `REQ-XXX` en el backlog +
      `diseño/iniciativas/REQ-XXX-<slug>/diseño.md` con próximos pasos.
-   - 🛑 **FRENO**: enseñar el análisis + lo que se crearía en ClickUp, y **esperar el OK**.
+   - 🛑 **FRENO**: enseñar el análisis + lo que se crearía en ClickUp, **preguntar si los próximos pasos
+     van en la descripción (por defecto) o como subtareas**, y **esperar el OK**.
    - **Crear en ClickUp** (lista Automatizaciones `901219597730`, estado `pendiente`): **tarea madre**
-     `REQ-XXX · <título>` (tag `req-xxx`, dedup por título + tag — el tag debe existir antes) + **una
-     subtarea por próximo paso**. Comprobar duplicados antes de crear.
+     `REQ-XXX · <título>` (tag `req-xxx`, dedup por título + tag — el tag debe existir antes). Los próximos
+     pasos van en la descripción o como subtareas, según lo que eligió Pablo. Comprobar duplicados antes.
 
 ## Lo único distinto en el contenido
 

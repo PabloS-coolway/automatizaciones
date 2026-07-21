@@ -61,14 +61,17 @@ Pablo da el **asunto**. Busca el hilo en Gmail y **lee el contenido real**.
 ### 3. (opcional) Confirmar que es un BUG y no otra cosa
 
 Si al leerlo resulta que **no** es un fallo de algo que ya funcionaba —sino valor nuevo (REQ) o una mejora
-(MEJ)— **dilo y propón `correo-a-tareas`** en su lugar. No fuerces un BUG donde no lo hay.
+(MEJ)— **dilo y propón `requerimiento-correo-tarea`** en su lugar. No fuerces un BUG donde no lo hay.
 
 ### 4. 🛑 FRENO — enseñar y esperar el OK
 
 Antes de tocar ClickUp, muéstrale a Pablo:
 1. **La captura**: síntoma, causa raíz sospechada, cómo reproducir, y la respuesta a "¿cómo me enteraría?".
-2. **Exactamente lo que se crearía** en ClickUp: título (`BUG-XXX · <título>`), tag, cuerpo y las subtareas.
-3. Si ya hay un bug de ese correo/BUG en el board (ver dedup), **dilo aquí**.
+2. **Exactamente lo que se crearía** en ClickUp: título (`BUG-XXX · <título>`), tag, cuerpo y los pasos de la
+   disciplina de arreglo.
+3. **Pregunta cómo quiere esos pasos**: como **checklist en la descripción** (por defecto, es corto y va
+   siempre lo mismo) o como **subtareas** (si quiere seguirlos por separado).
+4. Si ya hay un bug de ese correo/BUG en el board (ver dedup), **dilo aquí**.
 
 Y **para**. No se sigue hasta un "ok / dale / créalo" claro. Si pide cambios, se ajustan y se re-enseña.
 
@@ -87,12 +90,14 @@ Si ya existe, **no lo dupliques** — informa.
 - **Descripción:** **Síntoma** · **Causa raíz (sospechada)** · **Cómo reproducir** · la respuesta a "¿cómo me
   enteraría si devolviera un resultado incompleto?" · y al final `Origen: correo «<asunto>» — <fecha>`.
 
-**Subtareas** = la disciplina de arreglo, para que viaje al board (no se ejecuta ahora, sólo se deja escrita):
+**La disciplina de arreglo** — según lo que Pablo eligió en el freno, va como **checklist en la descripción**
+(por defecto) o como **subtareas**. No se ejecuta ahora, sólo se deja escrita:
 1. **Reproducir con un test de regresión en ROJO** (que falle con el bug presente).
 2. **Arreglar** hasta que el test pase.
 3. **Verificar rompiendo el código a propósito**: deshacer el arreglo y comprobar que el test vuelve a rojo.
 
-Al terminar, dale a Pablo **los enlaces** (URL del bug y cuántas subtareas). Si algo falló a medias, **dilo**.
+Al terminar, dale a Pablo **los enlaces** (URL del bug, y las subtareas si las hubo). Si algo falló a medias,
+**dilo**.
 
 ## Al terminar
 

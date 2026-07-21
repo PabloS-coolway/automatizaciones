@@ -69,10 +69,13 @@ Estos ficheros son artefactos **del repo**: quedan en el working tree. Committea
 Antes de tocar ClickUp, muéstrale a Pablo, en el chat:
 
 1. **El análisis** (resumen de negocio + recomendación).
-2. **Exactamente lo que se crearía** en ClickUp:
-   - **Tarea madre**: título (`REQ-XXX · <título>`), lista destino, tag, y el cuerpo.
-   - **Subtareas**: la lista de próximos pasos, una por línea.
-3. Si ya hay tareas de ese REQ en el board (ver dedup, paso 5), **dilo aquí** — no lo descubras después.
+2. **Exactamente lo que se crearía** en ClickUp: la **tarea madre** (`REQ-XXX · <título>`, lista destino,
+   tag, cuerpo) y **los próximos pasos**.
+3. **Pregunta cómo quiere los próximos pasos** (las subtareas no siempre hacen falta):
+   - **En la descripción** (por defecto): los pasos van como lista dentro de la madre. Menos ruido en el
+     board. Es lo razonable salvo que el REQ sea grande o los pasos se vayan a asignar/mover por separado.
+   - **Como subtareas**: una por próximo paso, si Pablo quiere seguirlos individualmente.
+4. Si ya hay tareas de ese REQ en el board (ver dedup, paso 5), **dilo aquí** — no lo descubras después.
 
 Y **para**. No se sigue al paso 5 hasta un "ok / dale / créalas" claro de Pablo. Si pide cambios, se
 ajustan y se vuelve a enseñar.
@@ -92,10 +95,13 @@ falten. Correr la skill dos veces sobre el mismo correo no debe llenar el board 
 **Tarea madre** en la lista Automatizaciones (`901219597730`), estado `pendiente`:
 - **Título:** `REQ-XXX · <título corto>` (para MEJ/BUG, `MEJ:` / `BUG:` + título).
 - **Tag:** `req-xxx` (o `mej` / `bug`) — es la marca para el dedup.
-- **Descripción:** resumen de negocio + valor + **enlace al diseño** (`diseño/iniciativas/REQ-XXX/`) y, al
-  final, una línea **`Origen: correo «<asunto>» — <fecha>`** para saber de dónde salió.
+- **Descripción:** resumen de negocio + valor + **enlace al diseño** (`diseño/iniciativas/REQ-XXX/`), los
+  **próximos pasos** (si se eligió "en la descripción" en el freno), y al final una línea
+  **`Origen: correo «<asunto>» — <fecha>`** para saber de dónde salió.
 
-**Subtareas** (una por próximo paso), con `parent` = id de la madre, también en `pendiente`.
+**Próximos pasos — según lo que Pablo eligió en el freno:**
+- **En la descripción** (por defecto): ya van en el cuerpo de la madre. No se crean subtareas.
+- **Como subtareas:** una por próximo paso, con `parent` = id de la madre, en `pendiente`.
 
 Al terminar, dale a Pablo **los enlaces** (URL de la madre y cuántas subtareas se crearon). Si algo falló
 a medias, **dilo** — no lo escondas: es peor una creación a medias silenciosa que un error claro.
