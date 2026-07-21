@@ -1,12 +1,21 @@
-/** Roles de acceso a la herramienta (RBAC mínimo). */
-export type Role = 'operador' | 'admin';
+import { Feature } from './permissions';
+
+/**
+ * Rol de un usuario = la **clave** de un rol gobernable (REQ-006). Antes era un enum fijo
+ * (`operador | admin`); ahora es un string porque los roles son dato administrable. `operador` y `admin`
+ * siguen existiendo (roles de sistema), pero se pueden crear más.
+ */
+export type Role = string;
 
 /** Usuario tal como lo expone la API (nunca incluye la contraseña). */
 export interface UserDto {
   id: number;
   email: string;
   name: string;
+  /** Clave del rol del usuario. */
   role: Role;
+  /** Las features efectivas de ese rol — lo que el front usa para mostrar/ocultar y la API para permitir. */
+  features: Feature[];
   active: boolean;
 }
 
