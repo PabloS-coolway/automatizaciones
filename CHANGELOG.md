@@ -3,6 +3,29 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-22] REQ-005 · Motor de poda de ficheros de SAP (dominio + lectores), verificado
+
+Primer tramo de REQ-005: el **corazón** que deja los ficheros de SAP (materiales, tarifas 906/073, surtidos)
+con **sólo lo realmente comprado**. Falta la interfaz (panel web) — Fase siguiente.
+
+### La regla de la familia (confirmada por Silvia, 21/07)
+La ref de familia que va a SAP se obtiene de la ref color-a-color del borrador **poniendo el 3º dígito a 0 y
+añadiendo un 0 al final** (`7613425` → `76034250`). El 3º dígito codifica el color, así que los colores de una
+ref caen en la misma familia. **Defensivo:** si una ref no tiene el formato esperado, se avisa — no se inventa.
+
+### Añadido (`src/poda/`)
+- **Dominio:** `familiaDeRef` (la regla), `comprasDelBorrador` (lo comprado = líneas con `Suma > 0`) y `podar`
+  (deja sólo las filas cuya `(familia, color)` esté comprada; en tarifas, sólo la familia). **Avisa de lo
+  comprado que no aparezca en el fichero** (fichero incompleto → nunca se da por bueno en silencio).
+- **Lectores:** del borrador (Excel) y de los 4 ficheros de SAP (TSV, cada uno con su columna de `MATNR`/color);
+  el serializador **conserva el formato** (mismo salto de línea) porque es un fichero que se sube a SAP.
+- **Caso de uso** `podarFicheros`: orquesta borrador + lote de ficheros → podados + informe.
+
+### Verificado (contra los ficheros reales del 2003)
+- **Materiales: 138 filas → 14** (los 7 colores × chica/chico que Silvia detalló), **0 comprado que falta**.
+- Tarifas y surtidos: podan sólo las familias/colores comprados; 0 faltantes en todos.
+- **183 tests** de API (incl. `poda.spec.ts` con la tabla de Silvia y `sap-file-reader.spec.ts`).
+
 ## [2026-07-22] REQ-006 · Fase 2: CRUD de roles, panel autoadministrable y front por features
 
 Sobre la fundación de la Fase 1, ya se puede **gobernar todo desde el panel**: crear roles, marcar sus
