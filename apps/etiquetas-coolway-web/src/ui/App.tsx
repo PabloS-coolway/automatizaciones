@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AppShell } from './layout/AppShell';
+import { InicioPage } from './pages/InicioPage';
 import { EtiquetasPage } from './pages/EtiquetasPage';
 import { BaseDatosPage } from './pages/BaseDatosPage';
 import { ComingSoonPage } from './pages/ComingSoonPage';
@@ -20,10 +21,10 @@ export function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route element={<RequireAuth />}>
             <Route element={<AppShell />}>
-              <Route index element={<Navigate to="/etiquetas" replace />} />
+              <Route index element={<Navigate to="/inicio" replace />} />
+              <Route path="/inicio" element={<InicioPage />} />
               <Route path="/etiquetas" element={<EtiquetasPage />} />
               <Route path="/maestro" element={<BaseDatosPage />} />
-              <Route path="/tarifas" element={<ComingSoonPage title="Tarifas y surtidos" />} />
               <Route path="/plantillas" element={<ComingSoonPage title="Plantillas de ventas" />} />
               <Route element={<RequireFeature feature="usuarios.gestionar" />}>
                 <Route path="/usuarios" element={<UsuariosPage />} />
@@ -40,7 +41,7 @@ export function App() {
               <Route element={<RequireFeature feature="actividad.ver" />}>
                 <Route path="/actividad" element={<ActividadPage />} />
               </Route>
-              <Route path="*" element={<Navigate to="/etiquetas" replace />} />
+              <Route path="*" element={<Navigate to="/inicio" replace />} />
             </Route>
           </Route>
         </Routes>
