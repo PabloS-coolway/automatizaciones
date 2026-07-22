@@ -168,6 +168,8 @@ export function BaseDatosPage() {
               <ColorWebCell
                 value={r.colorNameWeb}
                 options={colorWebOptionsRef.current}
+                refCodigo={r.ref}
+                color={r.color}
                 onSave={(valor, nuevo) => editarColorWeb(r, valor, nuevo)}
               />
             )
