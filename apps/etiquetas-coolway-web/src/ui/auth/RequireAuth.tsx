@@ -25,6 +25,6 @@ export function RequireAuth() {
  */
 export function RequireFeature({ feature }: { feature: Feature }) {
   const { hasFeature } = useAuth();
-  if (!hasFeature(feature)) return <Navigate to="/etiquetas" replace />;
+  if (!hasFeature(feature)) return <Navigate to="/inicio" replace />;
   return <Outlet />;
 }

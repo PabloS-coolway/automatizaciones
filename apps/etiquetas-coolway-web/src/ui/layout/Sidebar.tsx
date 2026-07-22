@@ -1,5 +1,18 @@
 import { NavLink } from 'react-router-dom';
-import { BoxArrowRight, BoxSeamFill, CashStack, Database, FileEarmarkText, GeoAlt, People, PersonCircle, Scissors, ShieldLock, Tags , ClockHistory} from 'react-bootstrap-icons';
+import {
+  BoxArrowRight,
+  BoxSeamFill,
+  ClockHistory,
+  Database,
+  FileEarmarkText,
+  GeoAlt,
+  HouseDoorFill,
+  People,
+  PersonCircle,
+  Scissors,
+  ShieldLock,
+  Tags,
+} from 'react-bootstrap-icons';
 import type { ReactNode } from 'react';
 import type { Feature } from '@yorga/contracts';
 import { Button } from 'react-bootstrap';
@@ -16,20 +29,41 @@ interface NavItem {
   feature?: Feature;
 }
 
-const NAV: NavItem[] = [
-  { to: '/etiquetas', label: 'Etiquetas', icon: <Tags />, ready: true },
-  { to: '/maestro', label: 'Base de datos', icon: <Database />, ready: true },
-  { to: '/poda', label: 'Podar SAP', icon: <Scissors />, ready: true, feature: 'maestro.cargar' },
-  { to: '/destinos', label: 'Destinos', icon: <GeoAlt />, ready: true, feature: 'destinos.gestionar' },
-  { to: '/usuarios', label: 'Usuarios', icon: <People />, ready: true, feature: 'usuarios.gestionar' },
-  { to: '/roles', label: 'Roles', icon: <ShieldLock />, ready: true, feature: 'roles.gestionar' },
-  { to: '/actividad', label: 'Actividad', icon: <ClockHistory />, ready: true, feature: 'actividad.ver' },
-  { to: '/tarifas', label: 'Tarifas y surtidos', icon: <CashStack /> },
-  { to: '/plantillas', label: 'Plantillas de ventas', icon: <FileEarmarkText /> },
+/** MEJ-003 · La navegación se agrupa por módulos (antes era plana). Un grupo sin título va suelto. */
+interface NavGroup {
+  title?: string;
+  items: NavItem[];
+}
+
+const NAV: NavGroup[] = [
+  { items: [{ to: '/inicio', label: 'Inicio', icon: <HouseDoorFill />, ready: true }] },
+  {
+    title: 'Etiquetas y colección',
+    items: [
+      { to: '/etiquetas', label: 'Etiquetas', icon: <Tags />, ready: true },
+      { to: '/maestro', label: 'Base de datos', icon: <Database />, ready: true },
+      { to: '/poda', label: 'Podar SAP', icon: <Scissors />, ready: true, feature: 'maestro.cargar' },
+      { to: '/destinos', label: 'Destinos', icon: <GeoAlt />, ready: true, feature: 'destinos.gestionar' },
+    ],
+  },
+  {
+    title: 'Administración',
+    items: [
+      { to: '/usuarios', label: 'Usuarios', icon: <People />, ready: true, feature: 'usuarios.gestionar' },
+      { to: '/roles', label: 'Roles', icon: <ShieldLock />, ready: true, feature: 'roles.gestionar' },
+      { to: '/actividad', label: 'Actividad', icon: <ClockHistory />, ready: true, feature: 'actividad.ver' },
+    ],
+  },
+  {
+    title: 'Próximamente',
+    items: [{ to: '/plantillas', label: 'Plantillas de ventas', icon: <FileEarmarkText /> }],
+  },
 ];
 
 export function Sidebar({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) => void }) {
   const { user, logout, hasFeature } = useAuth();
+  const visibles = (items: NavItem[]) => items.filter((n) => !n.feature || hasFeature(n.feature));
+
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
@@ -39,13 +73,22 @@ export function Sidebar({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme
       </div>
 
       <nav className="sidebar-nav">
-        {NAV.filter((n) => !n.feature || hasFeature(n.feature)).map((n) => (
-          <NavLink key={n.to} to={n.to} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-            <span className="nav-ico">{n.icon}</span>
-            <span className="nav-label">{n.label}</span>
-            {!n.ready && <span className="soon-tag">pronto</span>}
-          </NavLink>
-        ))}
+        {NAV.map((grupo, i) => {
+          const items = visibles(grupo.items);
+          if (items.length === 0) return null; // grupo sin nada visible → no se pinta
+          return (
+            <div key={grupo.title ?? `grupo-${i}`} className="nav-group">
+              {grupo.title && <div className="nav-group-title">{grupo.title}</div>}
+              {items.map((n) => (
+                <NavLink key={n.to} to={n.to} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                  <span className="nav-ico">{n.icon}</span>
+                  <span className="nav-label">{n.label}</span>
+                  {!n.ready && <span className="soon-tag">pronto</span>}
+                </NavLink>
+              ))}
+            </div>
+          );
+        })}
       </nav>
 
       <div className="sidebar-foot">
