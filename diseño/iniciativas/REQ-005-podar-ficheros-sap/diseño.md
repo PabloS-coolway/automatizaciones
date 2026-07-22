@@ -106,16 +106,17 @@ cuadra con el fichero crudo, se **reporta** — no se fabrica.
      766·WGR, 201·DBR, 801·DGY, 860·GHY, 710·WPK, 001·NBK) y casan con la col `COLOR` de materiales/surtidos.
    - **Señal de "comprado" reforzada:** además de `Suma`>0, el borrador marca los no comprados con
      `CONTINUATIVOS` en la descripción.
-4. **⚠ LA INCÓGNITA REAL (bloquea materiales y tarifas): ¿cómo se identifica la FAMILIA comprada?** De las 6
-   familias, hay que quedarse con `76034250` (chica) y `86038320` (chico) — Silvia las nombró en el correo,
-   **pero ese número de 8 dígitos NO está en el borrador** (que sólo trae la ref color a color, `7613425`). Se
-   *podría* derivar con una transformación posicional de la ref (`7613425`→`76034250`), pero es un atajo
-   frágil que se rompería callado con otro modelo — **no se hace sin confirmar**. Opciones:
-   - (a) Preguntar a **Silvia** cómo sabe ella cuál es la familia de la temporada (¿la lee del prepedido, de
-     SAP, del código de la ref?).
-   - (b) Buscar si otro export de prepedidos trae la familia de 8 dígitos directamente.
-   - **Surtidos NO tiene este problema:** su `MATNR` ya es la familia, y se cruza por (familia + color) contra
-     lo comprado. Se puede empezar por surtidos mientras se resuelve lo de la familia.
+4. **✅ RESUELTO (22/07, confirmado por Silvia) — cómo se identifica la FAMILIA.** La ref de familia que va a
+   SAP se obtiene de la ref color-a-color del borrador **poniendo el 3º dígito a 0 y añadiendo un 0 al final**
+   (el 3º dígito es el que codifica el color). Verificado con su tabla:
+   - `7613425` (BGE) → `7603425` → `76034250`; `8613832` → `86038320`.
+   - Como el 3º dígito es el color, los 7 colores comprados de la chica caen en `76034250` y los del chico en
+     `86038320` — exactamente lo que Silvia pide subir ("resto, anular").
+   - **La poda:** del borrador se toman las líneas con `Suma > 0`; para cada una se calcula la **familia** con
+     esa regla y su **color** (`Horma`). En materiales/surtidos se dejan las filas cuya `(familia, color)` esté
+     comprada; en tarifas (sin color), sólo las familias compradas. El resto, fuera.
+   - **Defensivo (regla del proyecto):** la transformación valida el formato de la ref; si una línea no cuadra
+     con la regla, se **reporta** en vez de producir una salida mal en silencio.
 2. **Formato exacto de cada `.txt` de SAP** (columnas, delimitador, posiciones): materiales, `906`, `073`,
    surtidos. Hay ya un fichero de surtidos de ejemplo en `docs/requerimientos/` de otro modelo.
 3. **Red de seguridad:** necesitamos, de cada tipo de fichero, un ejemplo **cerrado** — el crudo de entrada y
