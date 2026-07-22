@@ -1,11 +1,12 @@
+import { Prisma } from '@prisma/client';
 import { Role, User } from '../domain/user';
 
-/** Puerto de salida: persistencia de usuarios. */
+/** Puerto de salida: persistencia de usuarios. `tx` permite escribir dentro de una transacción. */
 export interface UserRepository {
   findByEmail(email: string): Promise<User | null>;
   findById(id: number): Promise<User | null>;
-  create(input: { email: string; name: string; passwordHash: string; role: Role }): Promise<User>;
-  update(id: number, data: { role?: Role; active?: boolean; passwordHash?: string }): Promise<User>;
+  create(input: { email: string; name: string; passwordHash: string; role: Role }, tx?: Prisma.TransactionClient): Promise<User>;
+  update(id: number, data: { role?: Role; active?: boolean; passwordHash?: string }, tx?: Prisma.TransactionClient): Promise<User>;
   list(): Promise<User[]>;
   count(): Promise<number>;
 }
