@@ -1,6 +1,6 @@
 # REQ-005 · Podar los ficheros de SAP a lo realmente comprado
 
-- Estado: 🔍 En análisis · Fecha: 2026-07-21
+- Estado: ✅ Hecho (motor + panel web) · Fecha: 2026-07-21 · Cerrado: 2026-07-22
 - Área: Catálogo / alta de producto en SAP
 - Origen: correo **«FUNCIONES»** de Silvia Mayordomo (`silviam@grupoyorga.com`), 17/07/2026.
   Adjuntos: `prepedidos 2003.xlsx` (borrador de compra) + 4 `.txt` de SAP (materiales, tarifas 906/073, surtidos).
@@ -135,6 +135,14 @@ cuadra con el fichero crudo, se **reporta** — no se fabrica.
 4. **Diseñar el motor de poda** (dominio de filtrado + lectura del borrador) — una vez resueltos 1-3.
 5. Guardar los adjuntos del correo «FUNCIONES» en `docs/requerimientos/` como material del REQ.
 
-> **Nota:** este documento es el análisis de negocio+arquitectura. NO se implementa nada hasta que Pablo
-> valide, y hasta resolver el punto 1 (el mapeo de color), que es el que dice si el REQ es viable tal cual o
-> necesita antes una fuente de datos que hoy no tenemos.
+## Implementado (✅ 22/07)
+
+- **Motor** (`src/poda/`): `familiaDeRef` (la regla de Silvia, defensiva), `comprasDelBorrador` (`Suma>0`) y
+  `podar` (deja `(familia,color)` comprados; en tarifas sólo la familia) con **aviso de lo comprado que falta**.
+  Lectores del borrador (Excel) y de los 4 ficheros de SAP (TSV); serializador que **conserva el formato**.
+- **Panel web** «Podar SAP» (feature `maestro.cargar`): subir borrador + ficheros, descargar podados + informe.
+  `POST /api/poda`.
+- **Verificado contra los ficheros reales del 2003** (por dominio y por HTTP): materiales `138 → 14`, tarifas y
+  surtidos sólo lo comprado, **0 comprado que falta**. Tests: `poda.spec.ts` (tabla de Silvia) + `sap-file-reader.spec.ts`.
+
+> El único punto que quedaba (cómo se identifica la familia) lo resolvió Silvia el 21/07 — ver riesgo 4.
