@@ -3,6 +3,25 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-22] MEJ-003 + MEJ-004 · Navegación por módulos y pantalla de inicio
+
+Dos mejoras de interfaz (sin tocar dato ni dueño), juntas en una PR.
+
+### Cambiado
+- **MEJ-003 · Navegación agrupada por módulos** (antes era plana). El menú se organiza en grupos con
+  título — «Etiquetas y colección», «Administración», «Próximamente» — más «Inicio» suelto arriba. Un
+  grupo cuyas entradas no son visibles para el rol **no se pinta**. Preparación para el módulo de RRHH
+  (REQ-008), donde la lista plana se quedaba corta.
+- Se **retira «Tarifas y surtidos»** del menú y su ruta `/tarifas` (ya no aporta).
+
+### Añadido
+- **MEJ-004 · Pantalla de inicio** (`/inicio`, nueva home tras login e índice/catch-all): saludo + unos
+  **KPIs** de un vistazo (referencias en el maestro, destinos disponibles y —sólo con `actividad.ver`—
+  movimientos registrados) y **tarjetas de acceso rápido** a lo que ese usuario puede usar (filtradas por
+  feature). Los KPIs salen de endpoints ya existentes; si alguno falla, muestra «—» en vez de romper.
+- Al faltar un permiso, `RequireFeature` ahora cae a `/inicio` (accesible por todos) en vez de a
+  `/etiquetas`.
+
 ## [2026-07-22] REQ-009 · Editar el «color web» del maestro inline, con permiso por rol
 
 El «color web» sólo se corregía en el Excel origen y reimportando. Ahora se edita **inline** en la tabla
