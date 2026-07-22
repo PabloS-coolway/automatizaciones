@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { CodeRow, MasterReference } from '../domain/codes';
 
 /** Puerto: leer un export de códigos (EAN.xlsm / UPC.xlsm). */
@@ -82,5 +83,6 @@ export interface ReferenceRepository {
     color: string,
     value: string,
     editedBy: string,
+    tx?: Prisma.TransactionClient,
   ): Promise<{ updated: number; before: string | null }>;
 }

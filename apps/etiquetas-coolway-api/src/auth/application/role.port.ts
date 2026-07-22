@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { Feature } from '@yorga/contracts';
 
 export const ROLE_REPOSITORY = Symbol('ROLE_REPOSITORY');
@@ -22,6 +23,6 @@ export interface RoleRepository {
    * **inactivo** no da ninguna feature (desactivar un rol deja a sus usuarios sin permisos — deliberado).
    */
   featuresOf(key: string): Promise<Feature[]>;
-  create(input: { key: string; name: string; features: Feature[] }): Promise<RoleRecord>;
-  update(id: number, data: Partial<{ name: string; features: Feature[]; active: boolean }>): Promise<RoleRecord>;
+  create(input: { key: string; name: string; features: Feature[] }, tx?: Prisma.TransactionClient): Promise<RoleRecord>;
+  update(id: number, data: Partial<{ name: string; features: Feature[]; active: boolean }>, tx?: Prisma.TransactionClient): Promise<RoleRecord>;
 }
