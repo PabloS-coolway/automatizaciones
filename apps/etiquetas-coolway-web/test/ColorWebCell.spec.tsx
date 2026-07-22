@@ -1,50 +1,70 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ColorWebCell } from '../src/ui/components/ColorWebCell';
 
-describe('ColorWebCell · REQ-009 (editar color web inline)', () => {
-  it('muestra el valor con un botón para editar', () => {
-    render(<ColorWebCell value="ROJO" options={['ROJO', 'AZUL']} onSave={vi.fn()} />);
+const props = {
+  value: 'ROJO' as string | null,
+  options: ['ROJO', 'AZUL'],
+  refCodigo: '7603298',
+  color: 'RED',
+};
+
+const dialog = () => within(screen.getByRole('dialog'));
+
+describe('ColorWebCell · REQ-009 (editar color web en un modal)', () => {
+  it('muestra el valor y el formulario vive detrás de un botón (no hay modal hasta pulsarlo)', async () => {
+    render(<ColorWebCell {...props} onSave={vi.fn()} />);
     expect(screen.getByText('ROJO')).toBeTruthy();
-    expect(screen.getByRole('button', { name: /editar/i })).toBeTruthy();
+    expect(screen.queryByRole('dialog')).toBeNull();
+
+    await userEvent.click(screen.getByRole('button', { name: /editar «color web» de 7603298 RED/i }));
+    expect(screen.getByRole('dialog')).toBeTruthy();
   });
 
-  it('elegir un valor existente y guardar llama a onSave(valor, false)', async () => {
-    const user = userEvent.setup();
+  it('elegir un valor existente y guardar llama a onSave(valor, false) y cierra el modal', async () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
-    render(<ColorWebCell value="ROJO" options={['ROJO', 'AZUL']} onSave={onSave} />);
+    render(<ColorWebCell {...props} onSave={onSave} />);
 
-    await user.click(screen.getByRole('button', { name: /editar/i }));
-    await user.selectOptions(screen.getByLabelText('Elegir color web'), 'AZUL');
-    await user.click(screen.getByRole('button', { name: /guardar/i }));
+    await userEvent.click(screen.getByRole('button', { name: /editar «color web»/i }));
+    await userEvent.selectOptions(dialog().getByLabelText('Elegir color web'), 'AZUL');
+    await userEvent.click(dialog().getByRole('button', { name: /guardar/i }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalledWith('AZUL', false));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
   it('con «valor nuevo» permite texto libre y guarda con nuevo=true', async () => {
-    const user = userEvent.setup();
     const onSave = vi.fn().mockResolvedValue(undefined);
-    render(<ColorWebCell value={null} options={['ROJO']} onSave={onSave} />);
+    render(<ColorWebCell {...props} value={null} onSave={onSave} />);
 
-    await user.click(screen.getByRole('button', { name: /editar/i }));
-    await user.click(screen.getByLabelText('valor nuevo'));
-    await user.type(screen.getByLabelText('Nuevo color web'), 'VERDE MENTA');
-    await user.click(screen.getByRole('button', { name: /guardar/i }));
+    await userEvent.click(screen.getByRole('button', { name: /editar «color web»/i }));
+    await userEvent.click(dialog().getByLabelText(/valor nuevo/i));
+    await userEvent.type(dialog().getByLabelText('Nuevo color web'), 'VERDE MENTA');
+    await userEvent.click(dialog().getByRole('button', { name: /guardar/i }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalledWith('VERDE MENTA', true));
   });
 
-  it('si onSave falla, enseña el error y NO cierra la edición (no miente que guardó)', async () => {
-    const user = userEvent.setup();
+  it('si onSave falla, enseña el error y el modal sigue abierto (no miente que guardó)', async () => {
     const onSave = vi.fn().mockRejectedValue(new Error('403: sin permiso para editar'));
-    render(<ColorWebCell value="ROJO" options={['ROJO', 'AZUL']} onSave={onSave} />);
+    render(<ColorWebCell {...props} onSave={onSave} />);
 
-    await user.click(screen.getByRole('button', { name: /editar/i }));
-    await user.selectOptions(screen.getByLabelText('Elegir color web'), 'AZUL');
-    await user.click(screen.getByRole('button', { name: /guardar/i }));
+    await userEvent.click(screen.getByRole('button', { name: /editar «color web»/i }));
+    await userEvent.selectOptions(dialog().getByLabelText('Elegir color web'), 'AZUL');
+    await userEvent.click(dialog().getByRole('button', { name: /guardar/i }));
 
-    expect(await screen.findByText(/sin permiso/i)).toBeTruthy();
-    // sigue en modo edición: el desplegable continúa visible
-    expect(screen.getByLabelText('Elegir color web')).toBeTruthy();
+    expect(await dialog().findByText(/sin permiso/i)).toBeTruthy();
+    expect(screen.getByRole('dialog')).toBeTruthy();
+  });
+
+  it('cancelar cierra el modal sin guardar', async () => {
+    const onSave = vi.fn();
+    render(<ColorWebCell {...props} onSave={onSave} />);
+
+    await userEvent.click(screen.getByRole('button', { name: /editar «color web»/i }));
+    await userEvent.click(dialog().getByRole('button', { name: /cancelar/i }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(onSave).not.toHaveBeenCalled();
   });
 });
