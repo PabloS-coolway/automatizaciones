@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
-import { BoxArrowRight, BoxSeamFill, CashStack, Database, FileEarmarkText, GeoAlt, People, PersonCircle, Tags } from 'react-bootstrap-icons';
+import { BoxArrowRight, BoxSeamFill, CashStack, Database, FileEarmarkText, GeoAlt, People, PersonCircle, ShieldLock, Tags } from 'react-bootstrap-icons';
 import type { ReactNode } from 'react';
+import type { Feature } from '@yorga/contracts';
 import { Button } from 'react-bootstrap';
 import { ThemeSwitcher } from './ThemeSwitcher';
 import type { Theme } from '../useTheme';
@@ -11,20 +12,22 @@ interface NavItem {
   label: string;
   icon: ReactNode;
   ready?: boolean;
-  adminOnly?: boolean;
+  /** REQ-006 · Si se declara, la entrada sólo se ve con esa feature. */
+  feature?: Feature;
 }
 
 const NAV: NavItem[] = [
   { to: '/etiquetas', label: 'Etiquetas', icon: <Tags />, ready: true },
   { to: '/maestro', label: 'Base de datos', icon: <Database />, ready: true },
-  { to: '/destinos', label: 'Destinos', icon: <GeoAlt />, ready: true, adminOnly: true },
-  { to: '/usuarios', label: 'Usuarios', icon: <People />, ready: true, adminOnly: true },
+  { to: '/destinos', label: 'Destinos', icon: <GeoAlt />, ready: true, feature: 'destinos.gestionar' },
+  { to: '/usuarios', label: 'Usuarios', icon: <People />, ready: true, feature: 'usuarios.gestionar' },
+  { to: '/roles', label: 'Roles', icon: <ShieldLock />, ready: true, feature: 'roles.gestionar' },
   { to: '/tarifas', label: 'Tarifas y surtidos', icon: <CashStack /> },
   { to: '/plantillas', label: 'Plantillas de ventas', icon: <FileEarmarkText /> },
 ];
 
 export function Sidebar({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) => void }) {
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout, hasFeature } = useAuth();
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
@@ -34,7 +37,7 @@ export function Sidebar({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme
       </div>
 
       <nav className="sidebar-nav">
-        {NAV.filter((n) => !n.adminOnly || isAdmin).map((n) => (
+        {NAV.filter((n) => !n.feature || hasFeature(n.feature)).map((n) => (
           <NavLink key={n.to} to={n.to} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             <span className="nav-ico">{n.icon}</span>
             <span className="nav-label">{n.label}</span>

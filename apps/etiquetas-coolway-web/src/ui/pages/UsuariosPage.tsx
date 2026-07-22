@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Alert, Badge, Button, Card, Form, Spinner } from 'react-bootstrap';
 import { KeyFill, PersonPlus } from 'react-bootstrap-icons';
-import type { Role, UserDto } from '@yorga/contracts';
-import { usersGateway } from '../composition';
+import type { RoleDto, UserDto } from '@yorga/contracts';
+import { rolesGateway, usersGateway } from '../composition';
 import { useAuth } from '../auth/AuthContext';
 import { Column, DataTable, useMemoryTable } from '../components/table';
 
 export function UsuariosPage() {
   const { user: me } = useAuth();
   const [users, setUsers] = useState<UserDto[]>([]);
+  // REQ-006 · Los roles ya no son fijos: se cargan para el desplegable de alta y el cambio de rol por fila.
+  const [roles, setRoles] = useState<RoleDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -18,14 +20,20 @@ export function UsuariosPage() {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<Role>('operador');
+  const [role, setRole] = useState('');
   const [creating, setCreating] = useState(false);
+
+  const activos = useMemo(() => roles.filter((r) => r.active), [roles]);
+  const roleName = (key: string) => roles.find((r) => r.key === key)?.name ?? key;
 
   const load = useCallback(() => {
     setLoading(true);
-    usersGateway
-      .list()
-      .then(setUsers)
+    Promise.all([usersGateway.list(), rolesGateway.list()])
+      .then(([us, rs]) => {
+        setUsers(us);
+        setRoles(rs);
+        setRole((cur) => cur || rs.find((r) => r.active)?.key || '');
+      })
       .catch((e) => setError((e as Error).message))
       .finally(() => setLoading(false));
   }, []);
@@ -43,7 +51,7 @@ export function UsuariosPage() {
       setEmail('');
       setName('');
       setPassword('');
-      setRole('operador');
+      setRole(activos[0]?.key ?? '');
       load();
     } catch (err) {
       setError((err as Error).message);
@@ -52,7 +60,7 @@ export function UsuariosPage() {
     }
   }
 
-  async function patch(id: number, data: { role?: Role; active?: boolean; password?: string }, ok: string) {
+  async function patch(id: number, data: { role?: string; active?: boolean; password?: string }, ok: string) {
     setError('');
     setNotice('');
     setBusyId(id);
@@ -95,7 +103,7 @@ export function UsuariosPage() {
         key: 'role',
         label: 'rol',
         value: (u) => u.role,
-        render: (u) => <Badge bg={u.role === 'admin' ? 'primary' : 'secondary'}>{u.role}</Badge>,
+        render: (u) => <Badge bg={u.role === 'admin' ? 'primary' : 'secondary'}>{roleName(u.role)}</Badge>,
       },
       {
         key: 'active',
@@ -119,22 +127,22 @@ export function UsuariosPage() {
           const isMe = u.id === me?.id;
           const busy = busyId === u.id;
           return (
-            <div className="d-inline-flex gap-2">
-              <Button
+            <div className="d-inline-flex gap-2 align-items-center">
+              <Form.Select
                 size="sm"
-                variant="outline-secondary"
+                style={{ width: 'auto' }}
+                value={u.role}
                 disabled={busy || isMe}
                 title={isMe ? 'No puedes cambiar tu propio rol' : 'Cambiar rol'}
-                onClick={() =>
-                  patch(
-                    u.id,
-                    { role: u.role === 'admin' ? 'operador' : 'admin' },
-                    `${u.email} ahora es ${u.role === 'admin' ? 'operador' : 'admin'}.`,
-                  )
-                }
+                aria-label={`Rol de ${u.email}`}
+                onChange={(e) => patch(u.id, { role: e.target.value }, `${u.email} ahora es ${roleName(e.target.value)}.`)}
               >
-                {u.role === 'admin' ? 'hacer operador' : 'hacer admin'}
-              </Button>
+                {activos.map((r) => (
+                  <option key={r.key} value={r.key}>{r.name}</option>
+                ))}
+                {/* Si el rol actual del usuario no está entre los activos, se muestra igual para no perderlo. */}
+                {!activos.some((r) => r.key === u.role) && <option value={u.role}>{roleName(u.role)}</option>}
+              </Form.Select>
               <Button size="sm" variant="outline-secondary" disabled={busy} title="Resetear contraseña" onClick={() => resetPassword(u)}>
                 <KeyFill />
               </Button>
@@ -153,7 +161,7 @@ export function UsuariosPage() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [me?.id, busyId],
+    [me?.id, busyId, roles],
   );
 
   const tabla = useMemoryTable(users, columns);
@@ -193,9 +201,10 @@ export function UsuariosPage() {
               </div>
               <div className="col-md-2">
                 <Form.Label className="small">Rol</Form.Label>
-                <Form.Select value={role} onChange={(e) => setRole(e.target.value as Role)}>
-                  <option value="operador">operador</option>
-                  <option value="admin">admin</option>
+                <Form.Select value={role} onChange={(e) => setRole(e.target.value)} required>
+                  {activos.map((r) => (
+                    <option key={r.key} value={r.key}>{r.name}</option>
+                  ))}
                 </Form.Select>
               </div>
               <div className="col-md-1">

@@ -1,5 +1,6 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { Spinner } from 'react-bootstrap';
+import type { Feature } from '@yorga/contracts';
 import { useAuth } from './AuthContext';
 
 /** Protege las rutas hijas: exige sesión; si no hay, redirige a /login. */
@@ -18,9 +19,12 @@ export function RequireAuth() {
   return <Outlet />;
 }
 
-/** Protege rutas sólo para administradores. */
-export function RequireAdmin() {
-  const { isAdmin } = useAuth();
-  if (!isAdmin) return <Navigate to="/etiquetas" replace />;
+/**
+ * REQ-006 · Protege rutas que exigen una FEATURE. Es sólo UX (la puerta real es el guard de la API): si el
+ * rol no tiene la feature, se redirige a Etiquetas en vez de enseñar una pantalla que la API va a rechazar.
+ */
+export function RequireFeature({ feature }: { feature: Feature }) {
+  const { hasFeature } = useAuth();
+  if (!hasFeature(feature)) return <Navigate to="/etiquetas" replace />;
   return <Outlet />;
 }
