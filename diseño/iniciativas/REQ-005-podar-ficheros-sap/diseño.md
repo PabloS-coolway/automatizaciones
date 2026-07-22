@@ -1,6 +1,6 @@
 # REQ-005 · Podar los ficheros de SAP a lo realmente comprado
 
-- Estado: 🔍 En análisis · Fecha: 2026-07-21
+- Estado: ✅ Hecho (motor + panel web) · Fecha: 2026-07-21 · Cerrado: 2026-07-22
 - Área: Catálogo / alta de producto en SAP
 - Origen: correo **«FUNCIONES»** de Silvia Mayordomo (`silviam@grupoyorga.com`), 17/07/2026.
   Adjuntos: `prepedidos 2003.xlsx` (borrador de compra) + 4 `.txt` de SAP (materiales, tarifas 906/073, surtidos).
@@ -106,16 +106,17 @@ cuadra con el fichero crudo, se **reporta** — no se fabrica.
      766·WGR, 201·DBR, 801·DGY, 860·GHY, 710·WPK, 001·NBK) y casan con la col `COLOR` de materiales/surtidos.
    - **Señal de "comprado" reforzada:** además de `Suma`>0, el borrador marca los no comprados con
      `CONTINUATIVOS` en la descripción.
-4. **⚠ LA INCÓGNITA REAL (bloquea materiales y tarifas): ¿cómo se identifica la FAMILIA comprada?** De las 6
-   familias, hay que quedarse con `76034250` (chica) y `86038320` (chico) — Silvia las nombró en el correo,
-   **pero ese número de 8 dígitos NO está en el borrador** (que sólo trae la ref color a color, `7613425`). Se
-   *podría* derivar con una transformación posicional de la ref (`7613425`→`76034250`), pero es un atajo
-   frágil que se rompería callado con otro modelo — **no se hace sin confirmar**. Opciones:
-   - (a) Preguntar a **Silvia** cómo sabe ella cuál es la familia de la temporada (¿la lee del prepedido, de
-     SAP, del código de la ref?).
-   - (b) Buscar si otro export de prepedidos trae la familia de 8 dígitos directamente.
-   - **Surtidos NO tiene este problema:** su `MATNR` ya es la familia, y se cruza por (familia + color) contra
-     lo comprado. Se puede empezar por surtidos mientras se resuelve lo de la familia.
+4. **✅ RESUELTO (22/07, confirmado por Silvia) — cómo se identifica la FAMILIA.** La ref de familia que va a
+   SAP se obtiene de la ref color-a-color del borrador **poniendo el 3º dígito a 0 y añadiendo un 0 al final**
+   (el 3º dígito es el que codifica el color). Verificado con su tabla:
+   - `7613425` (BGE) → `7603425` → `76034250`; `8613832` → `86038320`.
+   - Como el 3º dígito es el color, los 7 colores comprados de la chica caen en `76034250` y los del chico en
+     `86038320` — exactamente lo que Silvia pide subir ("resto, anular").
+   - **La poda:** del borrador se toman las líneas con `Suma > 0`; para cada una se calcula la **familia** con
+     esa regla y su **color** (`Horma`). En materiales/surtidos se dejan las filas cuya `(familia, color)` esté
+     comprada; en tarifas (sin color), sólo las familias compradas. El resto, fuera.
+   - **Defensivo (regla del proyecto):** la transformación valida el formato de la ref; si una línea no cuadra
+     con la regla, se **reporta** en vez de producir una salida mal en silencio.
 2. **Formato exacto de cada `.txt` de SAP** (columnas, delimitador, posiciones): materiales, `906`, `073`,
    surtidos. Hay ya un fichero de surtidos de ejemplo en `docs/requerimientos/` de otro modelo.
 3. **Red de seguridad:** necesitamos, de cada tipo de fichero, un ejemplo **cerrado** — el crudo de entrada y
@@ -134,6 +135,14 @@ cuadra con el fichero crudo, se **reporta** — no se fabrica.
 4. **Diseñar el motor de poda** (dominio de filtrado + lectura del borrador) — una vez resueltos 1-3.
 5. Guardar los adjuntos del correo «FUNCIONES» en `docs/requerimientos/` como material del REQ.
 
-> **Nota:** este documento es el análisis de negocio+arquitectura. NO se implementa nada hasta que Pablo
-> valide, y hasta resolver el punto 1 (el mapeo de color), que es el que dice si el REQ es viable tal cual o
-> necesita antes una fuente de datos que hoy no tenemos.
+## Implementado (✅ 22/07)
+
+- **Motor** (`src/poda/`): `familiaDeRef` (la regla de Silvia, defensiva), `comprasDelBorrador` (`Suma>0`) y
+  `podar` (deja `(familia,color)` comprados; en tarifas sólo la familia) con **aviso de lo comprado que falta**.
+  Lectores del borrador (Excel) y de los 4 ficheros de SAP (TSV); serializador que **conserva el formato**.
+- **Panel web** «Podar SAP» (feature `maestro.cargar`): subir borrador + ficheros, descargar podados + informe.
+  `POST /api/poda`.
+- **Verificado contra los ficheros reales del 2003** (por dominio y por HTTP): materiales `138 → 14`, tarifas y
+  surtidos sólo lo comprado, **0 comprado que falta**. Tests: `poda.spec.ts` (tabla de Silvia) + `sap-file-reader.spec.ts`.
+
+> El único punto que quedaba (cómo se identifica la familia) lo resolvió Silvia el 21/07 — ver riesgo 4.

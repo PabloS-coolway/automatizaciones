@@ -20,6 +20,34 @@ código todavía**.
   User **nunca** guarda el hash de contraseña.
 - **Backlog:** alta de **REQ-007** (📐 Diseñado), **REQ-008** (RRHH, 🆕 aparcado) y **MEJ-003 / MEJ-004**
   (reorganizar navegación y refrescar la pantalla de inicio).
+## [2026-07-22] REQ-005 · Podar los ficheros de SAP a lo realmente comprado (completo)
+
+Silvia sacaba de Prepedidos los ficheros para SAP (materiales, tarifas 906/073, surtidos) con **todo el
+histórico** y los depuraba **a mano**, línea a línea, hasta dejar sólo lo comprado. Ahora sube el borrador +
+esos ficheros y **descarga los podados** — mismo formato, sólo con lo comprado.
+
+### Panel web
+- Nueva sección **«Podar SAP»** (sidebar, con `maestro.cargar`): subir el borrador de prepedidos (Excel) +
+  los ficheros de SAP (.txt), y descargar cada uno podado. El informe dice cuántas referencias quedan, cuántas
+  se anulan, y **avisa si algo comprado no aparecía** en un fichero (venía incompleto). `POST /api/poda`.
+
+### La regla de la familia (confirmada por Silvia, 21/07)
+La ref de familia que va a SAP se obtiene de la ref color-a-color del borrador **poniendo el 3º dígito a 0 y
+añadiendo un 0 al final** (`7613425` → `76034250`). El 3º dígito codifica el color, así que los colores de una
+ref caen en la misma familia. **Defensivo:** si una ref no tiene el formato esperado, se avisa — no se inventa.
+
+### Añadido (`src/poda/`)
+- **Dominio:** `familiaDeRef` (la regla), `comprasDelBorrador` (lo comprado = líneas con `Suma > 0`) y `podar`
+  (deja sólo las filas cuya `(familia, color)` esté comprada; en tarifas, sólo la familia). **Avisa de lo
+  comprado que no aparezca en el fichero** (fichero incompleto → nunca se da por bueno en silencio).
+- **Lectores:** del borrador (Excel) y de los 4 ficheros de SAP (TSV, cada uno con su columna de `MATNR`/color);
+  el serializador **conserva el formato** (mismo salto de línea) porque es un fichero que se sube a SAP.
+- **Caso de uso** `podarFicheros`: orquesta borrador + lote de ficheros → podados + informe.
+
+### Verificado (contra los ficheros reales del 2003)
+- **Materiales: 138 filas → 14** (los 7 colores × chica/chico que Silvia detalló), **0 comprado que falta**.
+- Tarifas y surtidos: podan sólo las familias/colores comprados; 0 faltantes en todos.
+- **183 tests** de API (incl. `poda.spec.ts` con la tabla de Silvia y `sap-file-reader.spec.ts`).
 
 ## [2026-07-22] REQ-006 · Fase 2: CRUD de roles, panel autoadministrable y front por features
 
