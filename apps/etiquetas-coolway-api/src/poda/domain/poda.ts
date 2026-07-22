@@ -29,8 +29,10 @@ export interface FilaSap {
 }
 
 export interface ResultadoPoda {
-  /** Las líneas crudas que se conservan, en el mismo orden que venían. */
+  /** Las líneas crudas que se conservan (incluye cabeceras), en el mismo orden que venían. */
   conservadas: string[];
+  /** Cuántas líneas de DATO se conservan (las referencias — sin contar cabeceras). */
+  conservadasDato: number;
   /** Cuántas líneas de dato se retiraron. */
   retiradas: number;
   /**
@@ -72,6 +74,7 @@ export function podar(filas: FilaSap[], compras: Compra[]): ResultadoPoda {
   const familiasEnFichero = new Set<string>();
   const paresEnFichero = new Set<string>();
   let retiradas = 0;
+  let conservadasDato = 0;
 
   for (const fila of filas) {
     if (fila.esDato && fila.familia !== undefined) {
@@ -82,6 +85,7 @@ export function podar(filas: FilaSap[], compras: Compra[]): ResultadoPoda {
       conservadas.push(fila.cruda);
     } else if (estaComprada(fila, compras)) {
       conservadas.push(fila.cruda);
+      conservadasDato++;
     } else {
       retiradas++;
     }
@@ -93,5 +97,5 @@ export function podar(filas: FilaSap[], compras: Compra[]): ResultadoPoda {
     traeColor ? !paresEnFichero.has(`${c.familia}|${c.colorSap}`) : !familiasEnFichero.has(c.familia),
   );
 
-  return { conservadas, retiradas, compradoQueFalta };
+  return { conservadas, conservadasDato, retiradas, compradoQueFalta };
 }
