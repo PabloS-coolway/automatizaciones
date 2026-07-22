@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { LabelVariant } from '@yorga/contracts';
 import { PrismaService } from '../../infrastructure/db/prisma.service';
 import { Destination } from '../domain/destination';
@@ -34,11 +35,11 @@ export class PrismaDestinationRepository implements DestinationRepository {
     return f ? aDominio(f) : null;
   }
 
-  async create(d: Omit<Destination, 'active'>): Promise<Destination & { id: number }> {
-    return aDominio(await this.prisma.destination.create({ data: { ...d, active: true } }));
+  async create(d: Omit<Destination, 'active'>, tx?: Prisma.TransactionClient): Promise<Destination & { id: number }> {
+    return aDominio(await (tx ?? this.prisma).destination.create({ data: { ...d, active: true } }));
   }
 
-  async update(id: number, data: Partial<Omit<Destination, 'code'>>): Promise<Destination & { id: number }> {
-    return aDominio(await this.prisma.destination.update({ where: { id }, data }));
+  async update(id: number, data: Partial<Omit<Destination, 'code'>>, tx?: Prisma.TransactionClient): Promise<Destination & { id: number }> {
+    return aDominio(await (tx ?? this.prisma).destination.update({ where: { id }, data }));
   }
 }

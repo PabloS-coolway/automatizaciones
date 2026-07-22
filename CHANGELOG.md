@@ -3,6 +3,45 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-22] REQ-007 · Fase 1: log de actividad (auditoría) — recorder + Roles/Destinos + consulta
+
+"Quién hizo qué" deja de perderse. Complemento de REQ-006: ahora que los permisos son dato, la actividad
+también. Esta fase deja la fundación y engancha las dos primeras entidades; Usuarios, el resumen del import
+de maestro y la vista web van en la Fase 2.
+
+### Añadido
+- **Tabla `activity_entry`** (append-only: sólo la API escribe, nadie edita/borra) + migración. Feature nueva
+  **`actividad.ver`** en el catálogo de REQ-006, **concedida por migración a los roles que ya gestionan roles**
+  (para que exista quien vea el log desde el primer momento).
+- **`ActivityRecorder`** (puerto + impl Prisma): registra `actor · acción · entidad · antes→después`. Se llama
+  desde los casos de uso de escritura y escribe el log **dentro de la misma transacción** que el cambio —
+  mejor no hacer el cambio que auditarlo mal.
+- **Enganchado en Roles y Destinos** (crear/editar), con el actor del JWT.
+- **`GET /api/actividad`** (feature `actividad.ver`): lista paginada, más reciente primero.
+
+### Verificado
+- E2E con la API: crear/editar un destino y crear un rol dejan su entrada, con el **actor correcto** y el
+  **diff antes→después** (`Log Test` → `Log Test EDITADO`).
+- **Test "romper a propósito"** (`activity.spec.ts`): si un usecase deja de registrar, un test cae — garantía
+  de que ninguna mutación se escapa sin auditar. 187 tests API, web 68, typecheck + build en verde.
+
+## [2026-07-22] REQ-007 · Log de actividad — diseño (negocio + arquitectura)
+
+Con varios usuarios operando, hoy **no queda rastro de quién tocó qué**. Se diseña un **log de
+auditoría append-only** de cada `create`/`update`/`delete` (usuario, entidad, acción y valor
+**antes→después**), visible en una vista "Actividad" sólo para admin. Es sólo diseño: **no toca
+código todavía**.
+
+### Documentación
+- **Diseño de REQ-007** (`diseño/iniciativas/REQ-007-log-actividad/diseño.md`, estado 📐 Diseñado):
+  problema, superficie a cubrir (User, Role, Destination y cargas del maestro), y la decisión clave —
+  capturar en los **casos de uso** (puerto `ActivityRecorder`), no en un interceptor HTTP, porque es
+  el único punto que da el **diff fiable**.
+- **Decisiones cerradas:** vista sólo admin · sólo mutaciones de dato (login/logout y generación de
+  etiquetas **fuera**) · retención indefinida por ahora · log **transaccional** · el before/after de
+  User **nunca** guarda el hash de contraseña.
+- **Backlog:** alta de **REQ-007** (📐 Diseñado), **REQ-008** (RRHH, 🆕 aparcado) y **MEJ-003 / MEJ-004**
+  (reorganizar navegación y refrescar la pantalla de inicio).
 ## [2026-07-22] REQ-009 · Editar "color web" del maestro inline — diseño (negocio + arquitectura)
 
 El "color web" del maestro sólo se corrige hoy en el Excel origen y reimportando. Se diseña editarlo

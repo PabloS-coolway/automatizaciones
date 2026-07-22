@@ -98,3 +98,24 @@ model User {
 
   @@map("app_user")
 }
+
+/// REQ-007 · Log de actividad (auditoría de create/update/delete). **Append-only**: sólo la API escribe,
+/// nadie edita ni borra — un log modificable no vale como auditoría. `before`/`after` guardan el estado
+/// antes→después (nunca datos sensibles: el hash de contraseña se redacta).
+model ActivityEntry {
+  id          Int      @id @default(autoincrement())
+  createdAt   DateTime @default(now()) @map("created_at")
+  /// Quién lo hizo. `actorUserId` puede quedar null si el usuario se borró; el email es un snapshot.
+  actorUserId Int?     @map("actor_user_id")
+  actorEmail  String   @map("actor_email")
+  action      String   // CREATE | UPDATE | DELETE
+  entity      String   // USER | ROLE | DESTINATION | MASTER_IMPORT
+  entityId    String   @map("entity_id")
+  before      Json?    // null en CREATE
+  after       Json?    // null en DELETE
+  summary     String
+
+  @@index([createdAt])
+  @@index([entity, entityId])
+  @@map("activity_entry")
+}
