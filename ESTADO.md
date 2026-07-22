@@ -68,7 +68,10 @@ Login con JWT, usuarios en la misma Postgres (bcrypt). Roles **operador** / **ad
 carga del maestro y la gestión de usuarios son sólo de admin. Pantalla de **Usuarios** para altas/bajas
 sin CLI. El primer admin se crea con `npm run auth:create-user`.
 
-## ⚠ Hallazgo pendiente de resolver con Silvia
+## Hallazgo comunicado a Silvia (✅ cerrado por nuestra parte, 22/07)
+
+> Ya se le comentó a Silvia; corregir el maestro en origen queda de su lado. La web sigue listándolos en
+> cada carga por si hace falta revisarlos.
 
 **33 códigos EAN13 están asignados a DOS PRODUCTOS DISTINTOS** (modelo o color diferente). Ya no
 bloquean la carga —las filas entran—, pero el mismo código de barras identificaría a dos productos que se
@@ -95,7 +98,7 @@ venden por separado: **en caja sería ambiguo**. La web los lista en cada carga 
 - **33 filas con (ref, talla) repetida** dentro del Excel (todas en `BECKS-BECKS X`) → duplicidad
   deprecada; la segunda fila pisa a la primera.
 
-**Acción pendiente**: pasarle a Silvia los 33 EAN compartidos entre productos distintos.
+**Acción**: ✅ comunicado a Silvia (22/07). La corrección en origen queda de su lado.
 
 ### ✅ BACKPACK · resuelto (16/07)
 Silvia corrigió el `SIZE` a `U` (maestro `validaciones/16-07-2026/REFERENCIAS COOLWAY_16_07_3.xlsx`) y
