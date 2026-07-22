@@ -3,10 +3,16 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
-## [2026-07-22] REQ-005 · Motor de poda de ficheros de SAP (dominio + lectores), verificado
+## [2026-07-22] REQ-005 · Podar los ficheros de SAP a lo realmente comprado (completo)
 
-Primer tramo de REQ-005: el **corazón** que deja los ficheros de SAP (materiales, tarifas 906/073, surtidos)
-con **sólo lo realmente comprado**. Falta la interfaz (panel web) — Fase siguiente.
+Silvia sacaba de Prepedidos los ficheros para SAP (materiales, tarifas 906/073, surtidos) con **todo el
+histórico** y los depuraba **a mano**, línea a línea, hasta dejar sólo lo comprado. Ahora sube el borrador +
+esos ficheros y **descarga los podados** — mismo formato, sólo con lo comprado.
+
+### Panel web
+- Nueva sección **«Podar SAP»** (sidebar, con `maestro.cargar`): subir el borrador de prepedidos (Excel) +
+  los ficheros de SAP (.txt), y descargar cada uno podado. El informe dice cuántas referencias quedan, cuántas
+  se anulan, y **avisa si algo comprado no aparecía** en un fichero (venía incompleto). `POST /api/poda`.
 
 ### La regla de la familia (confirmada por Silvia, 21/07)
 La ref de familia que va a SAP se obtiene de la ref color-a-color del borrador **poniendo el 3º dígito a 0 y

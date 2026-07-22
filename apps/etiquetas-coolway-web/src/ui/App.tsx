@@ -6,6 +6,7 @@ import { ComingSoonPage } from './pages/ComingSoonPage';
 import { LoginPage } from './pages/LoginPage';
 import { UsuariosPage } from './pages/UsuariosPage';
 import { RolesPage } from './pages/RolesPage';
+import { PodaPage } from './pages/PodaPage';
 import { DestinosPage } from './pages/DestinosPage';
 import { AuthProvider } from './auth/AuthContext';
 import { RequireAuth, RequireFeature } from './auth/RequireAuth';
@@ -31,6 +32,9 @@ export function App() {
               </Route>
               <Route element={<RequireFeature feature="roles.gestionar" />}>
                 <Route path="/roles" element={<RolesPage />} />
+              </Route>
+              <Route element={<RequireFeature feature="maestro.cargar" />}>
+                <Route path="/poda" element={<PodaPage />} />
               </Route>
               <Route path="*" element={<Navigate to="/etiquetas" replace />} />
             </Route>

@@ -49,7 +49,7 @@ export function podarFicheros(borrador: LineaBorrador[], entradas: FicheroEntrad
       nombre: e.nombre,
       tipo,
       podado: serializarFicheroSap(r.conservadas, eol, finalConSalto),
-      conservadas: r.conservadas.length,
+      conservadas: r.conservadasDato, // las referencias que quedan (sin contar cabeceras)
       retiradas: r.retiradas,
       compradoQueFalta: r.compradoQueFalta,
     });
