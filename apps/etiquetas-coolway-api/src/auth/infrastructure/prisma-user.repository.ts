@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../infrastructure/db/prisma.service';
 import { Role, User } from '../domain/user';
 import { UserRepository } from '../application/ports';
@@ -16,12 +17,12 @@ export class PrismaUserRepository implements UserRepository {
     return this.prisma.user.findUnique({ where: { id } });
   }
 
-  create(input: { email: string; name: string; passwordHash: string; role: Role }): Promise<User> {
-    return this.prisma.user.create({ data: input });
+  create(input: { email: string; name: string; passwordHash: string; role: Role }, tx?: Prisma.TransactionClient): Promise<User> {
+    return (tx ?? this.prisma).user.create({ data: input });
   }
 
-  update(id: number, data: { role?: Role; active?: boolean; passwordHash?: string }): Promise<User> {
-    return this.prisma.user.update({ where: { id }, data });
+  update(id: number, data: { role?: Role; active?: boolean; passwordHash?: string }, tx?: Prisma.TransactionClient): Promise<User> {
+    return (tx ?? this.prisma).user.update({ where: { id }, data });
   }
 
   list(): Promise<User[]> {

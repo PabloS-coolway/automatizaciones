@@ -1,5 +1,5 @@
 # REQ-007 · Log de actividad (auditoría de create/update/delete)
-- Estado: 🛠 En implementación (Fase 1 · backend hecho) · Fecha: 2026-07-22
+- Estado: ✅ Hecho (Fases 1 y 2) · Fecha: 2026-07-22
 - Área: Acceso (gobernanza / trazabilidad)
 - Origen: petición directa de Pablo — 2026-07-22
 
@@ -94,8 +94,9 @@ before (jsonb, null en CREATE), after (jsonb, null en DELETE), summary
 3. ✅ Endpoint de consulta paginado `GET /api/actividad` (feature `actividad.ver`, más reciente primero).
    *Filtros server-side: Fase 2.*
 
-**Fase 2 · resto de entidades + vista (pendiente):**
-4. **Usuarios** (crear/editar/rol) con **redacción del hash de contraseña** en el diff, y el **import de
-   maestro** como **una** entrada con su resumen (N altas / N cambios), no 5.736 filas.
-5. **Filtros server-side** (usuario / entidad / acción / fecha), como el maestro.
-6. **Vista web "Actividad"** (sólo admin), reutilizando el filtro/orden de REQ-002; diff expandible.
+**Fase 2 · resto de entidades + vista (✅ hecho, 22/07):**
+4. ✅ **Usuarios** enganchados (alta/rol/activar/reset), en transacción, con **redacción del hash de
+   contraseña** (test `users-activity.spec.ts`). **Import de maestro** = **una** entrada con resumen.
+5. **Vista web «Actividad»** (feature `actividad.ver`): tabla filtrable/ordenable + diff en modal.
+   *Filtro: en cliente (`DataTable`), como el resto de tablas — dado el volumen bajo. Server-side queda como
+   refinamiento si algún día crece.*
