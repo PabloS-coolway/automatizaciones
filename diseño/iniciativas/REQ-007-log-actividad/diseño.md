@@ -1,5 +1,5 @@
 # REQ-007 · Log de actividad (auditoría de create/update/delete)
-- Estado: 📐 Diseñado (decisiones cerradas) · Fecha: 2026-07-22
+- Estado: 🛠 En implementación (Fase 1 · backend hecho) · Fecha: 2026-07-22
 - Área: Acceso (gobernanza / trazabilidad)
 - Origen: petición directa de Pablo — 2026-07-22
 
@@ -86,11 +86,16 @@ before (jsonb, null en CREATE), after (jsonb, null en DELETE), summary
 
 ## Próximos pasos
 
-1. Migración Prisma: modelo `ActivityEntry` (append-only, `before`/`after` en jsonb).
-2. Puerto `ActivityRecorder` + implementación Prisma; engancharlo en los usecases de escritura de
-   User, Role, Destination y maestro-import, dentro de la transacción. Redacción de campos sensibles.
-3. Endpoint de consulta paginado + filtros (server-side, como el maestro).
-4. Vista web "Actividad" (**sólo admin**), reutilizando el filtro/orden de REQ-002; diff expandible.
-5. Tests: cada usecase de escritura deja su entrada; el log es append-only; la contraseña **no**
-   aparece en el diff. Y el test "romper a propósito": desactivar el recorder en un usecase y
-   comprobar que un test se pone **rojo** — garantía de que ninguna acción se escapa sin registrar.
+**Fase 1 · backend (✅ hecho y verificado, 22/07):**
+1. ✅ Migración: tabla `activity_entry` (append-only, `before`/`after` en jsonb). Feature `actividad.ver`
+   añadida al catálogo y **concedida por migración** a los roles que ya gestionan roles.
+2. ✅ `ActivityRecorder` (puerto + impl Prisma), enganchado en **Roles y Destinos** (crear/editar) **dentro
+   de la transacción**, con el actor del JWT. Test "romper a propósito" (`activity.spec.ts`).
+3. ✅ Endpoint de consulta paginado `GET /api/actividad` (feature `actividad.ver`, más reciente primero).
+   *Filtros server-side: Fase 2.*
+
+**Fase 2 · resto de entidades + vista (pendiente):**
+4. **Usuarios** (crear/editar/rol) con **redacción del hash de contraseña** en el diff, y el **import de
+   maestro** como **una** entrada con su resumen (N altas / N cambios), no 5.736 filas.
+5. **Filtros server-side** (usuario / entidad / acción / fecha), como el maestro.
+6. **Vista web "Actividad"** (sólo admin), reutilizando el filtro/orden de REQ-002; diff expandible.

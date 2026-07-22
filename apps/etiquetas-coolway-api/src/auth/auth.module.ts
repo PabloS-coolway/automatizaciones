@@ -9,6 +9,8 @@ import { RolesService } from './application/roles.service';
 import { BcryptHasher } from './infrastructure/bcrypt-hasher';
 import { PrismaUserRepository } from './infrastructure/prisma-user.repository';
 import { PrismaRoleRepository } from './infrastructure/prisma-role.repository';
+import { ACTIVITY_RECORDER } from '../actividad/application/activity-recorder.port';
+import { PrismaActivityRecorder } from '../actividad/infrastructure/prisma-activity-recorder';
 import { AuthController } from './interface/http/auth.controller';
 import { UsersController } from './interface/http/users.controller';
 import { RolesController } from './interface/http/roles.controller';
@@ -24,6 +26,8 @@ export const authProviders: Provider[] = [
   { provide: USER_REPOSITORY, useClass: PrismaUserRepository },
   { provide: ROLE_REPOSITORY, useClass: PrismaRoleRepository },
   { provide: PASSWORD_HASHER, useClass: BcryptHasher },
+  PrismaActivityRecorder,
+  { provide: ACTIVITY_RECORDER, useExisting: PrismaActivityRecorder },
 ];
 
 /** Módulo de autenticación: login/me + guards globales (JWT + feature). */

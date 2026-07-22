@@ -3,6 +3,28 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-22] REQ-007 · Fase 1: log de actividad (auditoría) — recorder + Roles/Destinos + consulta
+
+"Quién hizo qué" deja de perderse. Complemento de REQ-006: ahora que los permisos son dato, la actividad
+también. Esta fase deja la fundación y engancha las dos primeras entidades; Usuarios, el resumen del import
+de maestro y la vista web van en la Fase 2.
+
+### Añadido
+- **Tabla `activity_entry`** (append-only: sólo la API escribe, nadie edita/borra) + migración. Feature nueva
+  **`actividad.ver`** en el catálogo de REQ-006, **concedida por migración a los roles que ya gestionan roles**
+  (para que exista quien vea el log desde el primer momento).
+- **`ActivityRecorder`** (puerto + impl Prisma): registra `actor · acción · entidad · antes→después`. Se llama
+  desde los casos de uso de escritura y escribe el log **dentro de la misma transacción** que el cambio —
+  mejor no hacer el cambio que auditarlo mal.
+- **Enganchado en Roles y Destinos** (crear/editar), con el actor del JWT.
+- **`GET /api/actividad`** (feature `actividad.ver`): lista paginada, más reciente primero.
+
+### Verificado
+- E2E con la API: crear/editar un destino y crear un rol dejan su entrada, con el **actor correcto** y el
+  **diff antes→después** (`Log Test` → `Log Test EDITADO`).
+- **Test "romper a propósito"** (`activity.spec.ts`): si un usecase deja de registrar, un test cae — garantía
+  de que ninguna mutación se escapa sin auditar. 187 tests API, web 68, typecheck + build en verde.
+
 ## [2026-07-22] REQ-007 · Log de actividad — diseño (negocio + arquitectura)
 
 Con varios usuarios operando, hoy **no queda rastro de quién tocó qué**. Se diseña un **log de
