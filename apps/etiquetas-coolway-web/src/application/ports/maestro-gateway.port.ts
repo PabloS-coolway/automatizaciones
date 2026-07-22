@@ -6,6 +6,8 @@ import type {
   ReferenceFiltersDto,
   ReferencesPageDto,
   SeedReportDto,
+  UpdateColorWebDto,
+  UpdateColorWebResultDto,
 } from '@yorga/contracts';
 
 /** Puerto de salida: lectura y actualización del maestro (BD) para la sección "Base de datos". */
@@ -21,4 +23,6 @@ export interface MaestroGateway {
   importCodes(ean: File, upc: File): Promise<ImportReportDto>;
   /** Carga el maestro completo (REFERENCIAS COOLWAY.xlsx). */
   seedMaster(master: File): Promise<SeedReportDto>;
+  /** REQ-009 · Edita el "color web" de una referencia+color (propaga a todas sus tallas). */
+  updateColorWeb(input: UpdateColorWebDto): Promise<UpdateColorWebResultDto>;
 }
