@@ -6,6 +6,7 @@ import { HttpUsersGateway } from '../infrastructure/http-users-gateway';
 import { HttpDestinosGateway } from '../infrastructure/http-destinos-gateway';
 import { HttpRolesGateway } from '../infrastructure/http-roles-gateway';
 import { HttpPodaGateway } from '../infrastructure/http-poda-gateway';
+import { HttpActividadGateway } from '../infrastructure/http-actividad-gateway';
 
 /** Raíz de composición: instancia los adapters concretos para los puertos. */
 export const gateway = new HttpLabelsGateway();
@@ -16,3 +17,4 @@ export const usersGateway = new HttpUsersGateway();
 export const destinosGateway = new HttpDestinosGateway();
 export const rolesGateway = new HttpRolesGateway();
 export const podaGateway = new HttpPodaGateway();
+export const actividadGateway = new HttpActividadGateway();
