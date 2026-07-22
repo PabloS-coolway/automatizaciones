@@ -3,7 +3,7 @@ import { Prisma } from '@prisma/client';
 export const ACTIVITY_RECORDER = Symbol('ACTIVITY_RECORDER');
 
 export type ActivityAction = 'CREATE' | 'UPDATE' | 'DELETE';
-export type ActivityEntity = 'USER' | 'ROLE' | 'DESTINATION' | 'MASTER_IMPORT';
+export type ActivityEntity = 'USER' | 'ROLE' | 'DESTINATION' | 'MASTER_IMPORT' | 'REFERENCE';
 
 /** Quién hace el cambio (del JWT). El email es un snapshot; el id puede quedar null si el usuario se borra. */
 export interface Actor {

@@ -3,6 +3,36 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-22] REQ-009 · Editar el «color web» del maestro inline, con permiso por rol
+
+El «color web» sólo se corregía en el Excel origen y reimportando. Ahora se edita **inline** en la tabla
+del maestro, si el rol tiene el permiso, y la edición **manda sobre la reimportación**.
+
+### Añadido
+- **Feature `maestro.color-web.editar`** en el catálogo cerrado de REQ-006 (permiso por rol). El endpoint
+  `PATCH /api/maestro/references/color-web` la exige en el **servidor** (no basta ocultar el input).
+- **Editar «color web» inline** en la tabla del maestro (`ColorWebCell`): desplegable con los valores
+  existentes (no se crea uno nuevo por un typo; «valor nuevo» es explícito). La edición **propaga a todas
+  las tallas del `(ref, color)`** (el color web es del color, no de la talla).
+- **La edición gana ante la reimportación**: la fila se marca (`color_name_web_manual`, con quién/cuándo)
+  y el `SeedMaster` **ya no la pisa** (regla pura `colorWebParaSeed`, probada aparte). La carga **reporta**
+  cuántas filas conservaron su color web editado pese a que el Excel traía otro valor (no miente).
+- **Auditado (REQ-007, ya en `main`)**: editar el color web deja su entrada en el **log de actividad**
+  (actor · entidad `REFERENCE` · antes→después), escrita en la **misma transacción** que el cambio —
+  si falla el registro, no hay cambio.
+
+### Migración
+- `reference` + `color_name_web_manual` (bool, default false), `color_name_web_edited_by`,
+  `color_name_web_edited_at`. **Aditiva y nullable**: no rompe lecturas ni escrituras existentes.
+
+### Verificado
+- **Puerta de calidad en verde**: typecheck + build + **72 tests web (cobertura 98%)** y la suite de API.
+- **Romper a propósito**: invertida la regla `colorWebParaSeed`, sus tests se ponen en **rojo** (vigilan
+  que la reimportación no pise una edición en silencio). Restaurada, en verde.
+- **Pendiente de verificación end-to-end** contra una API/BD levantada: la migración **no** se aplicó al
+  Postgres compartido para no molestar al agente que está con REQ-007. Queda como paso al desplegar/probar.
+
+## [2026-07-22] REQ-007 · Fase 1: log de actividad (auditoría) — recorder + Roles/Destinos + consulta
 ## [2026-07-22] REQ-007 · Fase 2: Usuarios + import de maestro + vista web «Actividad» (completo)
 
 Cierra REQ-007. El log ya cubre todas las mutaciones y tiene su pantalla.

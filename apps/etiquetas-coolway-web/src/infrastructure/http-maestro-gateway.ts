@@ -6,6 +6,8 @@ import type {
   ReferenceFiltersDto,
   ReferencesPageDto,
   SeedReportDto,
+  UpdateColorWebDto,
+  UpdateColorWebResultDto,
 } from '@yorga/contracts';
 import type { MaestroGateway } from '../application/ports/maestro-gateway.port';
 import { apiFetch, errorMessage } from './api-client';
@@ -84,6 +86,16 @@ export class HttpMaestroGateway implements MaestroGateway {
     fd.append('master', master);
     const res = await apiFetch('/maestro/seed', { method: 'POST', body: fd });
     if (!res.ok) throw new Error(await errorMessage(res, 'Error al cargar el maestro.'));
+    return res.json();
+  }
+
+  async updateColorWeb(input: UpdateColorWebDto): Promise<UpdateColorWebResultDto> {
+    const res = await apiFetch('/maestro/references/color-web', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo actualizar el «color web».'));
     return res.json();
   }
 }

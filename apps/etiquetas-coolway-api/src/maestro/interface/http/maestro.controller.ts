@@ -1,9 +1,11 @@
 import { unlink } from 'node:fs/promises';
 import {
   BadRequestException,
+  Body,
   Controller,
   Get,
   Inject,
+  Patch,
   Post,
   Query,
   Res,
@@ -24,11 +26,14 @@ import {
   ReferencesPageDto,
   SeedReportDto,
   SortDir,
+  UpdateColorWebDto,
+  UpdateColorWebResultDto,
 } from '@yorga/contracts';
 import { MAX_EXPORT, MaestroQuery, esColumnaDeFacetas } from '../../application/maestro-query.service';
 import { MaestroExcelSerializer } from '../../infrastructure/maestro-excel-serializer';
 import { ImportMasterUseCase } from '../../application/import-master.use-case';
 import { SeedMasterUseCase } from '../../application/seed-master.use-case';
+import { ColorWebInvalidoError, EditarColorWebUseCase } from '../../application/editar-color-web.use-case';
 import { ExcelCodesReader } from '../../infrastructure/excel-codes-reader';
 import { PrismaReferenceRepository } from '../../infrastructure/prisma-reference.repository';
 import { PrismaService } from '../../../infrastructure/db/prisma.service';
@@ -148,6 +153,29 @@ export class MaestroController {
       return report;
     } finally {
       await Promise.all([ean, upc].map((f) => unlink(f.path).catch(() => undefined)));
+    }
+  }
+
+  /**
+   * REQ-009 · Edita el "color web" de una referencia+color (propaga a todas sus tallas) y lo marca como
+   * editado a mano para que la reimportación lo respete. Es un privilegio de rol: `maestro.color-web.editar`.
+   */
+  @RequireFeature('maestro.color-web.editar')
+  @Patch('references/color-web')
+  async editarColorWeb(@Body() body: UpdateColorWebDto, @CurrentUser() user: JwtPayload): Promise<UpdateColorWebResultDto> {
+    try {
+      // El recorder (REQ-007) y la transacción los aporta el controller; el use-case orquesta ambos.
+      const useCase = new EditarColorWebUseCase(new PrismaReferenceRepository(this.prisma), this.actividad, this.prisma);
+      return await useCase.execute({
+        ref: body?.ref,
+        color: body?.color,
+        colorNameWeb: body?.colorNameWeb,
+        nuevo: body?.nuevo,
+        actor: { userId: user.sub, email: user.email },
+      });
+    } catch (e) {
+      if (e instanceof ColorWebInvalidoError) throw new BadRequestException(e.message);
+      throw e;
     }
   }
 }

@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { CodeRow, MasterReference } from '../domain/codes';
 
 /** Puerto: leer un export de códigos (EAN.xlsm / UPC.xlsm). */
@@ -61,10 +62,27 @@ export interface RemovedRow {
 export interface ReferenceRepository {
   count(): Promise<number>;
   upsertMany(refs: MasterReference[]): Promise<number>; // nº de filas procesadas
-  /** Upsert tolerante: una fila que falle (p.ej. EAN13 duplicado) no aborta el resto, pero se reporta. */
-  upsertManySeed(rows: SeedRow[]): Promise<{ ok: number; failures: SeedFailure[] }>;
+  /**
+   * Upsert tolerante: una fila que falle (p.ej. EAN13 duplicado) no aborta el resto, pero se reporta.
+   * REQ-009 · `colorWebProtegidas`: filas cuyo color web NO se pisó por estar editado a mano (el Excel
+   * traía otro valor). Se reporta para que la carga no mienta.
+   */
+  upsertManySeed(rows: SeedRow[]): Promise<{ ok: number; failures: SeedFailure[]; colorWebProtegidas: number }>;
   /** Todas las filas del maestro (identidad + producto), para detectar huérfanas. */
   allKeys(): Promise<(RefSize & { style: string; color: string })[]>;
   /** Borra las filas indicadas por (ref, talla). Devuelve cuántas se borraron. */
   deleteMany(keys: RefSize[]): Promise<number>;
+  /** REQ-009 · Valores de "color web" que ya existen (para no crear uno nuevo por un typo). */
+  existingColorWebValues(): Promise<string[]>;
+  /**
+   * REQ-009 · Fija el "color web" de una referencia+color en TODAS sus tallas y lo marca como editado a
+   * mano (para que la reimportación lo respete). Devuelve cuántas filas cambió y el valor previo.
+   */
+  updateColorWebByRefColor(
+    ref: string,
+    color: string,
+    value: string,
+    editedBy: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<{ updated: number; before: string | null }>;
 }
