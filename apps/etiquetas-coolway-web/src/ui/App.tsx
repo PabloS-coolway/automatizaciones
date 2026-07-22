@@ -7,6 +7,7 @@ import { LoginPage } from './pages/LoginPage';
 import { UsuariosPage } from './pages/UsuariosPage';
 import { RolesPage } from './pages/RolesPage';
 import { PodaPage } from './pages/PodaPage';
+import { ActividadPage } from './pages/ActividadPage';
 import { DestinosPage } from './pages/DestinosPage';
 import { AuthProvider } from './auth/AuthContext';
 import { RequireAuth, RequireFeature } from './auth/RequireAuth';
@@ -35,6 +36,9 @@ export function App() {
               </Route>
               <Route element={<RequireFeature feature="maestro.cargar" />}>
                 <Route path="/poda" element={<PodaPage />} />
+              </Route>
+              <Route element={<RequireFeature feature="actividad.ver" />}>
+                <Route path="/actividad" element={<ActividadPage />} />
               </Route>
               <Route path="*" element={<Navigate to="/etiquetas" replace />} />
             </Route>
