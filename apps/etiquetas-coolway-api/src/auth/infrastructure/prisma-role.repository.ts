@@ -17,6 +17,11 @@ export class PrismaRoleRepository implements RoleRepository {
     return r ? this.toRecord(r) : null;
   }
 
+  async findById(id: number): Promise<RoleRecord | null> {
+    const r = await this.prisma.role.findUnique({ where: { id } });
+    return r ? this.toRecord(r) : null;
+  }
+
   async findAll(): Promise<RoleRecord[]> {
     const rs = await this.prisma.role.findMany({ orderBy: [{ active: 'desc' }, { key: 'asc' }] });
     return rs.map((r) => this.toRecord(r));
@@ -25,5 +30,13 @@ export class PrismaRoleRepository implements RoleRepository {
   async featuresOf(key: string): Promise<Feature[]> {
     const r = await this.prisma.role.findUnique({ where: { key } });
     return r && r.active ? (r.features as Feature[]) : [];
+  }
+
+  async create(input: { key: string; name: string; features: Feature[] }): Promise<RoleRecord> {
+    return this.toRecord(await this.prisma.role.create({ data: { ...input, active: true, system: false } }));
+  }
+
+  async update(id: number, data: Partial<{ name: string; features: Feature[]; active: boolean }>): Promise<RoleRecord> {
+    return this.toRecord(await this.prisma.role.update({ where: { id }, data }));
   }
 }

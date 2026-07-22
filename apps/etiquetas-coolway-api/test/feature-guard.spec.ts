@@ -17,8 +17,11 @@ function guardWith(required: Feature[] | undefined, featuresByRole: Record<strin
   const reflector = { getAllAndOverride: () => required } as unknown as Reflector;
   const roles: RoleRepository = {
     findByKey: async () => null,
+    findById: async () => null,
     findAll: async () => [],
     featuresOf: async (key: string) => featuresByRole[key] ?? [],
+    create: async (d) => ({ ...d, id: 1, active: true, system: false }),
+    update: async () => ({ id: 1, key: '', name: '', features: [], active: true, system: false }),
   };
   return new FeatureGuard(reflector, roles);
 }

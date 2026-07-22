@@ -5,9 +5,10 @@ import { BaseDatosPage } from './pages/BaseDatosPage';
 import { ComingSoonPage } from './pages/ComingSoonPage';
 import { LoginPage } from './pages/LoginPage';
 import { UsuariosPage } from './pages/UsuariosPage';
+import { RolesPage } from './pages/RolesPage';
 import { DestinosPage } from './pages/DestinosPage';
 import { AuthProvider } from './auth/AuthContext';
-import { RequireAdmin, RequireAuth } from './auth/RequireAuth';
+import { RequireAuth, RequireFeature } from './auth/RequireAuth';
 
 export function App() {
   return (
@@ -22,9 +23,14 @@ export function App() {
               <Route path="/maestro" element={<BaseDatosPage />} />
               <Route path="/tarifas" element={<ComingSoonPage title="Tarifas y surtidos" />} />
               <Route path="/plantillas" element={<ComingSoonPage title="Plantillas de ventas" />} />
-              <Route element={<RequireAdmin />}>
+              <Route element={<RequireFeature feature="usuarios.gestionar" />}>
                 <Route path="/usuarios" element={<UsuariosPage />} />
+              </Route>
+              <Route element={<RequireFeature feature="destinos.gestionar" />}>
                 <Route path="/destinos" element={<DestinosPage />} />
+              </Route>
+              <Route element={<RequireFeature feature="roles.gestionar" />}>
+                <Route path="/roles" element={<RolesPage />} />
               </Route>
               <Route path="*" element={<Navigate to="/etiquetas" replace />} />
             </Route>
