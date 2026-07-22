@@ -1,17 +1,19 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Button, Card, Form, InputGroup, Spinner, Tab, Tabs } from 'react-bootstrap';
 import { Database, Download, FileEarmarkExcel, Search, Upload } from 'react-bootstrap-icons';
-import type {
-  ImportReportDto,
-  MaestroStatsDto,
-  ReferenceDto,
-  RemovedRowDto,
-  SeedIssueDto,
-  SeedReportDto,
-  SharedEan13Dto,
+import {
+  VALOR_VACIO,
+  type ImportReportDto,
+  type MaestroStatsDto,
+  type ReferenceDto,
+  type RemovedRowDto,
+  type SeedIssueDto,
+  type SeedReportDto,
+  type SharedEan13Dto,
 } from '@yorga/contracts';
 import { maestroGateway } from '../composition';
 import { FileDropzone } from '../components/FileDropzone';
+import { ColorWebCell } from '../components/ColorWebCell';
 import { useAuth } from '../auth/AuthContext';
 import { Column, DataTable, toApiFilters, useMemoryTable, useServerTable } from '../components/table';
 
@@ -84,7 +86,12 @@ function TablaEanCompartidos({ shared }: { shared: SharedEan13Dto[] }) {
 }
 
 export function BaseDatosPage() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, hasFeature } = useAuth();
+  const puedeEditarColorWeb = hasFeature('maestro.color-web.editar');
+  // Refs para que la definición de columnas no dependa de estado que cambia (y no rehaga la tabla):
+  // los valores para el desplegable, y la forma de recargar tras editar.
+  const colorWebOptionsRef = useRef<string[]>([]);
+  const reloadRef = useRef<() => void>(() => {});
   const [stats, setStats] = useState<MaestroStatsDto | null>(null);
   const [search, setSearch] = useState('');
   const [searchAplicada, setSearchAplicada] = useState('');
@@ -107,6 +114,17 @@ export function BaseDatosPage() {
 
   useEffect(() => loadStats(), [loadStats]);
 
+  // REQ-009 · valores existentes para el desplegable de "color web" (sólo si el rol puede editar).
+  useEffect(() => {
+    if (!puedeEditarColorWeb) return;
+    maestroGateway
+      .getFacets('colorNameWeb', {})
+      .then((f) => {
+        colorWebOptionsRef.current = f.values.map((v) => v.value).filter((v) => v !== VALOR_VACIO);
+      })
+      .catch(() => undefined);
+  }, [puedeEditarColorWeb]);
+
   // La búsqueda global se aplica con un respiro, para no llamar a la API en cada tecla.
   useEffect(() => {
     const t = setTimeout(() => setSearchAplicada(search), 250);
@@ -114,6 +132,16 @@ export function BaseDatosPage() {
   }, [search]);
 
   const vacio = <span className="text-secondary">—</span>;
+
+  /**
+   * REQ-009 · Editar el "color web" de una fila propaga a todas las tallas de su (ref, color) y lo marca
+   * como editado a mano. Tras guardar se recarga la tabla para reflejar el nuevo valor.
+   */
+  const editarColorWeb = useCallback(async (row: ReferenceDto, valor: string, nuevo: boolean) => {
+    setError('');
+    await maestroGateway.updateColorWeb({ ref: row.ref, color: row.color, colorNameWeb: valor, nuevo });
+    reloadRef.current();
+  }, []);
 
   /**
    * El TIPO de filtro se declara aquí a mano (no se deduce de las filas cargadas): la cardinalidad
@@ -134,14 +162,24 @@ export function BaseDatosPage() {
         label: 'color web',
         value: (r) => r.colorNameWeb,
         filter: 'values',
-        render: (r) => r.colorNameWeb ?? vacio,
+        // Sólo editable si el rol tiene la feature; si no, texto plano (mismo valor CRUDO para filtrar/ordenar).
+        render: puedeEditarColorWeb
+          ? (r) => (
+              <ColorWebCell
+                value={r.colorNameWeb}
+                options={colorWebOptionsRef.current}
+                onSave={(valor, nuevo) => editarColorWeb(r, valor, nuevo)}
+              />
+            )
+          : (r) => r.colorNameWeb ?? vacio,
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
+    [puedeEditarColorWeb, editarColorWeb],
   );
 
   const maestro = useServerTable(maestroGateway, columns, searchAplicada, setError);
+  reloadRef.current = maestro.reload ?? (() => {});
   const [exportando, setExportando] = useState(false);
 
   /**
@@ -338,6 +376,14 @@ export function BaseDatosPage() {
                       {seedReport.failed ? ` · ${seedReport.failed} rechazadas` : ''} ·{' '}
                       <strong>{seedReport.total.toLocaleString('es-ES')} SKU en el maestro</strong>
                     </div>
+
+                    {seedReport.colorWebProtegidas > 0 && (
+                      <div className="small text-secondary mt-2">
+                        <strong>{seedReport.colorWebProtegidas.toLocaleString('es-ES')}</strong> fila
+                        {seedReport.colorWebProtegidas > 1 ? 's' : ''} conservaron su <strong>«color web» editado a mano</strong>:
+                        el Excel traía otro valor, pero la edición manual manda (REQ-009).
+                      </div>
+                    )}
 
                     {seedReport.removed.length > 0 && (
                       <div className="conversion-box mt-2">

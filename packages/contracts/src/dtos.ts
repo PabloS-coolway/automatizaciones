@@ -124,6 +124,29 @@ export interface ReferenceDto {
   colorNameWeb?: string | null;
 }
 
+/* ─────────────────── Maestro · editar "color web" inline · REQ-009 (permiso por rol) ───────────────────
+ * El "color web" se importa del Excel, pero se puede corregir a mano. La edición se PROPAGA a todas las
+ * tallas de la referencia+color (el color web es del color, no de la talla) y, una vez editada, la
+ * reimportación la respeta (deja de ser dueño el Excel). Requiere la feature `maestro.color-web.editar`.
+ */
+
+/** PATCH /api/maestro/references/color-web. */
+export interface UpdateColorWebDto {
+  ref: string;
+  color: string;
+  colorNameWeb: string;
+  /** Fijar un valor que aún NO existe en el maestro. Por defecto sólo se aceptan valores existentes. */
+  nuevo?: boolean;
+}
+
+/** Resultado de editar el color web. */
+export interface UpdateColorWebResultDto {
+  ref: string;
+  color: string;
+  colorNameWeb: string;
+  updated: number; // nº de tallas (filas) afectadas
+}
+
 /** GET /api/maestro/stats */
 export interface MaestroStatsDto {
   total: number;
@@ -242,6 +265,11 @@ export interface SeedReportDto {
   sharedEan13: SharedEan13Dto[]; // avisos: mismo EAN13 en productos distintos (entran, pero hay que corregirlo)
   /** Filas borradas por quedar huérfanas (estaban en la BD, ya no en el Excel). Nunca en silencio. */
   removed: RemovedRowDto[];
+  /**
+   * REQ-009 · Filas cuyo "color web" NO se pisó porque estaba editado a mano y el Excel traía otro valor.
+   * Se reporta para que la carga no mienta: el Excel decía una cosa, pero mandó la edición manual.
+   */
+  colorWebProtegidas: number;
 }
 
 /** Resultado de POST /api/maestro/import (subir EAN.xlsm + UPC.xlsm). */

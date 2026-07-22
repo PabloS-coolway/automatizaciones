@@ -29,6 +29,11 @@ model Reference {
   ean13        String?
   upc          String?
   colorNameWeb String?  @map("color_name_web")
+  /// REQ-009 · Si el "color web" se editó a mano desde la web, deja de ser dueño el Excel: la
+  /// reimportación NO lo pisa. `manual=true` marca esa fila; editedBy/At dejan el rastro de quién y cuándo.
+  colorNameWebManual   Boolean   @default(false) @map("color_name_web_manual")
+  colorNameWebEditedBy String?   @map("color_name_web_edited_by")
+  colorNameWebEditedAt DateTime? @map("color_name_web_edited_at")
   season       String?
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
