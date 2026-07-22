@@ -2,7 +2,8 @@ import { BadRequestException, Body, Controller, Get, Param, ParseIntPipe, Patch,
 import { CreateRoleDto, RoleDto, UpdateRoleDto } from '@yorga/contracts';
 import { RolesService } from '../../application/roles.service';
 import { InvalidRoleError } from '../../domain/role';
-import { RequireFeature } from './decorators';
+import { CurrentUser, RequireFeature } from './decorators';
+import { JwtPayload } from '../../application/auth.service';
 
 /**
  * REQ-006 Fase 2 · Administración de roles. Requiere `roles.gestionar` — es la meta-feature: quien la tiene
@@ -23,13 +24,13 @@ export class RolesController {
   }
 
   @Post()
-  create(@Body() dto: CreateRoleDto): Promise<RoleDto> {
-    return this.service.create(dto).catch(traducir);
+  create(@Body() dto: CreateRoleDto, @CurrentUser() me: JwtPayload): Promise<RoleDto> {
+    return this.service.create(dto, { userId: me.sub, email: me.email }).catch(traducir);
   }
 
   @Patch(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateRoleDto): Promise<RoleDto> {
-    return this.service.update(id, dto).catch(traducir);
+  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateRoleDto, @CurrentUser() me: JwtPayload): Promise<RoleDto> {
+    return this.service.update(id, dto, { userId: me.sub, email: me.email }).catch(traducir);
   }
 }
 

@@ -14,6 +14,7 @@ export const FEATURES = [
   'destinos.gestionar',
   'usuarios.gestionar',
   'roles.gestionar',
+  'actividad.ver',
 ] as const;
 
 export type Feature = (typeof FEATURES)[number];
@@ -26,6 +27,7 @@ export const FEATURE_LABELS: Record<Feature, string> = {
   'destinos.gestionar': 'Gestionar destinos',
   'usuarios.gestionar': 'Gestionar usuarios',
   'roles.gestionar': 'Gestionar roles y permisos',
+  'actividad.ver': 'Ver el log de actividad',
 };
 
 /** La feature sin la que nadie podría volver a administrar: no puede quedarse sin ningún rol que la tenga. */

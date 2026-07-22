@@ -31,38 +31,44 @@ function repoCon(filas: (Destination & { id: number })[]): DestinationRepository
   };
 }
 
+const ACTOR = { userId: 1, email: 'admin@test' };
+const recorderFake = { record: jest.fn() };
+// prisma con un $transaction que ejecuta el callback con un tx cualquiera (el repo fake lo ignora).
+const prismaFake = { $transaction: async (fn: (tx: unknown) => unknown) => fn({}) } as never;
+const svc = (repo: DestinationRepository) => new DestinationsService(repo, recorderFake as never, prismaFake);
+
 describe('DestinationsService · resolve (lo que se usa al generar)', () => {
   it('devuelve la variante y el "importado por" del destino', async () => {
-    const s = new DestinationsService(repoCon([usa]));
+    const s = svc(repoCon([usa]));
     await expect(s.resolve('USA')).resolves.toMatchObject({ variant: 'UPC_EAN', importadoPor: 'COOLWAY USA LLC' });
   });
 
   it('acepta el código en minúsculas (igual que antes de la BD)', async () => {
-    const s = new DestinationsService(repoCon([usa]));
+    const s = svc(repoCon([usa]));
     await expect(s.resolve('usa')).resolves.toMatchObject({ code: 'USA' });
   });
 
   it('si el destino no existe, dice CUÁL falta y cuáles valen (no un error genérico)', async () => {
-    const s = new DestinationsService(repoCon([usa]));
+    const s = svc(repoCon([usa]));
     await expect(s.resolve('MARTE')).rejects.toThrow(/desconocido: "MARTE".*Válidos: USA/s);
   });
 
   it('un destino DESACTIVADO no genera: se apagó por algo, y se dice claro', async () => {
     // El peor fallo posible sería que generara igual: saldrían etiquetas de un destino retirado
     // y nadie se enteraría hasta tenerlas impresas.
-    const s = new DestinationsService(repoCon([usa, apagado]));
+    const s = svc(repoCon([usa, apagado]));
     await expect(s.resolve('PERU')).rejects.toThrow(/está desactivado/);
   });
 });
 
 describe('DestinationsService · listActive (el desplegable)', () => {
   it('no ofrece los desactivados', async () => {
-    const s = new DestinationsService(repoCon([usa, apagado]));
+    const s = svc(repoCon([usa, apagado]));
     expect((await s.listActive()).map((d) => d.code)).toEqual(['USA']);
   });
 
   it('la pantalla de administración sí los ve todos', async () => {
-    const s = new DestinationsService(repoCon([usa, apagado]));
+    const s = svc(repoCon([usa, apagado]));
     expect((await s.list()).map((d) => d.code)).toEqual(['USA', 'PERU']);
   });
 });
@@ -71,41 +77,41 @@ describe('DestinationsService · create', () => {
   const alta = { code: 'JAPON', name: 'Japón', variant: 'EAN' as const, importadoPor: 'Cliente JP' };
 
   it('da de alta un destino nuevo, activo', async () => {
-    const s = new DestinationsService(repoCon([usa]));
-    await expect(s.create(alta)).resolves.toMatchObject({ code: 'JAPON', active: true });
+    const s = svc(repoCon([usa]));
+    await expect(s.create(alta, ACTOR)).resolves.toMatchObject({ code: 'JAPON', active: true });
   });
 
   it('rechaza un código repetido (el código es la identidad)', async () => {
-    const s = new DestinationsService(repoCon([usa]));
-    await expect(s.create({ ...alta, code: 'usa' })).rejects.toThrow(/Ya existe un destino con el código "USA"/);
+    const s = svc(repoCon([usa]));
+    await expect(s.create({ ...alta, code: 'usa' }, ACTOR)).rejects.toThrow(/Ya existe un destino con el código "USA"/);
   });
 });
 
 describe('DestinationsService · update', () => {
   it('cambia el nombre sin tocar lo demás', async () => {
     const repo = repoCon([usa]);
-    await new DestinationsService(repo).update(2, { name: 'Estados Unidos' });
-    expect(repo.update).toHaveBeenCalledWith(2, { name: 'Estados Unidos' });
+    await svc(repo).update(2, { name: 'Estados Unidos' }, ACTOR);
+    expect(repo.update).toHaveBeenCalledWith(2, { name: 'Estados Unidos' }, expect.anything());
   });
 
   it('desactiva (no borra)', async () => {
     const repo = repoCon([usa]);
-    await new DestinationsService(repo).update(2, { active: false });
-    expect(repo.update).toHaveBeenCalledWith(2, { active: false });
+    await svc(repo).update(2, { active: false }, ACTOR);
+    expect(repo.update).toHaveBeenCalledWith(2, { active: false }, expect.anything());
   });
 
   it('rechaza vaciar el "importado por": se imprime en la etiqueta', async () => {
-    const s = new DestinationsService(repoCon([usa]));
-    await expect(s.update(2, { importadoPor: '   ' })).rejects.toThrow(InvalidDestinationError);
+    const s = svc(repoCon([usa]));
+    await expect(s.update(2, { importadoPor: '   ' }, ACTOR)).rejects.toThrow(InvalidDestinationError);
   });
 
   it('rechaza una variante que el motor no sabe imprimir', async () => {
-    const s = new DestinationsService(repoCon([usa]));
-    await expect(s.update(2, { variant: 'UPC+EAN13' as never })).rejects.toThrow(/no existe/);
+    const s = svc(repoCon([usa]));
+    await expect(s.update(2, { variant: 'UPC+EAN13' as never }, ACTOR)).rejects.toThrow(/no existe/);
   });
 
   it('avisa si el destino no existe', async () => {
-    const s = new DestinationsService(repoCon([usa]));
-    await expect(s.update(404, { name: 'X' })).rejects.toThrow(/No existe el destino #404/);
+    const s = svc(repoCon([usa]));
+    await expect(s.update(404, { name: 'X' }, ACTOR)).rejects.toThrow(/No existe el destino #404/);
   });
 });

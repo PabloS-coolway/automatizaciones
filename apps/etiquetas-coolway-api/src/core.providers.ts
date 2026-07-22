@@ -11,6 +11,8 @@ import { DbMasterReader } from './infrastructure/db/db-master-reader';
 import { DefaultMasterProvider } from './infrastructure/master/default-master-provider';
 import { DESTINATION_REPOSITORY } from './destinos/application/ports';
 import { DestinationsService } from './destinos/application/destinations.service';
+import { ACTIVITY_RECORDER } from './actividad/application/activity-recorder.port';
+import { PrismaActivityRecorder } from './actividad/infrastructure/prisma-activity-recorder';
 import { PrismaDestinationRepository } from './destinos/infrastructure/prisma-destination.repository';
 
 /**
@@ -29,6 +31,8 @@ export const coreProviders: Provider[] = [
   { provide: MASTER_PROVIDER, useClass: DefaultMasterProvider },
   PrismaDestinationRepository,
   { provide: DESTINATION_REPOSITORY, useExisting: PrismaDestinationRepository },
+  PrismaActivityRecorder,
+  { provide: ACTIVITY_RECORDER, useExisting: PrismaActivityRecorder },
   DestinationsService,
   {
     provide: GENERATE_LABELS_USE_CASE,
