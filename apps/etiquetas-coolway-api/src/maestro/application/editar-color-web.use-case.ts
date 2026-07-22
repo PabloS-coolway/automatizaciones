@@ -1,20 +1,10 @@
+import { Prisma } from '@prisma/client';
 import { ReferenceRepository } from './ports';
+import { ActivityRecorder, Actor } from '../../actividad/application/activity-recorder.port';
 
-/**
- * REQ-009 · Costura para el log de actividad (REQ-007). Es OPCIONAL hasta que REQ-007 aterrice en main:
- * el use-case ya calcula el antes→después y lo deja preparado; cuando exista el recorder, se inyecta y
- * el rastro queda solo. No se implementa aquí el contrato final de REQ-007 para no adivinarlo.
- */
-export interface ActivityRecorder {
-  record(entry: {
-    actor: string;
-    entity: string;
-    action: 'create' | 'update' | 'delete';
-    entityId: string;
-    before: unknown;
-    after: unknown;
-    summary: string;
-  }): Promise<void>;
+/** Lo mínimo que necesita el use-case para abrir una transacción (lo cumple PrismaService). Testeable. */
+export interface TransactionRunner {
+  $transaction<T>(fn: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T>;
 }
 
 export interface EditarColorWebInput {
@@ -23,8 +13,8 @@ export interface EditarColorWebInput {
   colorNameWeb: string;
   /** Fijar un valor que aún NO existe en el maestro. Por defecto sólo se aceptan valores existentes. */
   nuevo?: boolean;
-  /** Quién edita (para marcar la fila y para auditar). */
-  actor: string;
+  /** Quién edita (del JWT): marca la fila y queda en el log de actividad. */
+  actor: Actor;
 }
 
 export interface EditarColorWebResult {
@@ -39,12 +29,15 @@ export class ColorWebInvalidoError extends Error {}
 
 /**
  * Edita el "color web" de una referencia+color y lo PROPAGA a todas sus tallas (el color web es del
- * color, no de la talla). Marca la fila como editada a mano para que la reimportación la respete.
+ * color, no de la talla). Marca la fila como editada a mano para que la reimportación la respete, y
+ * deja el rastro en el log de actividad (REQ-007) **dentro de la misma transacción**: el cambio y su
+ * auditoría entran juntos o no entran.
  */
 export class EditarColorWebUseCase {
   constructor(
     private readonly repo: ReferenceRepository,
-    private readonly recorder?: ActivityRecorder, // REQ-007: se conecta cuando exista el log de actividad
+    private readonly recorder: ActivityRecorder,
+    private readonly db: TransactionRunner,
   ) {}
 
   async execute(input: EditarColorWebInput): Promise<EditarColorWebResult> {
@@ -64,22 +57,28 @@ export class EditarColorWebUseCase {
       }
     }
 
-    const { updated, before } = await this.repo.updateColorWebByRefColor(ref, color, value, input.actor);
-    if (updated === 0) {
-      throw new ColorWebInvalidoError(`No hay ninguna referencia «${ref}» con color «${color}» en el maestro.`);
-    }
+    // El cambio y su registro de auditoría, en la MISMA transacción: si falla el log, no hay cambio.
+    return this.db.$transaction(async (tx) => {
+      const { updated, before } = await this.repo.updateColorWebByRefColor(ref, color, value, input.actor.email, tx);
+      if (updated === 0) {
+        // Sin filas → se revierte la transacción y NO se registra un cambio fantasma.
+        throw new ColorWebInvalidoError(`No hay ninguna referencia «${ref}» con color «${color}» en el maestro.`);
+      }
 
-    // Costura REQ-007: cuando exista el ActivityRecorder, esta llamada deja el rastro (quién, antes→después).
-    await this.recorder?.record({
-      actor: input.actor,
-      entity: 'reference',
-      action: 'update',
-      entityId: `${ref}/${color}`,
-      before: { colorNameWeb: before },
-      after: { colorNameWeb: value },
-      summary: `color web de ${ref}/${color}: «${before ?? '—'}» → «${value}» (${updated} talla${updated === 1 ? '' : 's'})`,
+      await this.recorder.record(
+        {
+          actor: input.actor,
+          action: 'UPDATE',
+          entity: 'REFERENCE',
+          entityId: `${ref}/${color}`,
+          before: { colorNameWeb: before },
+          after: { colorNameWeb: value },
+          summary: `Editó el «color web» de ${ref}/${color}: «${before ?? '—'}» → «${value}» (${updated} talla${updated === 1 ? '' : 's'})`,
+        },
+        tx,
+      );
+
+      return { ref, color, colorNameWeb: value, updated };
     });
-
-    return { ref, color, colorNameWeb: value, updated };
   }
 }

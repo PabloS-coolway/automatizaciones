@@ -4,6 +4,7 @@ import {
   Body,
   Controller,
   Get,
+  Inject,
   Patch,
   Post,
   Query,
@@ -39,6 +40,7 @@ import { PrismaService } from '../../../infrastructure/db/prisma.service';
 import { ExcelMasterReader } from '../../../infrastructure/excel/excel-master-reader.adapter';
 import { CurrentUser, RequireFeature } from '../../../auth/interface/http/decorators';
 import { JwtPayload } from '../../../auth/application/auth.service';
+import { ACTIVITY_RECORDER, ActivityRecorder } from '../../../actividad/application/activity-recorder.port';
 
 type Uploaded = { ean?: Express.Multer.File[]; upc?: Express.Multer.File[] };
 
@@ -48,6 +50,7 @@ export class MaestroController {
     private readonly query: MaestroQuery,
     private readonly prisma: PrismaService,
     private readonly excel: MaestroExcelSerializer,
+    @Inject(ACTIVITY_RECORDER) private readonly actividad: ActivityRecorder,
   ) {}
 
   @Get('stats')
@@ -144,14 +147,14 @@ export class MaestroController {
   @Patch('references/color-web')
   async editarColorWeb(@Body() body: UpdateColorWebDto, @CurrentUser() user: JwtPayload): Promise<UpdateColorWebResultDto> {
     try {
-      // REQ-007: cuando exista el ActivityRecorder, se inyecta aquí como 2º argumento y el rastro queda solo.
-      const useCase = new EditarColorWebUseCase(new PrismaReferenceRepository(this.prisma));
+      // El recorder (REQ-007) y la transacción los aporta el controller; el use-case orquesta ambos.
+      const useCase = new EditarColorWebUseCase(new PrismaReferenceRepository(this.prisma), this.actividad, this.prisma);
       return await useCase.execute({
         ref: body?.ref,
         color: body?.color,
         colorNameWeb: body?.colorNameWeb,
         nuevo: body?.nuevo,
-        actor: user.email,
+        actor: { userId: user.sub, email: user.email },
       });
     } catch (e) {
       if (e instanceof ColorWebInvalidoError) throw new BadRequestException(e.message);

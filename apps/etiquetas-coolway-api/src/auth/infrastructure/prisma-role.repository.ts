@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { Feature } from '@yorga/contracts';
 import { PrismaService } from '../../infrastructure/db/prisma.service';
 import { RoleRecord, RoleRepository } from '../application/role.port';
@@ -32,11 +33,11 @@ export class PrismaRoleRepository implements RoleRepository {
     return r && r.active ? (r.features as Feature[]) : [];
   }
 
-  async create(input: { key: string; name: string; features: Feature[] }): Promise<RoleRecord> {
-    return this.toRecord(await this.prisma.role.create({ data: { ...input, active: true, system: false } }));
+  async create(input: { key: string; name: string; features: Feature[] }, tx?: Prisma.TransactionClient): Promise<RoleRecord> {
+    return this.toRecord(await (tx ?? this.prisma).role.create({ data: { ...input, active: true, system: false } }));
   }
 
-  async update(id: number, data: Partial<{ name: string; features: Feature[]; active: boolean }>): Promise<RoleRecord> {
-    return this.toRecord(await this.prisma.role.update({ where: { id }, data }));
+  async update(id: number, data: Partial<{ name: string; features: Feature[]; active: boolean }>, tx?: Prisma.TransactionClient): Promise<RoleRecord> {
+    return this.toRecord(await (tx ?? this.prisma).role.update({ where: { id }, data }));
   }
 }
