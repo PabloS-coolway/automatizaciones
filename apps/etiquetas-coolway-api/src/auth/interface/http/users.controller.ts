@@ -17,6 +17,15 @@ import { PASSWORD_HASHER, PasswordHasher, USER_REPOSITORY, UserRepository } from
 import { ROLE_REPOSITORY, RoleRepository } from '../../application/role.port';
 import { toDto, JwtPayload } from '../../application/auth.service';
 import { CurrentUser, RequireFeature } from './decorators';
+import { User } from '../../domain/user';
+import { PrismaService } from '../../../infrastructure/db/prisma.service';
+import { ACTIVITY_RECORDER, ActivityRecorder } from '../../../actividad/application/activity-recorder.port';
+
+/**
+ * El log NUNCA guarda el hash de contraseña ni datos sensibles del usuario (REQ-007, regla no negociable):
+ * el before/after se queda con lo visible. Una contraseña reseteada se ve por el `summary`, no por el diff.
+ */
+const sinHash = (u: User) => ({ id: u.id, email: u.email, name: u.name, role: u.role, active: u.active });
 
 /** Administración de usuarios: alta, cambio de rol, activar/desactivar y reset de contraseña. */
 @RequireFeature('usuarios.gestionar')
@@ -26,6 +35,8 @@ export class UsersController {
     @Inject(USER_REPOSITORY) private readonly users: UserRepository,
     @Inject(ROLE_REPOSITORY) private readonly roles: RoleRepository,
     @Inject(PASSWORD_HASHER) private readonly hasher: PasswordHasher,
+    @Inject(ACTIVITY_RECORDER) private readonly actividad: ActivityRecorder,
+    private readonly prisma: PrismaService,
   ) {}
 
   @Get()
@@ -37,7 +48,7 @@ export class UsersController {
   }
 
   @Post()
-  async create(@Body() body: CreateUserRequest): Promise<UserDto> {
+  async create(@Body() body: CreateUserRequest, @CurrentUser() me: JwtPayload): Promise<UserDto> {
     const email = body?.email?.trim().toLowerCase();
     if (!email || !body?.name || !body?.password) throw new BadRequestException('Indica email, nombre y contraseña.');
     if (body.password.length < 6) throw new BadRequestException('La contraseña debe tener al menos 6 caracteres.');
@@ -45,7 +56,21 @@ export class UsersController {
 
     const role = await this.roleOrFail(body.role);
     const passwordHash = await this.hasher.hash(body.password);
-    const user = await this.users.create({ email, name: body.name.trim(), passwordHash, role: role.key });
+    const user = await this.prisma.$transaction(async (tx) => {
+      const creado = await this.users.create({ email, name: body.name.trim(), passwordHash, role: role.key }, tx);
+      await this.actividad.record(
+        {
+          actor: { userId: me.sub, email: me.email },
+          action: 'CREATE',
+          entity: 'USER',
+          entityId: String(creado.id),
+          after: sinHash(creado),
+          summary: `Creó el usuario ${creado.email} (rol ${creado.role})`,
+        },
+        tx,
+      );
+      return creado;
+    });
     return toDto(user, role.features);
   }
 
@@ -81,7 +106,28 @@ export class UsersController {
 
     if (Object.keys(data).length === 0) throw new BadRequestException('Nada que actualizar.');
 
-    const updated = await this.users.update(id, data);
+    // Resumen legible de lo que cambió (la contraseña se menciona, pero su hash NUNCA se registra).
+    const cambios: string[] = [];
+    if (data.role) cambios.push(`rol → ${data.role}`);
+    if (data.active !== undefined) cambios.push(data.active ? 'activado' : 'desactivado');
+    if (data.passwordHash) cambios.push('contraseña reseteada');
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const u = await this.users.update(id, data, tx);
+      await this.actividad.record(
+        {
+          actor: { userId: me.sub, email: me.email },
+          action: 'UPDATE',
+          entity: 'USER',
+          entityId: String(id),
+          before: sinHash(target),
+          after: sinHash(u),
+          summary: `Editó el usuario ${u.email}: ${cambios.join(', ')}`,
+        },
+        tx,
+      );
+      return u;
+    });
     return toDto(updated, await this.roles.featuresOf(updated.role));
   }
 

@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { BoxArrowRight, BoxSeamFill, CashStack, Database, FileEarmarkText, GeoAlt, People, PersonCircle, Scissors, ShieldLock, Tags } from 'react-bootstrap-icons';
+import { BoxArrowRight, BoxSeamFill, CashStack, Database, FileEarmarkText, GeoAlt, People, PersonCircle, Scissors, ShieldLock, Tags , ClockHistory} from 'react-bootstrap-icons';
 import type { ReactNode } from 'react';
 import type { Feature } from '@yorga/contracts';
 import { Button } from 'react-bootstrap';
@@ -23,6 +23,7 @@ const NAV: NavItem[] = [
   { to: '/destinos', label: 'Destinos', icon: <GeoAlt />, ready: true, feature: 'destinos.gestionar' },
   { to: '/usuarios', label: 'Usuarios', icon: <People />, ready: true, feature: 'usuarios.gestionar' },
   { to: '/roles', label: 'Roles', icon: <ShieldLock />, ready: true, feature: 'roles.gestionar' },
+  { to: '/actividad', label: 'Actividad', icon: <ClockHistory />, ready: true, feature: 'actividad.ver' },
   { to: '/tarifas', label: 'Tarifas y surtidos', icon: <CashStack /> },
   { to: '/plantillas', label: 'Plantillas de ventas', icon: <FileEarmarkText /> },
 ];
