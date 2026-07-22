@@ -23,6 +23,8 @@ export interface SeedReport {
    * en él (típico al corregir una talla). Se reportan SIEMPRE: borrar en silencio es inaceptable.
    */
   removed: RemovedRow[];
+  /** REQ-009 · Filas cuyo color web NO se pisó por estar editado a mano (el Excel traía otro valor). */
+  colorWebProtegidas: number;
 }
 
 /**
@@ -85,7 +87,7 @@ export class SeedMasterUseCase {
       }));
 
     const before = await this.repo.count();
-    const { ok, failures } = await this.repo.upsertManySeed(clean);
+    const { ok, failures, colorWebProtegidas } = await this.repo.upsertManySeed(clean);
 
     // Huérfanas: en la BD, ya no en el Excel, y su producto SÍ viene. Es lo que deja atrás corregir
     // una talla (la fila vieja se quedaba y además ganaba al generar). Se borran y se reportan.
@@ -106,6 +108,7 @@ export class SeedMasterUseCase {
       issues: failures,
       sharedEan13: findSharedEan13(clean),
       removed: orphans,
+      colorWebProtegidas,
     };
   }
 }

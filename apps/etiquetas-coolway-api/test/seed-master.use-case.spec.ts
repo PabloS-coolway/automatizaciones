@@ -65,8 +65,10 @@ describe('SeedMasterUseCase · carga del maestro', () => {
             failures.push({ style: row.style, color: row.color, ref: row.ref, size: row.size, reason: 'rejected' });
           } else guardadas.push(row);
         }
-        return { ok: guardadas.length, failures };
+        return { ok: guardadas.length, failures, colorWebProtegidas: 0 };
       },
+      existingColorWebValues: async () => [],
+      updateColorWebByRefColor: async () => ({ updated: 0, before: null }),
     };
     return { r, guardadas, borradas, setPrevias: (n: number) => (previas = n) };
   };
@@ -145,6 +147,25 @@ describe('SeedMasterUseCase · carga del maestro', () => {
 
     expect(borradas).toEqual([]);
     expect(informe.removed).toEqual([]);
+  });
+
+  it('REQ-009 · el informe reporta cuántas filas conservaron su color web editado a mano', async () => {
+    // El repo protege esas filas (no se pisan); el use-case sólo debe TRASLADARLO al informe, sin ocultarlo.
+    const r: ReferenceRepository = {
+      count: async () => 1,
+      upsertMany: async () => 0,
+      allKeys: async () => [],
+      deleteMany: async () => 0,
+      upsertManySeed: async () => ({ ok: 1, failures: [], colorWebProtegidas: 2 }),
+      existingColorWebValues: async () => [],
+      updateColorWebByRefColor: async () => ({ updated: 0, before: null }),
+    };
+    const informe = await new SeedMasterUseCase(
+      reader([{ style: 'GOAL', color: 'RED', ref: '7603298', size: '40', colorNameWeb: 'DEL EXCEL' }]),
+      r,
+    ).execute({ source: 'x.xlsx' });
+
+    expect(informe.colorWebProtegidas).toBe(2);
   });
 
   it('el informe incluye los avisos de EAN compartido entre productos distintos', async () => {
