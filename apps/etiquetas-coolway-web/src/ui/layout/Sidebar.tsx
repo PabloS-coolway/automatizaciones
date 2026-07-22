@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { BoxArrowRight, BoxSeamFill, CashStack, Database, FileEarmarkText, GeoAlt, People, PersonCircle, ShieldLock, Tags } from 'react-bootstrap-icons';
+import { BoxArrowRight, BoxSeamFill, CashStack, Database, FileEarmarkText, GeoAlt, People, PersonCircle, Scissors, ShieldLock, Tags } from 'react-bootstrap-icons';
 import type { ReactNode } from 'react';
 import type { Feature } from '@yorga/contracts';
 import { Button } from 'react-bootstrap';
@@ -19,6 +19,7 @@ interface NavItem {
 const NAV: NavItem[] = [
   { to: '/etiquetas', label: 'Etiquetas', icon: <Tags />, ready: true },
   { to: '/maestro', label: 'Base de datos', icon: <Database />, ready: true },
+  { to: '/poda', label: 'Podar SAP', icon: <Scissors />, ready: true, feature: 'maestro.cargar' },
   { to: '/destinos', label: 'Destinos', icon: <GeoAlt />, ready: true, feature: 'destinos.gestionar' },
   { to: '/usuarios', label: 'Usuarios', icon: <People />, ready: true, feature: 'usuarios.gestionar' },
   { to: '/roles', label: 'Roles', icon: <ShieldLock />, ready: true, feature: 'roles.gestionar' },

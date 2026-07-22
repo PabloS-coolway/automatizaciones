@@ -78,6 +78,7 @@ describe('podar · deja sólo lo comprado y avisa de lo que falta', () => {
   it('conserva la cabecera y sólo las filas (familia,color) compradas', () => {
     const r = podar(FICHERO, compras);
     expect(r.conservadas).toEqual(['CABECERA', '76034250\t100', '76034250\t766']);
+    expect(r.conservadasDato).toBe(2); // la cabecera NO cuenta como referencia
     expect(r.retiradas).toBe(3);
   });
 
