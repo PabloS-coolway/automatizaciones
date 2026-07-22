@@ -3,6 +3,7 @@ import {
   BadRequestException,
   Controller,
   Get,
+  Inject,
   Post,
   Query,
   Res,
@@ -33,6 +34,7 @@ import { PrismaReferenceRepository } from '../../infrastructure/prisma-reference
 import { PrismaService } from '../../../infrastructure/db/prisma.service';
 import { ExcelMasterReader } from '../../../infrastructure/excel/excel-master-reader.adapter';
 import { CurrentUser, RequireFeature } from '../../../auth/interface/http/decorators';
+import { ACTIVITY_RECORDER, ActivityRecorder } from '../../../actividad/application/activity-recorder.port';
 import { JwtPayload } from '../../../auth/application/auth.service';
 
 type Uploaded = { ean?: Express.Multer.File[]; upc?: Express.Multer.File[] };
@@ -43,6 +45,7 @@ export class MaestroController {
     private readonly query: MaestroQuery,
     private readonly prisma: PrismaService,
     private readonly excel: MaestroExcelSerializer,
+    @Inject(ACTIVITY_RECORDER) private readonly actividad: ActivityRecorder,
   ) {}
 
   @Get('stats')
@@ -106,9 +109,18 @@ export class MaestroController {
     if (!master) throw new BadRequestException('Sube el Excel maestro (campo "master"), p.ej. REFERENCIAS COOLWAY.xlsx.');
 
     try {
-      console.log(`[maestro] seed ejecutado por ${user.email} (${user.role})`); // trazabilidad mínima
       const useCase = new SeedMasterUseCase(new ExcelMasterReader(), new PrismaReferenceRepository(this.prisma));
-      return await useCase.execute({ source: master.path });
+      const report = await useCase.execute({ source: master.path });
+      // REQ-007 · Una carga = UNA entrada con su resumen (no 5.736 filas). Es un batch: se registra al acabar.
+      await this.actividad.record({
+        actor: { userId: user.sub, email: user.email },
+        action: 'UPDATE',
+        entity: 'MASTER_IMPORT',
+        entityId: 'maestro',
+        after: { created: report.created, updated: report.updated, total: report.total },
+        summary: `Cargó el maestro: ${report.created} altas, ${report.updated} cambios (total ${report.total})`,
+      });
+      return report;
     } finally {
       await unlink(master.path).catch(() => undefined);
     }
@@ -123,9 +135,17 @@ export class MaestroController {
     if (!ean || !upc) throw new BadRequestException('Sube los dos ficheros: EAN.xlsm y UPC.xlsm.');
 
     try {
-      console.log(`[maestro] import ejecutado por ${user.email} (${user.role})`); // trazabilidad mínima
       const useCase = new ImportMasterUseCase(new ExcelCodesReader(), new PrismaReferenceRepository(this.prisma));
-      return await useCase.execute({ eanSource: ean.path, upcSource: upc.path });
+      const report = await useCase.execute({ eanSource: ean.path, upcSource: upc.path });
+      await this.actividad.record({
+        actor: { userId: user.sub, email: user.email },
+        action: 'UPDATE',
+        entity: 'MASTER_IMPORT',
+        entityId: 'codigos',
+        after: { created: report.created, updated: report.updated },
+        summary: `Importó códigos EAN/UPC: ${report.created} altas, ${report.updated} cambios`,
+      });
+      return report;
     } finally {
       await Promise.all([ean, upc].map((f) => unlink(f.path).catch(() => undefined)));
     }

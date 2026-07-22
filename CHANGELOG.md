@@ -3,7 +3,23 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
-## [2026-07-22] REQ-007 · Fase 1: log de actividad (auditoría) — recorder + Roles/Destinos + consulta
+## [2026-07-22] REQ-007 · Fase 2: Usuarios + import de maestro + vista web «Actividad» (completo)
+
+Cierra REQ-007. El log ya cubre todas las mutaciones y tiene su pantalla.
+
+### Añadido
+- **Usuarios** enganchados al log (alta, cambio de rol, activar/desactivar, reset de contraseña), dentro de
+  la transacción. **El hash de contraseña NUNCA se registra** (regla no negociable): el `before/after` se
+  queda con lo visible; un reset se ve por el `summary`. Con test (`users-activity.spec.ts`).
+- **Cargas del maestro** (seed e import) → **una** entrada con su resumen (`N altas / N cambios`), no 5.736
+  filas.
+- **Pantalla «Actividad»** (sidebar, feature `actividad.ver`): tabla filtrable/ordenable (como el resto) con
+  fecha, usuario, acción, entidad y resumen; el **diff antes→después** se abre en un modal. El log no se
+  puede editar ni borrar.
+
+### Verificado
+- E2E con la API: crear un usuario deja su entrada **sin `passwordHash`** (ni rastro de bcrypt en el log).
+- **190 tests** de API (incl. la redacción de contraseña), web 68, typecheck + build en verde.
 
 "Quién hizo qué" deja de perderse. Complemento de REQ-006: ahora que los permisos son dato, la actividad
 también. Esta fase deja la fundación y engancha las dos primeras entidades; Usuarios, el resumen del import
