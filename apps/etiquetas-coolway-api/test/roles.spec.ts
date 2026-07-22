@@ -61,38 +61,43 @@ function repoCon(roles: RoleRecord[]): RoleRepository {
   };
 }
 
+const ACTOR = { userId: 1, email: 'admin@test' };
+const recorderFake = { record: jest.fn() };
+const prismaFake = { $transaction: async (fn: (tx: unknown) => unknown) => fn({}) } as never;
+const svc = (repo: RoleRepository) => new RolesService(repo, recorderFake as never, prismaFake);
+
 const admin: RoleRecord = { id: 1, key: 'admin', name: 'Administrador', features: ['roles.gestionar', 'usuarios.gestionar'], active: true, system: true };
 const operador: RoleRecord = { id: 2, key: 'operador', name: 'Operador', features: ['etiquetas.ver'], active: true, system: true };
 
 describe('RolesService', () => {
   it('crea un rol nuevo', async () => {
-    const s = new RolesService(repoCon([admin, operador]));
-    await expect(s.create({ key: 'contable', name: 'Contable', features: ['maestro.ver'] })).resolves.toMatchObject({ key: 'contable' });
+    const s = svc(repoCon([admin, operador]));
+    await expect(s.create({ key: 'contable', name: 'Contable', features: ['maestro.ver'] }, ACTOR)).resolves.toMatchObject({ key: 'contable' });
   });
 
   it('rechaza un key repetido', async () => {
-    const s = new RolesService(repoCon([admin, operador]));
-    await expect(s.create({ key: 'ADMIN', name: 'x', features: [] })).rejects.toThrow(/Ya existe un rol/);
+    const s = svc(repoCon([admin, operador]));
+    await expect(s.create({ key: 'ADMIN', name: 'x', features: [] }, ACTOR)).rejects.toThrow(/Ya existe un rol/);
   });
 
   it('DEJA quitar roles.gestionar de admin si otro rol activo la tiene', async () => {
     const otro: RoleRecord = { id: 3, key: 'jefe', name: 'Jefe', features: ['roles.gestionar'], active: true, system: false };
     const repo = repoCon([admin, operador, otro]);
-    await expect(new RolesService(repo).update(1, { features: ['usuarios.gestionar'] })).resolves.toBeDefined();
+    await expect(svc(repo).update(1, { features: ['usuarios.gestionar'] }, ACTOR)).resolves.toBeDefined();
   });
 
   it('BLOQUEA quitar roles.gestionar del ÚNICO rol que la tiene (te tapiarías fuera)', async () => {
-    const s = new RolesService(repoCon([admin, operador]));
-    await expect(s.update(1, { features: ['usuarios.gestionar'] })).rejects.toThrow(/gestionar roles|administrar/i);
+    const s = svc(repoCon([admin, operador]));
+    await expect(s.update(1, { features: ['usuarios.gestionar'] }, ACTOR)).rejects.toThrow(/gestionar roles|administrar/i);
   });
 
   it('BLOQUEA desactivar el único rol con roles.gestionar', async () => {
-    const s = new RolesService(repoCon([admin, operador]));
-    await expect(s.update(1, { active: false })).rejects.toThrow(InvalidRoleError);
+    const s = svc(repoCon([admin, operador]));
+    await expect(s.update(1, { active: false }, ACTOR)).rejects.toThrow(InvalidRoleError);
   });
 
   it('rechaza una feature inventada al editar', async () => {
-    const s = new RolesService(repoCon([admin, operador]));
-    await expect(s.update(2, { features: ['pantallazo.total'] as never })).rejects.toThrow(/no se inventan|desconocida/i);
+    const s = svc(repoCon([admin, operador]));
+    await expect(s.update(2, { features: ['pantallazo.total'] as never }, ACTOR)).rejects.toThrow(/no se inventan|desconocida/i);
   });
 });

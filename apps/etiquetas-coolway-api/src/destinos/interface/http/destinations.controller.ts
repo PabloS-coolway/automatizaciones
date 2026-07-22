@@ -2,7 +2,12 @@ import { BadRequestException, Body, Controller, Get, Param, Patch, Post } from '
 import { CreateDestinationDto, DestinationDto, UpdateDestinationDto } from '@yorga/contracts';
 import { DestinationsService } from '../../application/destinations.service';
 import { InvalidDestinationError } from '../../domain/destination';
-import { RequireFeature } from '../../../auth/interface/http/decorators';
+import { CurrentUser, RequireFeature } from '../../../auth/interface/http/decorators';
+import { JwtPayload } from '../../../auth/application/auth.service';
+import { Actor } from '../../../actividad/application/activity-recorder.port';
+
+/** El actor de una acción, sacado del JWT (para el log de actividad). */
+const actorDe = (u: JwtPayload): Actor => ({ userId: u.sub, email: u.email });
 
 /**
  * REQ-004 · Administración de destinos. **Sólo admin**: un destino decide qué códigos lleva la
@@ -21,13 +26,13 @@ export class DestinationsController {
   }
 
   @Post()
-  create(@Body() dto: CreateDestinationDto): Promise<DestinationDto> {
-    return this.service.create(dto).catch(traducir);
+  create(@Body() dto: CreateDestinationDto, @CurrentUser() me: JwtPayload): Promise<DestinationDto> {
+    return this.service.create(dto, actorDe(me)).catch(traducir);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateDestinationDto): Promise<DestinationDto> {
-    return this.service.update(Number(id), dto).catch(traducir);
+  update(@Param('id') id: string, @Body() dto: UpdateDestinationDto, @CurrentUser() me: JwtPayload): Promise<DestinationDto> {
+    return this.service.update(Number(id), dto, actorDe(me)).catch(traducir);
   }
 }
 
