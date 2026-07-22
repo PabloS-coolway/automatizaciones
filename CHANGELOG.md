@@ -42,6 +42,21 @@ código todavía**.
   User **nunca** guarda el hash de contraseña.
 - **Backlog:** alta de **REQ-007** (📐 Diseñado), **REQ-008** (RRHH, 🆕 aparcado) y **MEJ-003 / MEJ-004**
   (reorganizar navegación y refrescar la pantalla de inicio).
+## [2026-07-22] REQ-009 · Editar "color web" del maestro inline — diseño (negocio + arquitectura)
+
+El "color web" del maestro sólo se corrige hoy en el Excel origen y reimportando. Se diseña editarlo
+**inline** en la tabla, como **privilegio de rol**. Es sólo diseño: **no toca código todavía**.
+
+### Documentación
+- **Diseño de REQ-009** (`diseño/iniciativas/REQ-009-editar-color-web-maestro/diseño.md`, 📐 Diseñado).
+  El nudo era el **dueño del dato**: `colorNameWeb` se importa por *upsert* del Excel, así que editarlo
+  inline chocaba con la reimportación.
+- **Decisiones cerradas:** la edición a mano **gana** — el import la respeta (marca `source='web'`) ·
+  editar **propaga a todas las tallas del `(ref, color)`** · el valor se **elige de los existentes** ·
+  privilegio **`maestro.color-web.editar`** (feature cerrada de REQ-006, enforce en servidor) · el
+  `update` queda **auditado por REQ-007**.
+- **Backlog:** alta de **REQ-009** (📐 Diseñado).
+
 ## [2026-07-22] REQ-005 · Podar los ficheros de SAP a lo realmente comprado (completo)
 
 Silvia sacaba de Prepedidos los ficheros para SAP (materiales, tarifas 906/073, surtidos) con **todo el
