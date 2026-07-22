@@ -3,6 +3,33 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-22] REQ-006 · Fase 2: CRUD de roles, panel autoadministrable y front por features
+
+Sobre la fundación de la Fase 1, ya se puede **gobernar todo desde el panel**: crear roles, marcar sus
+permisos con checkboxes y activar/desactivarlos. Los usuarios ven y usan sólo lo que su rol permite.
+
+### Añadido
+- **CRUD de roles** (`GET/POST/PATCH /api/roles`, feature `roles.gestionar`) con **anti-bloqueo**: la API
+  **rechaza** cualquier cambio que dejara al sistema sin ningún rol activo con `roles.gestionar` (nadie
+  podría volver a administrar). Con test (`roles.spec.ts`).
+- **Pantalla «Roles»** (sidebar, con `roles.gestionar`): tabla + modal con **checkboxes de permisos**
+  (catálogo cerrado), crear rol, editar, activar/desactivar. Reutiliza el patrón de Destinos/Usuarios.
+- Listar roles lo puede también quien tiene `usuarios.gestionar` (para el desplegable de rol al dar de
+  alta), pero **crear/editar** roles sigue pidiendo `roles.gestionar`.
+
+### Cambiado
+- **El front decide por FEATURES, no por `isAdmin`**: el sidebar y los guards de ruta usan `hasFeature(…)`;
+  las features vienen en el login/`me`. Se acabó el `RequireAdmin` hardcodeado.
+- **Usuarios**: el rol ya no es un desplegable fijo `operador/admin` — sale de los roles reales, y cambiar
+  el rol de un usuario es un selector con todos los roles activos.
+
+### Verificado (API levantada)
+- Crear rol `contable`; **feature inventada → 400** ("no se inventan"); **anti-bloqueo → 400** al quitar
+  `roles.gestionar` del único rol que la tiene.
+- **Acceso fino**: un rol con sólo `usuarios.gestionar` puede `GET /users` y `GET /roles` (200) pero
+  **no** `POST /roles` (403); un operador sin ninguna de las dos → `GET /roles` 403.
+- **170 tests** de API (incl. `roles.spec.ts`), web 98%, typecheck + build en verde.
+
 ## [2026-07-21] REQ-006 · Fase 1: los permisos pasan de código a dato (roles + features), sin que nadie lo note
 
 Primer tramo de REQ-006 — la **fundación**: "quién puede qué" deja de estar clavado en el código y pasa a
