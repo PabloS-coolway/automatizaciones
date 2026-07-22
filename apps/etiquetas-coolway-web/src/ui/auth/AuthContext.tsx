@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import type { UserDto } from '@yorga/contracts';
+import type { Feature, UserDto } from '@yorga/contracts';
 import { authGateway } from '../composition';
 import { clearToken, getToken, setToken } from '../../infrastructure/session';
 
@@ -9,6 +9,8 @@ interface AuthState {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   isAdmin: boolean;
+  /** REQ-006 · ¿el usuario tiene esta feature? Es lo que decide qué ve/usa, en vez del nombre del rol. */
+  hasFeature: (feature: Feature) => boolean;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -41,8 +43,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }
 
+  const hasFeature = (feature: Feature): boolean => user?.features?.includes(feature) ?? false;
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, isAdmin: user?.role === 'admin' }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, isAdmin: user?.role === 'admin', hasFeature }}>
       {children}
     </AuthContext.Provider>
   );

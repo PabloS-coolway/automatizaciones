@@ -85,16 +85,21 @@ de lo actual).
    (`feature-guard.spec.ts`). Verificado E2E: operador/admin idénticos a hoy, y cambio de permisos sin
    re-login.
 
-**Fase 2 · CRUD + panel + front (pendiente):**
-4. **Salvaguarda anti-bloqueo:** impedir dejar el sistema sin ningún rol activo con `roles.gestionar`, y
-   proteger el admin bootstrap. Con test que lo fije. (Va con el CRUD, que es donde se muta.)
-5. **CRUD de roles** (API): crear/editar/activar-desactivar roles, con `roles.gestionar`.
-6. **Front:** sidebar y guards de ruta leen las **features** del usuario (ya vienen en el login/`me`) en vez
-   de `isAdmin`. Un cambio de permisos se refleja sin re-desplegar.
-7. **Pantalla de administración de roles** (crear rol, asignar features con checkboxes, activar/desactivar),
-   reutilizando `DataTable` + el patrón de Usuarios/Destinos.
-8. **Verificar** que operador y admin siguen viendo/pudiendo lo mismo que hoy — red de seguridad (Fase 1 ya
-   lo comprobó en la API; falta comprobarlo en la web).
+**Fase 2 · CRUD + panel + front (✅ hecho, 22/07):**
+4. ✅ **Anti-bloqueo** (`assertGestionAlcanzable`): la API rechaza cualquier cambio que deje al sistema sin
+   ningún rol activo con `roles.gestionar`. Con test (`roles.spec.ts`).
+5. ✅ **CRUD de roles** (`GET/POST/PATCH /api/roles`, feature `roles.gestionar`; el `GET` también con
+   `usuarios.gestionar` para el desplegable de Usuarios). Features acotadas al catálogo.
+6. ✅ **Front por features**: `hasFeature(…)` en sidebar y guards de ruta (`RequireFeature`); las features
+   vienen en el login/`me`. Fuera el `RequireAdmin`.
+7. ✅ **Pantalla «Roles»** (tabla + modal con checkboxes de permisos), y **Usuarios** con el rol cargado de
+   los roles reales.
+8. ✅ **Verificado en la API** (E2E): acceso fino por feature + anti-bloqueo. Pendiente sólo el clic en el
+   navegador (smoke test visual).
+
+> **Detalle deliberado (posible mejora futura):** el front gatea por feature las secciones de admin
+> (Usuarios, Destinos, Roles). Etiquetas y Base de datos siguen visibles a cualquier autenticado (como hoy);
+> gatearlas también por feature es fácil, pero exige decidir el "landing" cuando un rol no tiene ninguna.
 
 > No se implementa nada hasta que Pablo valide este diseño. La salvaguarda anti-bloqueo (paso 4) y la
 > migración sin sorpresas (paso 7) son las dos cosas que, si se hacen mal, duelen.
