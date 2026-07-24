@@ -26,9 +26,14 @@ pasar sólo lo elegido (surtidos).
   una ref, se conservan todos (opt-in por ref). Requiere `maestro.cargar`.
 
 ### Verificado
-- typecheck + build + **211 tests API** + web (cobertura 98%). Regla de sociedad y filtro de surtidos
-  verificados **rompiéndolos a propósito** (los tests caen). **Pendiente:** aplicar la migración `surtido` y
-  probar en vivo (curl + navegador) al desplegar.
+- typecheck + build + **214 tests API** + web (cobertura 98%). Regla de sociedad y filtro de surtidos
+  verificados **rompiéndolos a propósito** (los tests caen).
+- **En vivo (API + Postgres, con los ficheros reales del 24/07):** migración `surtido` aplicada; la sociedad
+  se reescribió en **A906 `idx4`** (la columna verificada) y **A073 quedó intacto**; el aviso de BUG-006 saltó
+  con **96 refs sin color**; el CRUD de surtidos (crear/validar/listar/borrar) y su **auditoría** (REQ-007)
+  funcionan. La verificación destapó que un SURTD en minúscula no casaría → se **normaliza a mayúsculas**.
+- *Nota:* la poda por color de materiales/surtidos con el borrador real da 0 líneas porque ese borrador **no
+  trae la Horma** (BUG-006): Silvia debe rellenarla; el sistema ahora lo avisa en vez de mentir.
 
 ## [2026-07-24] BUG-006 · Poda: borrador sin código de color (Horma vacía) — avisar, no mentir
 
