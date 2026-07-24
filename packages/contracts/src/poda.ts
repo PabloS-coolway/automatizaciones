@@ -25,4 +25,9 @@ export interface PodaResponse {
   ficheros: FicheroPodadoDto[];
   /** Nombres de ficheros que no se reconocieron (no se tocaron). */
   sinReconocer: string[];
+  /**
+   * BUG-006 · Refs compradas SIN código de color (Horma) en el borrador. Si no está vacío, hay que
+   * rellenar la Horma: sin ella, la poda por color (materiales/surtidos) de esas refs no es fiable.
+   */
+  comprasSinColor: string[];
 }

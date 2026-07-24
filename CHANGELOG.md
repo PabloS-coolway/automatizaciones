@@ -3,6 +3,28 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-24] BUG-006 · Poda: borrador sin código de color (Horma vacía) — avisar, no mentir
+
+Silvia podó el bor.14 (608 reg) y salieron **0 líneas** en materiales, con las compras marcadas como "no
+aparecen" — aunque **sí estaban** en el fichero. Esperaba 96.
+
+### Corregido
+- **Causa raíz (verificada con los ficheros del 24/07):** el borrador `compr poda materiales.xlsx` trae la
+  columna **Horma (código de color SAP) vacía en 61 de 96 compradas** (el color sólo venía como nombre:
+  ASH, GRS…). El lector saca el color de Horma → `''` → no casa con el color del materiales (500, 550…) →
+  todo anulado; y esas compras se colaban en el aviso "no aparece" (parecía **fichero incompleto**). También
+  explicaba el "18 vs 96" (sin color, 96 refs colapsan a 18 familias). **Familia "no falla, miente".**
+- **Arreglo:** nuevo `comprasSinColor` que **detecta y avisa** con claridad («N referencias sin código de
+  color en el borrador — rellena la Horma»); esas compras ya **no** ensucian `compradoQueFalta` (que sigue
+  significando "el fichero de SAP vino incompleto"). Las **tarifas** (casan por familia sola) no se tocan.
+- **Test:** `poda.spec.ts` — verificado **rompiendo el arreglo a propósito** (el test cae). 204 tests API,
+  typecheck + build en verde.
+
+### Documentación
+- **REQ-010** (🔍 En análisis) · «Poda configurable: elegir sociedad y surtidos», del mismo correo. Diseño en
+  `diseño/iniciativas/REQ-010-poda-configurable/`. Se entregará en dos fases (sociedad → surtidos). El correo
+  crudo queda en `docs/requerimientos/correo-fichero-materiales-y-bd-2026-07-23.md`.
+
 ## [2026-07-22] MEJ-003 + MEJ-004 · Navegación por módulos y pantalla de inicio
 
 Dos mejoras de interfaz (sin tocar dato ni dueño), juntas en una PR.

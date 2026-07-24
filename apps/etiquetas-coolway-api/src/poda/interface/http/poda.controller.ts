@@ -32,10 +32,11 @@ export class PodaController {
         ficheros.map(async (f) => ({ nombre: f.originalname, contenido: await readFile(f.path, 'latin1') })),
       );
 
-      const { compras, ficheros: podados, sinReconocer } = podarFicheros(borrador, entradas);
+      const { compras, ficheros: podados, sinReconocer, comprasSinColor } = podarFicheros(borrador, entradas);
       return {
         compras: compras.length,
         sinReconocer,
+        comprasSinColor,
         ficheros: podados.map((p) => ({
           nombre: p.nombre,
           tipo: p.tipo,

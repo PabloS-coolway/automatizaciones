@@ -42,6 +42,27 @@ export interface ResultadoPoda {
   compradoQueFalta: Compra[];
 }
 
+/**
+ * BUG-006 · Refs COMPRADAS cuyo color (Horma) viene **vacío** en el borrador. Sin el código de color no
+ * se pueden cruzar contra los ficheros con color (materiales/surtidos): quedarían anuladas y —peor— el
+ * sistema lo reportaría como "no aparece en el fichero" (parece fichero incompleto) cuando en realidad
+ * **falta el color en el borrador**. Se detectan aparte para AVISAR con claridad (no mentir).
+ */
+export function comprasSinColor(lineas: LineaBorrador[]): string[] {
+  const refs: string[] = [];
+  const vistas = new Set<string>();
+  for (const l of lineas) {
+    if (!(l.suma > 0)) continue;
+    if (normalizeColor(l.colorSap) !== '') continue;
+    const ref = String(l.ourRef ?? '').trim();
+    if (ref && !vistas.has(ref)) {
+      vistas.add(ref);
+      refs.push(ref);
+    }
+  }
+  return refs;
+}
+
 /** Del borrador, lo comprado (`Suma` > 0), con la familia calculada y el color normalizado. */
 export function comprasDelBorrador(lineas: LineaBorrador[]): Compra[] {
   const compras: Compra[] = [];
@@ -92,9 +113,14 @@ export function podar(filas: FilaSap[], compras: Compra[]): ResultadoPoda {
   }
 
   // ¿Alguna compra no está en el fichero? (fichero incompleto respecto a lo comprado → se avisa)
+  // BUG-006 · en ficheros CON color, una compra sin color (Horma vacía en el borrador) NO es "falta en el
+  // fichero": es un problema del borrador que se reporta aparte (`comprasSinColor`). No se cuela aquí para
+  // que este aviso siga significando exactamente "el fichero de SAP venía incompleto".
   const traeColor = filas.some((f) => f.esDato && f.colorSap !== undefined);
   const compradoQueFalta = compras.filter((c) =>
-    traeColor ? !paresEnFichero.has(`${c.familia}|${c.colorSap}`) : !familiasEnFichero.has(c.familia),
+    traeColor
+      ? c.colorSap !== '' && !paresEnFichero.has(`${c.familia}|${c.colorSap}`)
+      : !familiasEnFichero.has(c.familia),
   );
 
   return { conservadas, conservadasDato, retiradas, compradoQueFalta };

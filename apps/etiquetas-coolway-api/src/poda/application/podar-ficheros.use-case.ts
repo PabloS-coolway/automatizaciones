@@ -1,4 +1,4 @@
-import { Compra, comprasDelBorrador, LineaBorrador, podar } from '../domain/poda';
+import { Compra, comprasDelBorrador, comprasSinColor, LineaBorrador, podar } from '../domain/poda';
 import { leerFicheroSap, serializarFicheroSap, tipoPorNombre, TipoFicheroSap } from '../infrastructure/sap-file-reader';
 
 /** Un fichero de SAP tal como entra (nombre + contenido de texto). */
@@ -25,6 +25,12 @@ export interface ResultadoPodaFicheros {
   ficheros: FicheroPodado[];
   /** Ficheros que no se reconocieron por su nombre (no se tocan; se avisa). */
   sinReconocer: string[];
+  /**
+   * BUG-006 · Refs compradas SIN código de color (Horma) en el borrador. Si no está vacío, la poda por color
+   * (materiales/surtidos) de esas refs no es fiable: hay que rellenar la Horma en el borrador. Se avisa aparte
+   * de `compradoQueFalta` para no confundir "falta el color en el borrador" con "el fichero venía incompleto".
+   */
+  comprasSinColor: string[];
 }
 
 /**
@@ -55,5 +61,5 @@ export function podarFicheros(borrador: LineaBorrador[], entradas: FicheroEntrad
     });
   }
 
-  return { compras, ficheros, sinReconocer };
+  return { compras, ficheros, sinReconocer, comprasSinColor: comprasSinColor(borrador) };
 }
