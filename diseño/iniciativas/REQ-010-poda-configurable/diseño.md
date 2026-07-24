@@ -1,6 +1,6 @@
 # REQ-010 · Poda configurable: elegir sociedad y surtidos
 
-- Estado: 🔍 En análisis · Fecha: 2026-07-24
+- Estado: 📐 Diseñado (decisiones cerradas con Pablo/Silvia, 24/07) · Fecha: 2026-07-24
 - Área: Catálogo / alta de producto en SAP (extiende REQ-005)
 - Origen: correo **«FICHERO DE MATERIALES Y BASE DE DATOS»** de Silvia Mayordomo
   (`silviam@grupoyorga.com`), 23/07/2026, reenviado por Pablo el 24/07.
@@ -25,17 +25,21 @@ Antes había una sociedad; **ahora hay dos**:
 | COOLWAY USA | `4000` |
 
 Todos los ficheros que genera Prepedidos **salen con la `2000`**. Según en qué sociedad se dé de alta la
-compra, Silvia tiene que **cambiar ese código a mano** en cada fichero, en columnas distintas según el tipo
-(lo dice el correo):
+compra, Silvia tiene que **cambiar ese código a mano** en cada fichero. Quiere **elegir la sociedad** al podar
+y que el sistema **reescriba** ese código en las columnas que toquen.
 
-| Fichero | Dónde va la sociedad (según Silvia, columna 1-based) |
-|---|---|
-| Materiales | columnas **2 y 3** |
-| Tarifa **A906** | columna **3** |
-| Tarifa **A073** | **no la lleva** → se queda igual |
-| Surtidos | columna **2** |
+**Columnas de la sociedad — VERIFICADAS contra los ficheros del 24/07** (0-based, lo que usa el lector):
 
-Quiere **elegir la sociedad** al podar y que el sistema **reescriba** ese código en las columnas que toquen.
+| Fichero | Sociedad | Índice real (0-based) | Nota |
+|---|---|---|---|
+| Materiales | `EKORG` | **idx1 y idx2** (cols 2 y 3) | coincide con Silvia ✓ |
+| Surtidos | `EKORG` | **idx1** (col 2) | coincide con Silvia ✓ |
+| Tarifa **A906** | `VKORG` | **idx4** (col 5) | ⚠ Silvia dijo "col 3", pero esa es `KSCHL` (clase de condición = `PR00`). La sociedad real es **VKORG (idx4)**. **Reescribir la col 3 corrompería el fichero en SAP.** |
+| Tarifa **A073** | — | — | no la lleva → no se toca |
+
+> Este es justo el riesgo "no falla, miente" del REQ: fiarse del conteo de columnas de memoria habría
+> reescrito la columna equivocada de A906 y subido a SAP un fichero corrupto **en silencio**. Por eso se
+> verificó contra los ficheros reales. La reescritura debe hacerse por estos índices, no por el conteo.
 
 ### 2. Elegir los surtidos (no arrastrar los del fichero)
 Hoy el fichero de surtidos trae los **surtidos por defecto** que propone Access — muchos, y **la mayoría no
@@ -100,28 +104,30 @@ Dos transformaciones, con **riesgo muy distinto**:
   prevén más sociedades, un mini-CRUD como el de destinos. Recomendación: **selector simple ahora**, catálogo
   sólo si aparece la tercera.
 
-## Preguntas abiertas y riesgos
+## Decisiones cerradas (con Pablo/Silvia, 24/07)
 
-1. **🔴 El nudo — surtidos y la regla "no inventar".** ¿Modo **(a) filtrar** lo que el fichero ya trae, o
-   **(b) inyectar** el surtido elegido? Cambia el diseño entero. Recomendado (a) primero. **Decisión de Pablo/
-   Silvia.**
-2. **Columnas de sociedad — verificar el índice exacto.** Silvia cuenta en 1-based ("2ª y 3ª"); el lector usa
-   posiciones 0-based concretas (`materiales matnrCol:6, colorCol:29`…). Hay que **localizar la columna real de
-   sociedad en cada `.txt`** (con los adjuntos del correo) antes de reescribir. Reescribir la columna
-   equivocada sería un error silencioso subido a SAP.
-3. **¿La sociedad afecta a algo más que la columna?** (¿el maestro, las refs, las tarifas cambian por
-   sociedad, o es sólo ese código?) Confirmar que es un simple cambio de campo.
-4. **Clave de la BD de surtidos** (ver opciones). Sin la clave clara, el catálogo no se puede modelar.
-5. **Regla del proyecto — "¿cómo me enteraría si miente?"** Si la poda reescribe la sociedad en la columna
-   equivocada, o elige un surtido que no era, el fichero **sube a SAP mal en silencio**. La transformación
-   debe **validar** (columna esperada presente, surtido elegido existente) y **reportar** en vez de producir
-   salida dudosa — como ya hace REQ-005 con `compradoQueFalta`.
+1. **🔴 El nudo — surtidos: modo (a) FILTRAR.** Se filtran **sólo los surtidos que el fichero ya trae** (los
+   que correspondan a la elección), **en el mismo formato**. NO se inyecta ni se compone nada — es justo la
+   tarea de podar. Respeta la regla de oro "no inventar". *(El modo (b) inyectar queda descartado.)*
+2. **Columnas de sociedad — VERIFICADAS** (ver tabla arriba). Materiales idx1/idx2, surtidos idx1, **A906
+   idx4 (VKORG)** — corrige el "col 3" del correo, que era `KSCHL`. A073 no la lleva. La reescritura va por
+   estos índices.
+3. **La sociedad es SÓLO ese código** — no toca maestro, refs ni precios. Simple reemplazo de campo.
+4. **Selector de sociedad FIJO** (`2000` / `4000`) — no hace falta CRUD (sólo si aparece una tercera).
+5. **Clave de la BD de surtidos: por REFERENCIA.** El surtido se asigna por ref (los rangos `76*`/`860*` del
+   correo son un caso de eso). Un surtido por referencia.
+6. **El catálogo de surtidos lo rellena Silvia a mano** (CRUD desde la web, patrón REQ-004 — dato suyo). No
+   hay import automático desde Access.
+
+## Riesgo que se mantiene (regla del proyecto)
+
+- **"¿Cómo me enteraría si miente?"** La reescritura de sociedad y el filtro de surtidos deben **validar**
+  (que la columna esperada está donde se cree; que el surtido elegido existe en el fichero) y **reportar** en
+  vez de producir salida dudosa — como ya hace REQ-005 con `compradoQueFalta` / `comprasSinColor` (BUG-006).
 
 ## Próximos pasos
 
-1. **Cerrar el modo de surtidos** (a) vs (b) con Silvia — es lo que desbloquea la Fase 2.
-2. **Verificar la columna de sociedad** real en cada fichero adjunto (materiales, A906, surtidos) y confirmar
-   que A073 no la lleva.
-3. **Definir la clave de la BD de surtidos** (rango de ref / familia / modelo-color-ref) con casos reales.
-4. **Implementar Fase 1 (sociedad):** selector + reescritura por formato + validación defensiva + test.
-5. **Diseñar e implementar Fase 2 (surtidos):** CRUD de BD de surtidos (patrón REQ-004) + selección al podar.
+1. **Implementar Fase 1 (sociedad):** selector fijo + reescritura por los índices verificados (materiales
+   idx1/idx2, surtidos idx1, A906 idx4; A073 no) + validación defensiva (columna esperada presente) + test.
+2. **Diseñar el detalle de la Fase 2 (surtidos):** modelo de la BD de surtidos con clave **por ref** + CRUD
+   (patrón REQ-004) + filtro de surtidos al podar (modo a) manteniendo el formato + test.
