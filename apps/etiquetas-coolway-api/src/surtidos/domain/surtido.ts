@@ -16,7 +16,11 @@ export function validateSurtido(input: { ref: string; surtido: string }): Surtid
   if (ref.length !== 7) {
     throw new SurtidoInvalidoError(`La referencia "${input.ref}" no tiene 7 dígitos: no se puede asignar el surtido.`);
   }
-  const surtido = String(input.surtido ?? '').trim();
+  // El SURTD de SAP es en MAYÚSCULAS; la poda casa el código exacto, así que se normaliza para que un
+  // "0g2" tecleado no deje de casar con el "0G2" del fichero (fallo silencioso: no filtraría nada).
+  const surtido = String(input.surtido ?? '')
+    .trim()
+    .toUpperCase();
   if (!surtido) throw new SurtidoInvalidoError('El código de surtido (SURTD) no puede quedar vacío.');
   return { ref, surtido };
 }

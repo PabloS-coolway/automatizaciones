@@ -47,7 +47,9 @@ export class SurtidosService {
   async update(id: number, dto: UpdateSurtidoDto, actor: Actor): Promise<Surtido & { id: number }> {
     const actual = await this.repo.findById(id);
     if (!actual) throw new SurtidoInvalidoError(`No existe el surtido #${id}.`);
-    const surtido = String(dto.surtido ?? '').trim();
+    const surtido = String(dto.surtido ?? '')
+      .trim()
+      .toUpperCase();
     if (!surtido) throw new SurtidoInvalidoError('El código de surtido (SURTD) no puede quedar vacío.');
 
     return this.prisma.$transaction(async (tx) => {
