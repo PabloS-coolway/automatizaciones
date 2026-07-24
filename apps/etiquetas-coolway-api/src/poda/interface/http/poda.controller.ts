@@ -1,11 +1,12 @@
 import { readFile, unlink } from 'node:fs/promises';
-import { BadRequestException, Controller, Post, UploadedFiles, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Inject, Post, UploadedFiles, UseInterceptors } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
-import { PodaResponse } from '@yorga/contracts';
+import { PodaResponse, SOCIEDADES, SociedadCodigo } from '@yorga/contracts';
 import { leerBorrador } from '../../infrastructure/borrador-reader';
 import { podarFicheros } from '../../application/podar-ficheros.use-case';
 import { RefInvalidaError } from '../../domain/familia';
 import { RequireFeature } from '../../../auth/interface/http/decorators';
+import { SURTIDO_REPOSITORY, SurtidoRepository } from '../../../surtidos/application/ports';
 
 type Subidos = { borrador?: Express.Multer.File[]; ficheros?: Express.Multer.File[] };
 
@@ -17,13 +18,23 @@ type Subidos = { borrador?: Express.Multer.File[]; ficheros?: Express.Multer.Fil
 @RequireFeature('maestro.cargar')
 @Controller('poda')
 export class PodaController {
+  constructor(@Inject(SURTIDO_REPOSITORY) private readonly surtidos: SurtidoRepository) {}
+
   @Post()
   @UseInterceptors(FileFieldsInterceptor([{ name: 'borrador', maxCount: 1 }, { name: 'ficheros', maxCount: 20 }]))
-  async podar(@UploadedFiles() files: Subidos): Promise<PodaResponse> {
+  async podar(@UploadedFiles() files: Subidos, @Body('sociedad') sociedadRaw?: string): Promise<PodaResponse> {
     const borradorFile = files.borrador?.[0];
     const ficheros = files.ficheros ?? [];
     if (!borradorFile) throw new BadRequestException('Falta el borrador de prepedidos (Excel).');
     if (ficheros.length === 0) throw new BadRequestException('Sube al menos un fichero de SAP (.txt).');
+
+    // REQ-010 · sociedad opcional; si viene, debe ser una del catálogo cerrado (no texto libre).
+    let sociedad: SociedadCodigo | undefined;
+    if (sociedadRaw) {
+      const encontrada = SOCIEDADES.find((s) => s.codigo === sociedadRaw);
+      if (!encontrada) throw new BadRequestException(`Sociedad desconocida: "${sociedadRaw}".`);
+      sociedad = encontrada.codigo;
+    }
 
     try {
       const borrador = await leerBorrador(borradorFile.path);
@@ -32,7 +43,15 @@ export class PodaController {
         ficheros.map(async (f) => ({ nombre: f.originalname, contenido: await readFile(f.path, 'latin1') })),
       );
 
-      const { compras, ficheros: podados, sinReconocer, comprasSinColor } = podarFicheros(borrador, entradas);
+      // REQ-010 · Fase 2 — asignaciones de surtido por ref (las gestiona Silvia); la poda deja sólo el SURTD elegido.
+      const surtidosAsignados = (await this.surtidos.findAll()).map((s) => ({ ref: s.ref, surtido: s.surtido }));
+
+      const { compras, ficheros: podados, sinReconocer, comprasSinColor } = podarFicheros(
+        borrador,
+        entradas,
+        sociedad,
+        surtidosAsignados,
+      );
       return {
         compras: compras.length,
         sinReconocer,
@@ -43,6 +62,7 @@ export class PodaController {
           conservadas: p.conservadas,
           retiradas: p.retiradas,
           compradoQueFalta: p.compradoQueFalta,
+          sociedadSospechosa: p.sociedadSospechosa,
           podadoBase64: Buffer.from(p.podado, 'latin1').toString('base64'),
         })),
       };

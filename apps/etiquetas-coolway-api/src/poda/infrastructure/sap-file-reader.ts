@@ -3,12 +3,25 @@ import { FilaSap } from '../domain/poda';
 /** Los cuatro ficheros de SAP que se podan, con dónde está su `MATNR` (familia) y su color (si lo trae). */
 export type TipoFicheroSap = 'materiales' | 'surtidos' | 'tarifa906' | 'tarifa073';
 
-const FORMATOS: Record<TipoFicheroSap, { matnrCol: number; colorCol?: number }> = {
-  materiales: { matnrCol: 6, colorCol: 29 },
-  surtidos: { matnrCol: 4, colorCol: 6 },
-  tarifa906: { matnrCol: 7 }, // tarifas: una fila por familia, sin color
-  tarifa073: { matnrCol: 4 },
+/**
+ * `sociedadCols` (REQ-010 · Fase 1): índices 0-based donde va el código de sociedad, **verificados contra
+ * los ficheros reales del 24/07**. Ojo A906: la sociedad es `VKORG` (idx4), NO la "col 3" del correo (que es
+ * `KSCHL`). A073 no la lleva. Materiales la repite en idx1 e idx2 (`EKORG`).
+ */
+const FORMATOS: Record<
+  TipoFicheroSap,
+  { matnrCol: number; colorCol?: number; surtdCol?: number; sociedadCols: number[] }
+> = {
+  materiales: { matnrCol: 6, colorCol: 29, sociedadCols: [1, 2] },
+  surtidos: { matnrCol: 4, colorCol: 6, surtdCol: 8, sociedadCols: [1] }, // SURTD (idx8): el surtido a filtrar
+  tarifa906: { matnrCol: 7, sociedadCols: [4] }, // tarifas: una fila por familia, sin color
+  tarifa073: { matnrCol: 4, sociedadCols: [] }, // A073 no lleva sociedad
 };
+
+/** REQ-010 · Columnas donde reescribir la sociedad en cada tipo de fichero (ver `FORMATOS`). */
+export function sociedadColsDe(tipo: TipoFicheroSap): number[] {
+  return FORMATOS[tipo].sociedadCols;
+}
 
 /** Adivina el tipo por el nombre del fichero (los exports de SAP tienen nombres reconocibles). */
 export function tipoPorNombre(nombre: string): TipoFicheroSap | null {
@@ -36,7 +49,7 @@ export function leerFicheroSap(contenido: string, tipo: TipoFicheroSap): Fichero
   const lineas = contenido.split(/\r?\n/);
   if (finalConSalto && lineas[lineas.length - 1] === '') lineas.pop(); // el split deja un '' final
 
-  const { matnrCol, colorCol } = FORMATOS[tipo];
+  const { matnrCol, colorCol, surtdCol } = FORMATOS[tipo];
   const filas: FilaSap[] = lineas.map((cruda) => {
     const c = cruda.split('\t');
     const matnr = (c[matnrCol] ?? '').trim();
@@ -46,6 +59,7 @@ export function leerFicheroSap(contenido: string, tipo: TipoFicheroSap): Fichero
       esDato,
       familia: esDato ? matnr : undefined,
       colorSap: esDato && colorCol !== undefined ? (c[colorCol] ?? '').trim() : undefined,
+      surtido: esDato && surtdCol !== undefined ? (c[surtdCol] ?? '').trim() : undefined,
     };
   });
   return { filas, eol, finalConSalto };
