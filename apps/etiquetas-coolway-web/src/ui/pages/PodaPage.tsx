@@ -123,6 +123,15 @@ export function PodaPage() {
                 Se dedujeron <strong>{res.compras}</strong> combinaciones compradas del borrador.
               </p>
 
+              {res.comprasSinColor.length > 0 && (
+                <Alert variant="warning" className="py-2">
+                  ⚠ <strong>{res.comprasSinColor.length} referencia(s) comprada(s) no traen el código de color
+                  (columna «Horma») en el borrador.</strong> Sin él no se puede podar por color
+                  (materiales/surtidos) esas refs — saldrían anuladas. <strong>Rellena la «Horma»</strong> en el
+                  borrador y vuelve a podar. Refs: {res.comprasSinColor.join(', ')}.
+                </Alert>
+              )}
+
               {res.sinReconocer.length > 0 && (
                 <Alert variant="warning" className="py-2">
                   No se reconocieron (no se tocaron): {res.sinReconocer.join(', ')}. ¿Seguro que son ficheros de SAP?

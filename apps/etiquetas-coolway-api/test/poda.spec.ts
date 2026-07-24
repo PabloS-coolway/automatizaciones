@@ -1,5 +1,5 @@
 import { familiaDeRef, normalizeColor, RefInvalidaError } from '../src/poda/domain/familia';
-import { comprasDelBorrador, podar, FilaSap, LineaBorrador } from '../src/poda/domain/poda';
+import { comprasDelBorrador, comprasSinColor, podar, FilaSap, LineaBorrador } from '../src/poda/domain/poda';
 
 // La tabla que mandó Silvia (correo FUNCIONES · 21/07): ref color → familia esperada.
 const CHICA = [
@@ -97,5 +97,36 @@ describe('podar · deja sólo lo comprado y avisa de lo que falta', () => {
     const r = podar(tarifas, compras);
     expect(r.conservadas).toEqual(['A']);
     expect(r.retiradas).toBe(1);
+  });
+});
+
+describe('BUG-006 · borrador con la Horma (color SAP) vacía → avisar, no mentir', () => {
+  // Caso real (correo «FICHERO DE MATERIALES…», 23/07): Silvia sube un borrador donde la columna Horma
+  // viene VACÍA (el color sólo está como nombre). Sin el código no se puede cruzar por color.
+  const BORRADOR: LineaBorrador[] = [
+    { ourRef: '7613553', colorSap: '', suma: 13 }, // comprada, SIN color → familia 76035530
+    { ourRef: '8613553', colorSap: '  ', suma: 13 }, // comprada, SIN color (espacios) → 86035530
+    { ourRef: '7663425', colorSap: '766', suma: 13 }, // comprada, CON color (normal)
+    { ourRef: '7683400', colorSap: '', suma: 0 }, // continuativo: no cuenta aunque no tenga color
+  ];
+
+  it('comprasSinColor lista las refs compradas cuyo color viene vacío (no los continuativos)', () => {
+    expect(comprasSinColor(BORRADOR)).toEqual(['7613553', '8613553']);
+  });
+
+  it('una compra SIN color NO se cuela en compradoQueFalta del fichero con color (no es "fichero incompleto")', () => {
+    // Es el corazón del bug: si se colara, el sistema diría "0 líneas · no aparece" (parece fichero
+    // incompleto) cuando el problema es que FALTA el color en el borrador. Romper el filtro → este test cae.
+    const compras = comprasDelBorrador(BORRADOR); // incluye las sin color, con colorSap=''
+    const materiales: FilaSap[] = [{ familia: '76034250', colorSap: '766', cruda: 'X', esDato: true }];
+    const r = podar(materiales, compras);
+    expect(r.conservadas).toEqual(['X']); // la comprada CON color sí se conserva
+    expect(r.compradoQueFalta).toEqual([]); // las 2 sin color NO se reportan aquí (se avisan aparte)
+  });
+
+  it('REGRESIÓN tarifas: una compra sin color SIGUE conservando su familia (las tarifas casan por familia)', () => {
+    const compras = comprasDelBorrador(BORRADOR);
+    const tarifas: FilaSap[] = [{ familia: '76035530', cruda: 'T', esDato: true }]; // familia de 7613553
+    expect(podar(tarifas, compras).conservadas).toEqual(['T']);
   });
 });
