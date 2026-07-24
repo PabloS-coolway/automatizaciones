@@ -9,13 +9,14 @@ import { MaestroExcelSerializer } from '../../maestro/infrastructure/maestro-exc
 import { AuthModule } from '../../auth/auth.module';
 import { DestinationsController } from '../../destinos/interface/http/destinations.controller';
 import { PodaController } from '../../poda/interface/http/poda.controller';
+import { SurtidosController } from '../../surtidos/interface/http/surtidos.controller';
 import { ActividadController } from '../../actividad/interface/http/actividad.controller';
 import { ActivityQueryService } from '../../actividad/application/activity-query.service';
 
 /** Módulo de la API HTTP: auth (guards globales) + proveedores comunes + subida de ficheros + controladores. */
 @Module({
   imports: [AuthModule, MulterModule.register({ dest: tmpdir() })],
-  controllers: [LabelsController, MaestroController, DestinationsController, PodaController, ActividadController],
+  controllers: [LabelsController, MaestroController, DestinationsController, PodaController, SurtidosController, ActividadController],
   providers: [...coreProviders, MaestroQuery, MaestroExcelSerializer, ActivityQueryService],
 })
 export class HttpModule {}

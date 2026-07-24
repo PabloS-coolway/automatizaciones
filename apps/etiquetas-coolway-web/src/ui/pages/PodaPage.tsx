@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Alert, Button, Card, Spinner } from 'react-bootstrap';
+import { Alert, Button, Card, Form, Spinner } from 'react-bootstrap';
 import { ArrowLeft, Download, FileEarmarkExcel, FileEarmarkText, Scissors } from 'react-bootstrap-icons';
-import type { FicheroPodadoDto, PodaResponse } from '@yorga/contracts';
+import { SOCIEDADES, type FicheroPodadoDto, type PodaResponse, type SociedadCodigo } from '@yorga/contracts';
 import { podaGateway } from '../composition';
 import { FileDropzone } from '../components/FileDropzone';
 
@@ -31,6 +31,7 @@ function descargar(f: FicheroPodadoDto) {
 export function PodaPage() {
   const [borrador, setBorrador] = useState<File[]>([]);
   const [ficheros, setFicheros] = useState<File[]>([]);
+  const [sociedad, setSociedad] = useState<SociedadCodigo | ''>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [res, setRes] = useState<PodaResponse | null>(null);
@@ -41,7 +42,7 @@ export function PodaPage() {
     setError('');
     setLoading(true);
     try {
-      setRes(await podaGateway.podar(borrador[0], ficheros));
+      setRes(await podaGateway.podar(borrador[0], ficheros, sociedad || undefined));
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -53,6 +54,7 @@ export function PodaPage() {
     setRes(null);
     setBorrador([]);
     setFicheros([]);
+    setSociedad('');
   }
 
   return (
@@ -93,6 +95,21 @@ export function PodaPage() {
                 />
               </div>
             </div>
+
+            <Form.Group className="mt-4" controlId="poda-sociedad">
+              <Form.Label className="small fw-semibold mb-1">Sociedad</Form.Label>
+              <Form.Select size="sm" value={sociedad} onChange={(e) => setSociedad(e.target.value as SociedadCodigo | '')}>
+                <option value="">No cambiar (dejar la que traen los ficheros)</option>
+                {SOCIEDADES.map((s) => (
+                  <option key={s.codigo} value={s.codigo}>
+                    {s.nombre} ({s.codigo})
+                  </option>
+                ))}
+              </Form.Select>
+              <Form.Text className="text-secondary">
+                Si eliges una, la poda reescribe el código de sociedad en los ficheros (A073 no la lleva).
+              </Form.Text>
+            </Form.Group>
 
             <Button type="button" className="btn-brand w-100 py-2 mt-4" disabled={loading || !ready} onClick={onPodar}>
               {loading ? (
@@ -152,6 +169,12 @@ export function PodaPage() {
                         <div className="small text-danger mt-1">
                           ⚠ {f.compradoQueFalta.length} combinación(es) comprada(s) NO aparecen en este fichero
                           (venía incompleto): {f.compradoQueFalta.map((c) => `${c.familia}/${c.colorSap}`).join(', ')}
+                        </div>
+                      )}
+                      {f.sociedadSospechosa > 0 && (
+                        <div className="small text-danger mt-1">
+                          ⚠ No se pudo reescribir la sociedad en {f.sociedadSospechosa} línea(s): la columna
+                          esperada no traía un código de sociedad. Revisa el fichero antes de subirlo a SAP.
                         </div>
                       )}
                     </div>

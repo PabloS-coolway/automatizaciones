@@ -3,6 +3,33 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-24] REQ-010 · Poda configurable: elegir sociedad y surtidos (Fases 1 y 2)
+
+La poda de REQ-005 pasa de "sólo filtrar" a "filtrar + configurar", con dos cosas que Silvia hacía a mano
+fichero a fichero. **Nunca compone una línea nueva:** reescribe un campo que ya existe (sociedad) o deja
+pasar sólo lo elegido (surtidos).
+
+### Añadido · Fase 1 · Sociedad
+- **Selector de sociedad** (VANYOR `2000` / COOLWAY USA `4000`) al podar. La poda **reescribe** el código en
+  las columnas **verificadas contra los ficheros reales**: materiales `idx1/idx2`, surtidos `idx1`, tarifa
+  **A906 `idx4` (VKORG)** — no la "col 3" del correo, que es `KSCHL`; A073 no la lleva.
+- **Defensivo (regla "no falla, miente"):** sólo reescribe una columna que **ya contiene** un código de
+  sociedad; si no, **no la toca y avisa** («no se pudo reescribir la sociedad en N líneas»), para no subir a
+  SAP un fichero corrupto en silencio.
+
+### Añadido · Fase 2 · Surtidos
+- **Catálogo de surtidos** (`ref → SURTD`), gestionable desde la web (pantalla **Surtidos**, patrón REQ-004),
+  con su tabla `surtido`. Silvia asigna **un surtido por referencia**; toda mutación queda en el log de
+  actividad (REQ-007).
+- Al podar, el fichero de surtidos conserva **sólo el `SURTD` asignado** a cada ref (vía el mapa
+  `(familia,color)→ref` del borrador), en vez de arrastrar todos los que propone Access. Sin asignación para
+  una ref, se conservan todos (opt-in por ref). Requiere `maestro.cargar`.
+
+### Verificado
+- typecheck + build + **211 tests API** + web (cobertura 98%). Regla de sociedad y filtro de surtidos
+  verificados **rompiéndolos a propósito** (los tests caen). **Pendiente:** aplicar la migración `surtido` y
+  probar en vivo (curl + navegador) al desplegar.
+
 ## [2026-07-24] BUG-006 · Poda: borrador sin código de color (Horma vacía) — avisar, no mentir
 
 Silvia podó el bor.14 (608 reg) y salieron **0 líneas** en materiales, con las compras marcadas como "no
