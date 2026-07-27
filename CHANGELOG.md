@@ -3,6 +3,25 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-27] REQ-008 · RRHH Fase 2 (Slice 1) — motor de fichaje
+
+Arranca la Fase 2 (fichajes), el módulo de mayor valor operativo: digitaliza el parte diario.
+
+### Añadido
+- **Fichar** entrada/salida e inicio/fin de pausa, con **marca de tiempo del servidor** (nunca del
+  dispositivo). Registro **solo-añadir** (`hr_time_entry`): un fichaje no se edita ni se borra.
+- **Máquina de estados pura** (`domain/fichaje.ts`): rechaza transiciones imposibles (entrar dos veces, salir
+  sin haber entrado) — así el cómputo no miente — y calcula el estado y los **minutos trabajados** (resta la
+  pausa; si la jornada sigue abierta, cuenta hasta ahora).
+- **Página «Fichar»** pensada para el **móvil**: pocos botones grandes según el estado, "trabajados hoy" y los
+  marcajes del día. En el sidebar sólo aparece para empleados.
+
+### Verificado
+- typecheck + **256 tests API** (dominio de fichaje + servicio, con **break-on-purpose** de la validación de
+  transición) + web + build.
+- **En vivo:** ciclo IN → pausa → volver → OUT correcto; **el IN repetido y un marcaje inventado devuelven 400
+  y no dejan asiento** (integridad append-only). *La migración `hr_time_entry` se aplica sola en el deploy.*
+
 ## [2026-07-27] REQ-008 · RRHH Fase 1 (Slice 2) — organigrama + centros/departamentos
 
 Cierra la Fase 1 de RRHH: la estructura organizativa y su vista.

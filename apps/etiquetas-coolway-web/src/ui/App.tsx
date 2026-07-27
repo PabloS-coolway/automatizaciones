@@ -10,6 +10,7 @@ import { RolesPage } from './pages/RolesPage';
 import { PodaPage } from './pages/PodaPage';
 import { SurtidosPage } from './pages/SurtidosPage';
 import { PersonasPage } from './pages/PersonasPage';
+import { FicharPage } from './pages/FicharPage';
 import { ActividadPage } from './pages/ActividadPage';
 import { DestinosPage } from './pages/DestinosPage';
 import { AuthProvider } from './auth/AuthContext';
@@ -28,6 +29,7 @@ export function App() {
               <Route path="/etiquetas" element={<EtiquetasPage />} />
               <Route path="/maestro" element={<BaseDatosPage />} />
               <Route path="/personas" element={<PersonasPage />} />
+              <Route path="/fichar" element={<FicharPage />} />
               <Route path="/plantillas" element={<ComingSoonPage title="Plantillas de ventas" />} />
               <Route element={<RequireFeature feature="usuarios.gestionar" />}>
                 <Route path="/usuarios" element={<UsuariosPage />} />

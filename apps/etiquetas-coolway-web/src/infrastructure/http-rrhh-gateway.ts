@@ -5,6 +5,8 @@ import type {
   CreateEmployeeDto,
   DepartmentDto,
   EmployeeDto,
+  FicharDto,
+  JornadaHoyDto,
   RrhhMeDto,
   UpdateCenterDto,
   UpdateDepartmentDto,
@@ -106,5 +108,19 @@ export class HttpRrhhGateway {
   async borrarDepartamento(id: number): Promise<void> {
     const res = await apiFetch(`/rrhh/departamentos/${id}`, { method: 'DELETE' });
     if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo borrar el departamento.'));
+  }
+
+  // ---- Fichajes ----
+
+  async jornadaHoy(): Promise<JornadaHoyDto> {
+    const res = await apiFetch('/rrhh/fichajes/hoy');
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo cargar tu jornada de hoy.'));
+    return res.json();
+  }
+
+  async fichar(input: FicharDto): Promise<JornadaHoyDto> {
+    const res = await apiFetch('/rrhh/fichajes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo registrar el fichaje.'));
+    return res.json();
   }
 }
