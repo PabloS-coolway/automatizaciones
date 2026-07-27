@@ -3,6 +3,35 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-27] REQ-008 · Módulo RRHH — diseño + Fase 0 (cimientos)
+
+Arranca el módulo de Recursos Humanos que pidió el Comité (tipo Factorial acotado). Este bloque deja el
+**diseño de la Fase 1** cerrado y **construida la Fase 0 (cimientos)**: el módulo ya existe, aislado del resto
+del panel, compartiendo **sólo la identidad** (login/usuario por correo).
+
+### Documentación
+- **Diseño de REQ-008 Fase 1** (`diseño/iniciativas/REQ-008-rrhh-fase-1/diseño.md`), a partir del análisis del
+  Comité (`docs/requerimientos/Analisis_Requerimientos_RRHH_Yorga.docx`). Frontera de acoplamiento explícita:
+  se comparte la identidad; roles, log, ficha, organigrama, fichajes y ausencias son **independientes** (no
+  reutiliza REQ-006). Decisiones cerradas: móvil sí, organigrama multimarca, la cuenta la crea RRHH, nómina
+  pendiente, retención con asesoría.
+
+### Añadido (Fase 0 · cimientos)
+- **Modelo de datos propio** (`hr_employee`, `hr_department`, `hr_center`) + migración. El empleado se enlaza
+  1:1 con el `User` del login por correo; la baja **archiva** (`active=false`), no borra. Campos bancarios
+  opcionales, preparados para una futura nómina.
+- **Roles RRHH jerárquicos** (Empleado / Manager / RRHH / Admin) con **visibilidad por organigrama**: un
+  responsable ve **su rama completa** (directos e indirectos), RRHH/Admin toda la plantilla, el empleado sólo
+  a sí mismo. Regla pura y **testeada con break-on-purpose**.
+- **API** `GET /api/rrhh/me`, `GET /api/rrhh/empleados` (según visibilidad) y `POST /api/rrhh/empleados` (alta
+  por RRHH, enlazando a un usuario existente — RRHH **no crea logins**), con un guard que exige ser empleado.
+- **Web**: área **«Personas»** en el panel (ficha propia + plantilla visible + alta para RRHH).
+
+### Verificado
+- typecheck + build + **227 tests API** + web (cobertura 98%). Visibilidad jerárquica y validaciones del alta
+  verificadas; la regla del manager, **rompiéndola a propósito** (el test cae). *La migración se aplica sola en
+  el deploy.*
+
 ## [2026-07-24] REQ-010 · Poda configurable: elegir sociedad y surtidos (Fases 1 y 2)
 
 La poda de REQ-005 pasa de "sólo filtrar" a "filtrar + configurar", con dos cosas que Silvia hacía a mano

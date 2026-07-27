@@ -48,6 +48,10 @@ const NAV: NavGroup[] = [
     ],
   },
   {
+    title: 'Personas',
+    items: [{ to: '/personas', label: 'Personas', icon: <PersonCircle />, ready: true }],
+  },
+  {
     title: 'Administración',
     items: [
       { to: '/usuarios', label: 'Usuarios', icon: <People />, ready: true, feature: 'usuarios.gestionar' },
