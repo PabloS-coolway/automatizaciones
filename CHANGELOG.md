@@ -3,6 +3,29 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-27] REQ-008 · RRHH Fase 1 (Slice 1) — ficha completa + log propio
+
+Con la Fase 0 (cimientos: identidad + roles jerárquicos + esqueleto "Personas") ya en `main`, este bloque
+completa la **gestión de la ficha del empleado** y estrena el **log de actividad propio de RRHH**.
+
+### Añadido
+- **Editar ficha, dar de baja/reactivar y asignar responsable** (organigrama). La baja **archiva** (marca
+  `terminatedAt`, no borra) y conserva histórico; reactivar lo revierte.
+- **Guardia anti-ciclo** (`crearíaCiclo`): un subordinado (directo o indirecto) no puede pasar a ser el
+  responsable de su propio jefe — el organigrama nunca queda imposible. Devuelve 400 con mensaje claro.
+- **Log de actividad PROPIO de RRHH** (`hr_activity`, append-only): cada alta/edición/baja/reactivación deja
+  un asiento (actor, acción, antes→después, resumen) en la **misma transacción** que el cambio. Replica el
+  patrón de REQ-007, **no** se cuelga del log del panel (dato personal aislado).
+- **Pantalla «Personas»**: acciones por fila (editar / baja / reactivar), columna de responsable y selector de
+  responsable en el formulario. Alta y edición comparten el mismo modal.
+
+### Verificado
+- typecheck + **232 tests API** + build. `crearíaCiclo` verificado **rompiéndolo a propósito** (los tests de
+  dominio y de servicio caen en rojo). Cobertura de `rrhh.service.ts` 73% ramas / 93% líneas.
+- **En vivo** (curl contra la API real): alta→editar→asignar responsable→baja→reactivar deja **4 asientos** en
+  `hr_activity`; el intento de ciclo devuelve **400 y no deja asiento** (el log no miente). *La migración se
+  aplica sola en el deploy.*
+
 ## [2026-07-27] REQ-011 · Surtidos por prefijo de referencia (rediseña REQ-010 Fase 2)
 
 Silvia probó los surtidos por referencia (REQ-010 Fase 2) y dijo que era "un rollo". Los quería **por

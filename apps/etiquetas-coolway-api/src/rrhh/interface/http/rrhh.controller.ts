@@ -1,5 +1,5 @@
-import { BadRequestException, Body, Controller, ForbiddenException, Get, Post, UseGuards } from '@nestjs/common';
-import { CreateEmployeeDto, EmployeeDto, RrhhMeDto } from '@yorga/contracts';
+import { BadRequestException, Body, Controller, ForbiddenException, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { CreateEmployeeDto, EmployeeDto, RrhhMeDto, UpdateEmployeeDto } from '@yorga/contracts';
 import { CurrentUser } from '../../../auth/interface/http/decorators';
 import { JwtPayload } from '../../../auth/application/auth.service';
 import { EmployeeRow } from '../../application/ports';
@@ -22,9 +22,20 @@ function toDto(e: EmployeeRow): EmployeeDto {
   };
 }
 
+/** Sólo RRHH/Admin gestionan la plantilla. */
+function exigeGestion(actor: EmployeeRow): void {
+  if (!gestionaPlantilla(actor.rrhhRole)) throw new ForbiddenException('Sólo RRHH o Admin pueden gestionar la plantilla.');
+}
+
+/** Un dato inválido es culpa de quien lo manda (400), no un fallo del servidor: se dice qué pasa. */
+function traducir(e: unknown): never {
+  if (e instanceof RrhhError) throw new BadRequestException(e.message);
+  throw e;
+}
+
 /**
- * REQ-008 · Fase 0 — puerta del módulo RRHH. `me` sirve a cualquier usuario autenticado (para que la web sepa
- * si es empleado y con qué rol); el resto exige ficha de empleado (`RrhhGuard`) y, para el alta, rol RRHH.
+ * REQ-008 · Puerta del módulo RRHH. `me` sirve a cualquier usuario autenticado; el resto exige ficha de
+ * empleado (`RrhhGuard`) y, para gestionar la plantilla (alta/edición/baja/reactivación), rol RRHH/Admin.
  */
 @Controller('rrhh')
 export class RrhhController {
@@ -45,14 +56,28 @@ export class RrhhController {
   @Post('empleados')
   @UseGuards(RrhhGuard)
   async crear(@RrhhActor() actor: EmployeeRow, @Body() dto: CreateEmployeeDto): Promise<EmployeeDto> {
-    if (!gestionaPlantilla(actor.rrhhRole)) {
-      throw new ForbiddenException('Sólo RRHH o Admin pueden dar de alta empleados.');
-    }
-    try {
-      return toDto(await this.service.crear(dto));
-    } catch (e) {
-      if (e instanceof RrhhError) throw new BadRequestException(e.message);
-      throw e;
-    }
+    exigeGestion(actor);
+    return toDto(await this.service.crear(dto, { email: actor.email }).catch(traducir));
+  }
+
+  @Patch('empleados/:id')
+  @UseGuards(RrhhGuard)
+  async editar(@RrhhActor() actor: EmployeeRow, @Param('id') id: string, @Body() dto: UpdateEmployeeDto): Promise<EmployeeDto> {
+    exigeGestion(actor);
+    return toDto(await this.service.editar(Number(id), dto, { email: actor.email }).catch(traducir));
+  }
+
+  @Post('empleados/:id/baja')
+  @UseGuards(RrhhGuard)
+  async baja(@RrhhActor() actor: EmployeeRow, @Param('id') id: string): Promise<EmployeeDto> {
+    exigeGestion(actor);
+    return toDto(await this.service.darDeBaja(Number(id), { email: actor.email }).catch(traducir));
+  }
+
+  @Post('empleados/:id/reactivar')
+  @UseGuards(RrhhGuard)
+  async reactivar(@RrhhActor() actor: EmployeeRow, @Param('id') id: string): Promise<EmployeeDto> {
+    exigeGestion(actor);
+    return toDto(await this.service.reactivar(Number(id), { email: actor.email }).catch(traducir));
   }
 }

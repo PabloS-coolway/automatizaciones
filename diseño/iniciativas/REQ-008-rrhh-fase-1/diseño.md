@@ -137,6 +137,20 @@ Digitaliza el parte diario que hoy se firma en papel. Se acaban los partes físi
   coordinación con fichaje.
 - **Fase 4 · Refinos** — notificaciones (app+correo), informes/exportación, pulido móvil.
 
+## Estado de implementación
+
+- **Fase 0 · Cimientos** — ✅ **hecho y en `main`.** `Employee`/`Department`/`Center`, enlace de identidad por
+  correo, `RrhhRole` + guard jerárquico (`empleadosVisibles`), esqueleto del área "Personas".
+- **Fase 1 · Empleados + organigrama** — 🚧 **en curso.**
+  - **Slice 1 · Ficha completa + log propio** — ✅ **hecho** (esta rama). Editar ficha, **dar de baja/reactivar**
+    (archiva, no borra: `terminatedAt`), **asignar responsable** con **guardia anti-ciclo** (`crearíaCiclo`), y
+    **log de actividad PROPIO de RRHH** (`hr_activity`, append-only, en la misma transacción que el cambio;
+    patrón REQ-007 replicado, no reutilizado). Verificado en vivo (alta→editar→responsable→baja→reactivar, 4
+    asientos de auditoría; el intento de ciclo devuelve 400 y **no** deja asiento). Break-on-purpose sobre
+    `crearíaCiclo` confirmado en rojo.
+  - **Slice 2 · Organigrama + centros/departamentos** — ⏳ pendiente: organigrama visual navegable (multimarca
+    segmentado), gestión de centros/departamentos, y ocultar "Personas" del sidebar a quien no es empleado.
+
 ## Próximos pasos
 
 1. Subir **REQ-008** en el backlog de 🆕 a 📐 Diseñado.
