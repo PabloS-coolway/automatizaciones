@@ -25,4 +25,13 @@ export class PrismaTimeEntryRepository implements TimeEntryRepository {
     });
     return list.map(toRow);
   }
+
+  async listBetweenMany(employeeIds: number[], desde: Date, hasta: Date): Promise<TimeEntryRow[]> {
+    if (employeeIds.length === 0) return [];
+    const list = await this.prisma.timeEntry.findMany({
+      where: { employeeId: { in: employeeIds }, at: { gte: desde, lt: hasta } },
+      orderBy: { at: 'asc' },
+    });
+    return list.map(toRow);
+  }
 }

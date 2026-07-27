@@ -3,7 +3,10 @@ import { MARCAJE_LABELS, type Marcaje } from '@yorga/contracts';
 import { TIME_ENTRY_REPOSITORY, TimeEntryRepository, TimeEntryRow } from './ports';
 import { RrhhError } from './rrhh.service';
 import {
+  agruparPorDia,
+  claveDia,
   estadoActual,
+  jornadaSinCerrar,
   marcajesPosibles,
   minutosTrabajados,
   siguienteEstado,
@@ -25,6 +28,23 @@ export interface Jornada {
   fecha: Date;
   estado: EstadoJornada;
   posibles: Marcaje[];
+  minutosTrabajados: number;
+  fichajes: TimeEntryRow[];
+}
+
+/** Empleado (id + nombre) para acotar el cuadro de mando a la rama visible. */
+export interface EmpleadoBasico {
+  id: number;
+  fullName: string;
+}
+
+export interface Panel {
+  ahora: { employeeId: number; fullName: string; estado: EstadoJornada; minutosTrabajados: number }[];
+  incidencias: { employeeId: number; fullName: string; fecha: string }[];
+}
+
+export interface DiaJornada {
+  fecha: string;
   minutosTrabajados: number;
   fichajes: TimeEntryRow[];
 }
@@ -71,5 +91,59 @@ export class FichajeService {
       minutosTrabajados: minutosTrabajados(fichajes.map(toFichaje), ahora),
       fichajes,
     };
+  }
+
+  /**
+   * Cuadro de mando acotado a `empleados` (la rama que ve quien pregunta): quién está fichado **ahora** (estado
+   * ≠ FUERA hoy) y qué **jornadas de días anteriores quedaron sin cerrar** (últimos 7 días). Una sola consulta.
+   */
+  async panel(empleados: EmpleadoBasico[]): Promise<Panel> {
+    const ahora = new Date();
+    const { desde: hoy0, hasta: mañana0 } = rangoDiaDe(ahora);
+    const desde7 = new Date(hoy0);
+    desde7.setDate(desde7.getDate() - 7);
+
+    const ids = empleados.map((e) => e.id);
+    const rows = await this.repo.listBetweenMany(ids, desde7, mañana0);
+    const porEmp = new Map<number, Fichaje[]>();
+    for (const r of rows) {
+      const arr = porEmp.get(r.employeeId) ?? [];
+      arr.push(toFichaje(r));
+      porEmp.set(r.employeeId, arr);
+    }
+
+    const panel: Panel = { ahora: [], incidencias: [] };
+    for (const e of empleados) {
+      const suyos = porEmp.get(e.id) ?? [];
+      const hoy = suyos.filter((f) => f.at >= hoy0);
+      const estado = estadoActual(hoy);
+      if (estado !== 'FUERA') {
+        panel.ahora.push({ employeeId: e.id, fullName: e.fullName, estado, minutosTrabajados: minutosTrabajados(hoy, ahora) });
+      }
+      const anteriores = suyos.filter((f) => f.at < hoy0);
+      for (const [fecha, delDia] of agruparPorDia(anteriores)) {
+        if (jornadaSinCerrar(delDia)) panel.incidencias.push({ employeeId: e.id, fullName: e.fullName, fecha });
+      }
+    }
+    return panel;
+  }
+
+  /** Histórico personal en `[desde, hasta)`, agrupado por día (minutos trabajados + marcajes), más reciente primero. */
+  async historico(employeeId: number, desde: Date, hasta: Date): Promise<DiaJornada[]> {
+    const rows = await this.repo.listBetween(employeeId, desde, hasta);
+    const porFila = new Map<string, TimeEntryRow[]>();
+    for (const r of rows) {
+      const k = claveDia(r.at);
+      const arr = porFila.get(k) ?? [];
+      arr.push(r);
+      porFila.set(k, arr);
+    }
+    const dias: DiaJornada[] = [];
+    for (const [fecha, filas] of porFila) {
+      // El día ya cerrado: se computa hasta su último marcaje (no hasta "ahora").
+      const ultimo = filas.reduce((max, r) => (r.at > max ? r.at : max), filas[0].at);
+      dias.push({ fecha, minutosTrabajados: minutosTrabajados(filas.map(toFichaje), ultimo), fichajes: filas });
+    }
+    return dias.sort((a, b) => b.fecha.localeCompare(a.fecha));
   }
 }

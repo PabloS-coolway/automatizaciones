@@ -130,3 +130,38 @@ export interface JornadaHoyDto {
   minutosTrabajados: number;
   fichajes: TimeEntryDto[];
 }
+
+/** Un empleado fichado ahora mismo (cuadro de mando). */
+export interface FichandoAhoraDto {
+  employeeId: number;
+  fullName: string;
+  estado: EstadoJornada;
+  minutosTrabajados: number;
+}
+
+/** Una jornada de un día anterior que quedó SIN CERRAR (incidencia a revisar). */
+export interface IncidenciaFichajeDto {
+  employeeId: number;
+  fullName: string;
+  fecha: string;
+}
+
+/** Cuadro de mando de fichajes, acotado a los empleados que el usuario puede ver (su rama del organigrama). */
+export interface PanelFichajeDto {
+  ahora: FichandoAhoraDto[];
+  incidencias: IncidenciaFichajeDto[];
+}
+
+/** Un día del histórico personal: minutos trabajados y sus marcajes. */
+export interface DiaJornadaDto {
+  fecha: string;
+  minutosTrabajados: number;
+  fichajes: TimeEntryDto[];
+}
+
+/** Histórico personal de fichajes en un rango. */
+export interface HistoricoFichajeDto {
+  desde: string;
+  hasta: string;
+  dias: DiaJornadaDto[];
+}
