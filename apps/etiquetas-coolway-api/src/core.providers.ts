@@ -14,6 +14,9 @@ import { DestinationsService } from './destinos/application/destinations.service
 import { ACTIVITY_RECORDER } from './actividad/application/activity-recorder.port';
 import { PrismaActivityRecorder } from './actividad/infrastructure/prisma-activity-recorder';
 import { PrismaDestinationRepository } from './destinos/infrastructure/prisma-destination.repository';
+import { SURTIDO_REPOSITORY } from './surtidos/application/ports';
+import { SurtidosService } from './surtidos/application/surtidos.service';
+import { PrismaSurtidoRepository } from './surtidos/infrastructure/prisma-surtido.repository';
 
 /**
  * Proveedores comunes (hexágono) que comparten la CLI y la API HTTP:
@@ -34,6 +37,9 @@ export const coreProviders: Provider[] = [
   PrismaActivityRecorder,
   { provide: ACTIVITY_RECORDER, useExisting: PrismaActivityRecorder },
   DestinationsService,
+  PrismaSurtidoRepository,
+  { provide: SURTIDO_REPOSITORY, useExisting: PrismaSurtidoRepository },
+  SurtidosService,
   {
     provide: GENERATE_LABELS_USE_CASE,
     useFactory: (order: OrderReaderPort, master: MasterProvider) => new GenerateLabelsUseCase(order, master),

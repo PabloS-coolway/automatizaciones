@@ -1,5 +1,40 @@
 import { familiaDeRef, normalizeColor } from './familia';
 
+/** REQ-010 · Sociedades del grupo. El código es lo que va en el fichero de SAP. */
+export const SOCIEDAD_CODES = ['2000', '4000'] as const;
+export type SociedadCodigo = (typeof SOCIEDAD_CODES)[number];
+
+export function esSociedad(v: string): v is SociedadCodigo {
+  return (SOCIEDAD_CODES as readonly string[]).includes(v);
+}
+
+/**
+ * REQ-010 · Fase 1 — reescribe el código de sociedad en las columnas indicadas de una línea TSV, para poder
+ * elegir la sociedad al podar (todos los ficheros salen con la `2000`). **Defensivo (regla "no falla,
+ * miente"):** SÓLO reescribe una columna que **ya contiene** un código de sociedad conocido; si la columna no
+ * lo trae (el índice no era el de la sociedad para este fichero), NO la toca y lo marca `sospechosa`, para
+ * no subir a SAP un fichero corrupto en silencio. Devuelve la línea (posiblemente reescrita) y si se aplicó.
+ */
+export function reescribirSociedadLinea(
+  cruda: string,
+  cols: number[],
+  sociedad: SociedadCodigo,
+): { linea: string; aplicada: boolean; sospechosa: boolean } {
+  if (cols.length === 0) return { linea: cruda, aplicada: false, sospechosa: false };
+  const campos = cruda.split('\t');
+  let aplicada = false;
+  let sospechosa = false;
+  for (const col of cols) {
+    if (esSociedad((campos[col] ?? '').trim())) {
+      campos[col] = sociedad;
+      aplicada = true;
+    } else {
+      sospechosa = true; // la columna esperada no traía una sociedad → no se toca, se avisa
+    }
+  }
+  return { linea: campos.join('\t'), aplicada, sospechosa };
+}
+
 /** Una línea del borrador de prepedidos (lo que realmente se compró se lee de aquí). */
 export interface LineaBorrador {
   /** `Our Reference`: la ref color-a-color (7 dígitos). */
@@ -22,6 +57,8 @@ export interface FilaSap {
   familia?: string;
   /** El color SAP, si el fichero lo trae (materiales/surtidos sí; tarifas no). */
   colorSap?: string;
+  /** REQ-010 · El código de surtido (`SURTD`), sólo en el fichero de surtidos. Para el filtro por asignación. */
+  surtido?: string;
   /** La línea tal cual, para reescribirla intacta en la salida (es un fichero que se sube a SAP). */
   cruda: string;
   /** ¿Es una línea de dato (candidata a podarse) o de cabecera/comentario (se conserva siempre)? */
@@ -40,6 +77,27 @@ export interface ResultadoPoda {
    * está incompleto respecto a lo comprado: se AVISA (nunca se da la poda por buena en silencio).
    */
   compradoQueFalta: Compra[];
+}
+
+/**
+ * BUG-006 · Refs COMPRADAS cuyo color (Horma) viene **vacío** en el borrador. Sin el código de color no
+ * se pueden cruzar contra los ficheros con color (materiales/surtidos): quedarían anuladas y —peor— el
+ * sistema lo reportaría como "no aparece en el fichero" (parece fichero incompleto) cuando en realidad
+ * **falta el color en el borrador**. Se detectan aparte para AVISAR con claridad (no mentir).
+ */
+export function comprasSinColor(lineas: LineaBorrador[]): string[] {
+  const refs: string[] = [];
+  const vistas = new Set<string>();
+  for (const l of lineas) {
+    if (!(l.suma > 0)) continue;
+    if (normalizeColor(l.colorSap) !== '') continue;
+    const ref = String(l.ourRef ?? '').trim();
+    if (ref && !vistas.has(ref)) {
+      vistas.add(ref);
+      refs.push(ref);
+    }
+  }
+  return refs;
 }
 
 /** Del borrador, lo comprado (`Suma` > 0), con la familia calculada y el color normalizado. */
@@ -68,8 +126,12 @@ function estaComprada(fila: FilaSap, compras: Compra[]): boolean {
 /**
  * Poda un fichero de SAP dejando **sólo** las filas de dato que corresponden a lo comprado. Las líneas que
  * no son de dato (cabeceras) se conservan intactas. NUNCA compone una línea: sólo deja pasar o quita.
+ *
+ * REQ-010 · Fase 2 — `surtidoOk` es un filtro EXTRA opcional (sólo se usa en el fichero de surtidos): una
+ * fila comprada se conserva sólo si además su surtido es el asignado a esa ref. Sin `surtidoOk`, se comporta
+ * igual que antes. Sigue sin componer nada: sólo deja pasar o quita.
  */
-export function podar(filas: FilaSap[], compras: Compra[]): ResultadoPoda {
+export function podar(filas: FilaSap[], compras: Compra[], surtidoOk?: (fila: FilaSap) => boolean): ResultadoPoda {
   const conservadas: string[] = [];
   const familiasEnFichero = new Set<string>();
   const paresEnFichero = new Set<string>();
@@ -83,7 +145,7 @@ export function podar(filas: FilaSap[], compras: Compra[]): ResultadoPoda {
     }
     if (!fila.esDato) {
       conservadas.push(fila.cruda);
-    } else if (estaComprada(fila, compras)) {
+    } else if (estaComprada(fila, compras) && (surtidoOk ? surtidoOk(fila) : true)) {
       conservadas.push(fila.cruda);
       conservadasDato++;
     } else {
@@ -92,9 +154,14 @@ export function podar(filas: FilaSap[], compras: Compra[]): ResultadoPoda {
   }
 
   // ¿Alguna compra no está en el fichero? (fichero incompleto respecto a lo comprado → se avisa)
+  // BUG-006 · en ficheros CON color, una compra sin color (Horma vacía en el borrador) NO es "falta en el
+  // fichero": es un problema del borrador que se reporta aparte (`comprasSinColor`). No se cuela aquí para
+  // que este aviso siga significando exactamente "el fichero de SAP venía incompleto".
   const traeColor = filas.some((f) => f.esDato && f.colorSap !== undefined);
   const compradoQueFalta = compras.filter((c) =>
-    traeColor ? !paresEnFichero.has(`${c.familia}|${c.colorSap}`) : !familiasEnFichero.has(c.familia),
+    traeColor
+      ? c.colorSap !== '' && !paresEnFichero.has(`${c.familia}|${c.colorSap}`)
+      : !familiasEnFichero.has(c.familia),
   );
 
   return { conservadas, conservadasDato, retiradas, compradoQueFalta };

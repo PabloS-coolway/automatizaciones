@@ -1,5 +1,13 @@
 import { familiaDeRef, normalizeColor, RefInvalidaError } from '../src/poda/domain/familia';
-import { comprasDelBorrador, podar, FilaSap, LineaBorrador } from '../src/poda/domain/poda';
+import {
+  comprasDelBorrador,
+  comprasSinColor,
+  podar,
+  reescribirSociedadLinea,
+  FilaSap,
+  LineaBorrador,
+} from '../src/poda/domain/poda';
+import { podarFicheros } from '../src/poda/application/podar-ficheros.use-case';
 
 // La tabla que mandó Silvia (correo FUNCIONES · 21/07): ref color → familia esperada.
 const CHICA = [
@@ -97,5 +105,129 @@ describe('podar · deja sólo lo comprado y avisa de lo que falta', () => {
     const r = podar(tarifas, compras);
     expect(r.conservadas).toEqual(['A']);
     expect(r.retiradas).toBe(1);
+  });
+});
+
+describe('BUG-006 · borrador con la Horma (color SAP) vacía → avisar, no mentir', () => {
+  // Caso real (correo «FICHERO DE MATERIALES…», 23/07): Silvia sube un borrador donde la columna Horma
+  // viene VACÍA (el color sólo está como nombre). Sin el código no se puede cruzar por color.
+  const BORRADOR: LineaBorrador[] = [
+    { ourRef: '7613553', colorSap: '', suma: 13 }, // comprada, SIN color → familia 76035530
+    { ourRef: '8613553', colorSap: '  ', suma: 13 }, // comprada, SIN color (espacios) → 86035530
+    { ourRef: '7663425', colorSap: '766', suma: 13 }, // comprada, CON color (normal)
+    { ourRef: '7683400', colorSap: '', suma: 0 }, // continuativo: no cuenta aunque no tenga color
+  ];
+
+  it('comprasSinColor lista las refs compradas cuyo color viene vacío (no los continuativos)', () => {
+    expect(comprasSinColor(BORRADOR)).toEqual(['7613553', '8613553']);
+  });
+
+  it('una compra SIN color NO se cuela en compradoQueFalta del fichero con color (no es "fichero incompleto")', () => {
+    // Es el corazón del bug: si se colara, el sistema diría "0 líneas · no aparece" (parece fichero
+    // incompleto) cuando el problema es que FALTA el color en el borrador. Romper el filtro → este test cae.
+    const compras = comprasDelBorrador(BORRADOR); // incluye las sin color, con colorSap=''
+    const materiales: FilaSap[] = [{ familia: '76034250', colorSap: '766', cruda: 'X', esDato: true }];
+    const r = podar(materiales, compras);
+    expect(r.conservadas).toEqual(['X']); // la comprada CON color sí se conserva
+    expect(r.compradoQueFalta).toEqual([]); // las 2 sin color NO se reportan aquí (se avisan aparte)
+  });
+
+  it('REGRESIÓN tarifas: una compra sin color SIGUE conservando su familia (las tarifas casan por familia)', () => {
+    const compras = comprasDelBorrador(BORRADOR);
+    const tarifas: FilaSap[] = [{ familia: '76035530', cruda: 'T', esDato: true }]; // familia de 7613553
+    expect(podar(tarifas, compras).conservadas).toEqual(['T']);
+  });
+});
+
+describe('REQ-010 · Fase 1 · reescribir la sociedad', () => {
+  it('reescribe el código de sociedad en las columnas indicadas', () => {
+    const linea = ['KI', '2000', '2000', 'X'].join('\t');
+    const r = reescribirSociedadLinea(linea, [1, 2], '4000');
+    expect(r.linea).toBe(['KI', '4000', '4000', 'X'].join('\t'));
+    expect(r.aplicada).toBe(true);
+    expect(r.sospechosa).toBe(false);
+  });
+
+  it('DEFENSIVO: NO pisa una columna que no trae un código de sociedad (evita corromper el fichero en SAP)', () => {
+    // idx1 es sociedad (2000) pero idx2 es 'PR00' (clase de condición, NO sociedad): reescribe idx1, deja
+    // idx2 intacto y AVISA. Romper el guard `esSociedad` → este test cae (PR00 pasaría a 4000).
+    const linea = ['x', '2000', 'PR00', 'y'].join('\t');
+    const r = reescribirSociedadLinea(linea, [1, 2], '4000');
+    expect(r.linea).toBe(['x', '4000', 'PR00', 'y'].join('\t')); // PR00 intacto
+    expect(r.sospechosa).toBe(true);
+  });
+
+  it('sin columnas (A073) devuelve la línea igual', () => {
+    const linea = 'a\tb\tc';
+    expect(reescribirSociedadLinea(linea, [], '4000')).toEqual({ linea, aplicada: false, sospechosa: false });
+  });
+});
+
+describe('REQ-010 · Fase 1 · podarFicheros aplica la sociedad por tipo de fichero', () => {
+  const borrador: LineaBorrador[] = [{ ourRef: '7613553', colorSap: '500', suma: 13 }]; // → familia 76035530
+
+  // materiales: idx1/idx2 = sociedad, idx6 = familia, idx29 = color
+  const mat = Array(30).fill('');
+  mat[1] = '2000';
+  mat[2] = '2000';
+  mat[6] = '76035530';
+  mat[29] = '500';
+  // A073: matnrCol=4, no lleva sociedad
+  const a073 = ['z', 'z', 'z', 'z', '76035530', 'z'];
+
+  it('reescribe la sociedad en materiales (idx1/idx2) y NO toca A073 (no la lleva)', () => {
+    const r = podarFicheros(
+      borrador,
+      [
+        { nombre: 'ZCALvanyor.txt', contenido: mat.join('\t') },
+        { nombre: 'ZSD_A073.txt', contenido: a073.join('\t') },
+      ],
+      '4000',
+    );
+    const materiales = r.ficheros.find((f) => f.tipo === 'materiales')!;
+    const tarifa073 = r.ficheros.find((f) => f.tipo === 'tarifa073')!;
+    const campos = materiales.podado.split('\t');
+    expect(campos[1]).toBe('4000'); // reescrita
+    expect(campos[2]).toBe('4000'); // reescrita
+    expect(campos[6]).toBe('76035530'); // la familia NO se toca
+    expect(materiales.sociedadSospechosa).toBe(0);
+    expect(tarifa073.podado).toBe(a073.join('\t')); // A073 intacto
+  });
+
+  it('sin sociedad elegida, los ficheros salen igual (no se reescribe nada)', () => {
+    const r = podarFicheros(borrador, [{ nombre: 'ZCALvanyor.txt', contenido: mat.join('\t') }]);
+    expect(r.ficheros[0].podado.split('\t')[1]).toBe('2000'); // se queda la 2000 original
+    expect(r.ficheros[0].sociedadSospechosa).toBe(0);
+  });
+});
+
+describe('REQ-010 · Fase 2 · filtrar surtidos por el SURTD asignado a la ref', () => {
+  // Borrador compra la ref 7613553 (→ familia 76035530) en color 500.
+  const borrador: LineaBorrador[] = [{ ourRef: '7613553', colorSap: '500', suma: 13 }];
+
+  // Fichero de surtidos: idx4=familia, idx6=color, idx8=SURTD. Tres surtidos para el mismo (familia,color).
+  const surLine = (surtd: string) => {
+    const f = Array(9).fill('z');
+    f[4] = '76035530';
+    f[6] = '500';
+    f[8] = surtd;
+    return f.join('\t');
+  };
+  const surtidos = [surLine('0G2'), surLine('U12'), surLine('0KR')].join('\n');
+
+  it('con la ref asignada a un surtido, deja SÓLO ese (rompe el filtro `surtidoOk` → este test cae)', () => {
+    const r = podarFicheros(borrador, [{ nombre: 'ZCAL surtidos.txt', contenido: surtidos }], undefined, [
+      { ref: '7613553', surtido: '0G2' },
+    ]);
+    const f = r.ficheros[0];
+    expect(f.tipo).toBe('surtidos');
+    expect(f.podado).toBe(surLine('0G2')); // sólo el asignado
+    expect(f.conservadas).toBe(1);
+    expect(f.retiradas).toBe(2);
+  });
+
+  it('sin asignación para la ref, se conservan todos los surtidos comprados (opt-in por ref)', () => {
+    const r = podarFicheros(borrador, [{ nombre: 'ZCAL surtidos.txt', contenido: surtidos }]);
+    expect(r.ficheros[0].conservadas).toBe(3); // los tres, como antes
   });
 });
