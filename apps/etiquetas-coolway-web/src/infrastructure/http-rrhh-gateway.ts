@@ -6,7 +6,9 @@ import type {
   DepartmentDto,
   EmployeeDto,
   FicharDto,
+  HistoricoFichajeDto,
   JornadaHoyDto,
+  PanelFichajeDto,
   RrhhMeDto,
   UpdateCenterDto,
   UpdateDepartmentDto,
@@ -121,6 +123,21 @@ export class HttpRrhhGateway {
   async fichar(input: FicharDto): Promise<JornadaHoyDto> {
     const res = await apiFetch('/rrhh/fichajes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) });
     if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo registrar el fichaje.'));
+    return res.json();
+  }
+
+  async miHistorico(desde?: string, hasta?: string): Promise<HistoricoFichajeDto> {
+    const qs = new URLSearchParams();
+    if (desde) qs.set('desde', desde);
+    if (hasta) qs.set('hasta', hasta);
+    const res = await apiFetch(`/rrhh/fichajes/historico${qs.toString() ? `?${qs}` : ''}`);
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo cargar tu histórico.'));
+    return res.json();
+  }
+
+  async panelFichajes(): Promise<PanelFichajeDto> {
+    const res = await apiFetch('/rrhh/fichajes/panel');
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo cargar el cuadro de mando.'));
     return res.json();
   }
 }

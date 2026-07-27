@@ -3,6 +3,26 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-27] REQ-008 · RRHH Fase 2 (Slice 2a) — cuadro de mando + histórico
+
+Sobre el motor de fichaje (Slice 1), la capa de **supervisión de solo-lectura**.
+
+### Añadido
+- **Cuadro de mando de fichajes** (pestaña «Control de fichajes» para responsables/RRHH), acotado a la rama que
+  cada uno ve: **quién está fichado ahora** y **jornadas sin cerrar** de los últimos 7 días (las incidencias a
+  revisar — un día que empezó y no cerró).
+- **Histórico personal** por rango, agrupado por día, con **descarga CSV** (separador `;` y horas con coma
+  decimal, para Excel en español). En la página «Fichar».
+- **Histórico de un empleado** para su responsable/RRHH, respetando la **visibilidad jerárquica** (un empleado
+  no puede ver los fichajes de otro → 403).
+
+### Verificado
+- typecheck + **262 tests API** + web (CSV + dominio) + build. Detección de incidencias verificada
+  **rompiéndola a propósito** (los tests caen).
+- **En vivo:** panel muestra "fichado ahora" y una jornada sin cerrar real; histórico computa 510 min en una
+  jornada 09:00–17:30; un EMPLEADO recibe **403** al pedir los fichajes de otro. **Sin migración** (reusa
+  `hr_time_entry`).
+
 ## [2026-07-27] REQ-008 · RRHH Fase 2 (Slice 1) — motor de fichaje
 
 Arranca la Fase 2 (fichajes), el módulo de mayor valor operativo: digitaliza el parte diario.

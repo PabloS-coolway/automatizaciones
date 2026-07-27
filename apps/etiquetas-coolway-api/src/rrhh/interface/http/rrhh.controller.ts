@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get, HttpCode, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get, HttpCode, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import {
   CenterDto,
   CreateCenterDto,
@@ -7,7 +7,9 @@ import {
   DepartmentDto,
   EmployeeDto,
   FicharDto,
+  HistoricoFichajeDto,
   JornadaHoyDto,
+  PanelFichajeDto,
   RrhhMeDto,
   TimeEntryDto,
   UpdateCenterDto,
@@ -19,7 +21,7 @@ import { JwtPayload } from '../../../auth/application/auth.service';
 import { CenterRow, DepartmentRow, EmployeeRow, TimeEntryRow } from '../../application/ports';
 import { RrhhError, RrhhService } from '../../application/rrhh.service';
 import { RrhhStructureService } from '../../application/rrhh-structure.service';
-import { FichajeService, Jornada } from '../../application/fichaje.service';
+import { DiaJornada, FichajeService, Jornada, Panel } from '../../application/fichaje.service';
 import { esMarcaje } from '../../domain/fichaje';
 import { gestionaPlantilla } from '../../domain/rrhh-org';
 import { RrhhActor, RrhhGuard } from './rrhh.guard';
@@ -51,6 +53,24 @@ const toJornadaDto = (j: Jornada): JornadaHoyDto => ({
   minutosTrabajados: j.minutosTrabajados,
   fichajes: j.fichajes.map(toEntryDto),
 });
+const toPanelDto = (p: Panel): PanelFichajeDto => ({ ahora: p.ahora, incidencias: p.incidencias });
+const toHistoricoDto = (desde: Date, hasta: Date, dias: DiaJornada[]): HistoricoFichajeDto => ({
+  desde: desde.toISOString().slice(0, 10),
+  hasta: hasta.toISOString().slice(0, 10),
+  dias: dias.map((d) => ({ fecha: d.fecha, minutosTrabajados: d.minutosTrabajados, fichajes: d.fichajes.map(toEntryDto) })),
+});
+
+/** Rango `[desde, hasta)` a partir de query YYYY-MM-DD; por defecto, los últimos 30 días hasta mañana. */
+function rangoDesdeQuery(desde?: string, hasta?: string): { desde: Date; hasta: Date } {
+  const hoy = new Date();
+  const finPorDefecto = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + 1);
+  const iniPorDefecto = new Date(finPorDefecto);
+  iniPorDefecto.setDate(iniPorDefecto.getDate() - 31);
+  const d = desde ? new Date(`${desde}T00:00:00`) : iniPorDefecto;
+  const h = hasta ? new Date(`${hasta}T00:00:00`) : finPorDefecto;
+  if (Number.isNaN(d.getTime()) || Number.isNaN(h.getTime())) throw new BadRequestException('Fechas inválidas (usa YYYY-MM-DD).');
+  return { desde: d, hasta: h };
+}
 
 /** Sólo RRHH/Admin gestionan la plantilla. */
 function exigeGestion(actor: EmployeeRow): void {
@@ -129,6 +149,37 @@ export class RrhhController {
     if (!esMarcaje(String(dto.kind))) throw new BadRequestException(`Marcaje no válido: "${dto.kind}".`);
     const source = dto.source === 'MOBILE' ? 'MOBILE' : 'WEB';
     return toJornadaDto(await this.fichaje.fichar(actor.id, dto.kind, source).catch(traducir));
+  }
+
+  @Get('fichajes/historico')
+  @UseGuards(RrhhGuard)
+  async miHistorico(@RrhhActor() actor: EmployeeRow, @Query('desde') desde?: string, @Query('hasta') hasta?: string): Promise<HistoricoFichajeDto> {
+    const r = rangoDesdeQuery(desde, hasta);
+    return toHistoricoDto(r.desde, r.hasta, await this.fichaje.historico(actor.id, r.desde, r.hasta));
+  }
+
+  @Get('fichajes/panel')
+  @UseGuards(RrhhGuard)
+  async panel(@RrhhActor() actor: EmployeeRow): Promise<PanelFichajeDto> {
+    const visibles = await this.service.listVisible(actor);
+    return toPanelDto(await this.fichaje.panel(visibles.map((e) => ({ id: e.id, fullName: e.fullName }))));
+  }
+
+  @Get('empleados/:id/fichajes')
+  @UseGuards(RrhhGuard)
+  async historicoEmpleado(
+    @RrhhActor() actor: EmployeeRow,
+    @Param('id') id: string,
+    @Query('desde') desde?: string,
+    @Query('hasta') hasta?: string,
+  ): Promise<HistoricoFichajeDto> {
+    const objetivo = Number(id);
+    const visibles = await this.service.listVisible(actor); // ya acotado a la rama que el actor puede ver
+    if (!visibles.some((e) => e.id === objetivo)) {
+      throw new ForbiddenException('No puedes ver los fichajes de ese empleado.');
+    }
+    const r = rangoDesdeQuery(desde, hasta);
+    return toHistoricoDto(r.desde, r.hasta, await this.fichaje.historico(objetivo, r.desde, r.hasta));
   }
 
   // ---- Estructura organizativa: centros (multimarca) y departamentos. Sólo RRHH/Admin. ----

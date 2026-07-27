@@ -80,3 +80,32 @@ export function minutosTrabajados(fichajes: Fichaje[], ahora: Date): number {
 function ordenados(fichajes: Fichaje[]): Fichaje[] {
   return [...fichajes].sort((a, b) => a.at.getTime() - b.at.getTime());
 }
+
+/** Clave de día local (YYYY-MM-DD) del instante — para agrupar la jornada por fecha. */
+export function claveDia(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${dd}`;
+}
+
+/** Agrupa fichajes por día local, cada grupo ya ordenado por hora. */
+export function agruparPorDia(fichajes: Fichaje[]): Map<string, Fichaje[]> {
+  const mapa = new Map<string, Fichaje[]>();
+  for (const f of ordenados(fichajes)) {
+    const k = claveDia(f.at);
+    const arr = mapa.get(k) ?? [];
+    arr.push(f);
+    mapa.set(k, arr);
+  }
+  return mapa;
+}
+
+/**
+ * ¿La jornada de ese día quedó **sin cerrar**? Lo está si, reproducida la secuencia, el estado final NO es
+ * FUERA (entró y no salió, o se quedó en pausa). Es la incidencia que el cuadro de mando debe cazar: un día
+ * sin cerrar es justo el caso en que el cómputo mentiría si nadie lo revisa.
+ */
+export function jornadaSinCerrar(fichajesDelDia: Fichaje[]): boolean {
+  return estadoActual(fichajesDelDia) !== 'FUERA';
+}
