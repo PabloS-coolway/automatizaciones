@@ -42,6 +42,7 @@ function toDto(e: EmployeeRow): EmployeeDto {
     center: e.center,
     centerId: e.centerId,
     brand: e.brand,
+    weeklyMinutes: e.weeklyMinutes,
   };
 }
 
@@ -59,7 +60,9 @@ const toPanelDto = (p: Panel): PanelFichajeDto => ({ ahora: p.ahora, incidencias
 const toHistoricoDto = (desde: Date, hasta: Date, dias: DiaJornada[]): HistoricoFichajeDto => ({
   desde: desde.toISOString().slice(0, 10),
   hasta: hasta.toISOString().slice(0, 10),
-  dias: dias.map((d) => ({ fecha: d.fecha, minutosTrabajados: d.minutosTrabajados, fichajes: d.fichajes.map(toEntryDto) })),
+  dias: dias.map((d) => ({ fecha: d.fecha, minutosTrabajados: d.minutosTrabajados, minutosExtra: d.minutosExtra, fichajes: d.fichajes.map(toEntryDto) })),
+  totalMinutos: dias.reduce((s, d) => s + d.minutosTrabajados, 0),
+  totalExtra: dias.reduce((s, d) => s + d.minutosExtra, 0),
 });
 const toDiaDetalleDto = (d: DiaDetalle): DiaDetalleFichajeDto => ({
   fecha: d.fecha,
@@ -170,7 +173,7 @@ export class RrhhController {
   @UseGuards(RrhhGuard)
   async miHistorico(@RrhhActor() actor: EmployeeRow, @Query('desde') desde?: string, @Query('hasta') hasta?: string): Promise<HistoricoFichajeDto> {
     const r = rangoDesdeQuery(desde, hasta);
-    return toHistoricoDto(r.desde, r.hasta, await this.fichaje.historico(actor.id, r.desde, r.hasta));
+    return toHistoricoDto(r.desde, r.hasta, await this.fichaje.historico(actor.id, r.desde, r.hasta, actor.weeklyMinutes));
   }
 
   @Get('fichajes/panel')
@@ -190,7 +193,7 @@ export class RrhhController {
   ): Promise<HistoricoFichajeDto> {
     const objetivo = await this.exigeVisible(actor, Number(id));
     const r = rangoDesdeQuery(desde, hasta);
-    return toHistoricoDto(r.desde, r.hasta, await this.fichaje.historico(objetivo, r.desde, r.hasta));
+    return toHistoricoDto(r.desde, r.hasta, await this.fichaje.historico(objetivo.id, r.desde, r.hasta, objetivo.weeklyMinutes));
   }
 
   @Get('empleados/:id/fichajes/dia')
@@ -200,7 +203,7 @@ export class RrhhController {
     const objetivo = await this.exigeVisible(actor, Number(id));
     const dia = fecha ? new Date(`${fecha}T00:00:00`) : new Date();
     if (Number.isNaN(dia.getTime())) throw new BadRequestException('Fecha inválida (usa YYYY-MM-DD).');
-    return toDiaDetalleDto(await this.fichaje.diaDetalle(objetivo, dia));
+    return toDiaDetalleDto(await this.fichaje.diaDetalle(objetivo.id, dia));
   }
 
   @Post('empleados/:id/fichajes/correccion')
@@ -211,16 +214,17 @@ export class RrhhController {
     if (dto.action !== 'ADD' && dto.action !== 'VOID') throw new BadRequestException('Acción de corrección no válida (ADD | VOID).');
     const at = dto.at ? new Date(dto.at) : undefined;
     const detalle = await this.fichaje
-      .corregir(objetivo, { action: dto.action, kind: dto.kind, at, targetId: dto.targetId, note: dto.note }, { email: actor.email })
+      .corregir(objetivo.id, { action: dto.action, kind: dto.kind, at, targetId: dto.targetId, note: dto.note }, { email: actor.email })
       .catch(traducir);
     return toDiaDetalleDto(detalle);
   }
 
-  /** Exige que `objetivo` esté en la rama visible del actor (si no, 403). Devuelve el id validado. */
-  private async exigeVisible(actor: EmployeeRow, objetivo: number): Promise<number> {
+  /** Exige que `objetivo` esté en la rama visible del actor (si no, 403). Devuelve la ficha visible. */
+  private async exigeVisible(actor: EmployeeRow, objetivo: number): Promise<EmployeeRow> {
     const visibles = await this.service.listVisible(actor);
-    if (!visibles.some((e) => e.id === objetivo)) throw new ForbiddenException('No puedes ver los fichajes de ese empleado.');
-    return objetivo;
+    const fila = visibles.find((e) => e.id === objetivo);
+    if (!fila) throw new ForbiddenException('No puedes ver los fichajes de ese empleado.');
+    return fila;
   }
 
   // ---- Estructura organizativa: centros (multimarca) y departamentos. Sólo RRHH/Admin. ----

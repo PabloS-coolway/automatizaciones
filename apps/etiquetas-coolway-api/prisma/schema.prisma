@@ -148,6 +148,9 @@ model Employee {
   centerId     Int?        @map("center_id")
   center       Center?     @relation(fields: [centerId], references: [id])
   contractType String?     @map("contract_type")
+  /// Jornada teórica semanal en minutos (p.ej. 2400 = 40 h/semana). `null` = sin horario definido → no se
+  /// computan horas extra. La diaria teórica se deriva repartiendo entre los días laborables (L–V).
+  weeklyMinutes Int?       @map("weekly_minutes")
   /// Datos bancarios opcionales, preparados para una futura nómina (no se usan en Fase 1).
   iban         String?
   active       Boolean     @default(true)
