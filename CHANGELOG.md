@@ -3,6 +3,27 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-27] REQ-008 · RRHH Fase 1 (Slice 2) — organigrama + centros/departamentos
+
+Cierra la Fase 1 de RRHH: la estructura organizativa y su vista.
+
+### Añadido
+- **Organigrama visual navegable**, **segmentado por marca** (multimarca). Se construye en un helper de dominio
+  (`construirOrganigrama`) testeado: anida el equipo bajo su responsable, trata como **raíz** a quien tiene el
+  jefe fuera de su visibilidad (para que su rama no quede huérfana) y agrupa por enseña.
+- **Gestión de centros (con marca) y departamentos** (CRUD) auditada en el log propio de RRHH. **Un
+  centro/departamento con empleados no se borra** — reasignar antes; lo impide la API con mensaje claro.
+- **Asignación de centro y departamento** en la ficha del empleado (selectores en el alta/edición).
+- **Sidebar**: la entrada **«Personas» sólo aparece si el usuario tiene ficha de empleado** (nuevo `RrhhContext`
+  que resuelve `/rrhh/me` una vez y comparte "¿soy empleado / puedo gestionar?").
+
+### Verificado
+- typecheck + **240 tests API** + **web** (organigrama con 4 casos, incl. ciclo defensivo) + build. La guardia
+  "no borrar centro con empleados" verificada **rompiéndola a propósito** (el test cae).
+- **En vivo:** crear centro/departamento → asignarlos a un empleado → **borrado bloqueado (400)** → reasignar →
+  **borrado (204)**, con sus asientos `CENTRO`/`DEPARTAMENTO` en `hr_activity`. **Sin migración** (los modelos ya
+  venían de la Fase 0).
+
 ## [2026-07-27] REQ-008 · RRHH Fase 1 (Slice 1) — ficha completa + log propio
 
 Con la Fase 0 (cimientos: identidad + roles jerárquicos + esqueleto "Personas") ya en `main`, este bloque

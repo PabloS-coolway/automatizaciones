@@ -1,6 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CreateEmployeeDto, UpdateEmployeeDto } from '@yorga/contracts';
-import { EMPLOYEE_REPOSITORY, EmpleadoUpdate, EmployeeRepository, EmployeeRow } from './ports';
+import {
+  EMPLOYEE_REPOSITORY,
+  EmpleadoUpdate,
+  EmployeeRepository,
+  EmployeeRow,
+  RRHH_STRUCTURE_REPOSITORY,
+  StructureRepository,
+} from './ports';
 import { crearíaCiclo, empleadosVisibles, esRrhhRole } from '../domain/rrhh-org';
 import { PrismaService } from '../../infrastructure/db/prisma.service';
 import { RRHH_ACTIVITY_RECORDER, RrhhActivityRecorder } from './rrhh-activity.port';
@@ -22,9 +29,16 @@ export interface RrhhActor {
 export class RrhhService {
   constructor(
     @Inject(EMPLOYEE_REPOSITORY) private readonly repo: EmployeeRepository,
+    @Inject(RRHH_STRUCTURE_REPOSITORY) private readonly estructura: StructureRepository,
     @Inject(RRHH_ACTIVITY_RECORDER) private readonly actividad: RrhhActivityRecorder,
     private readonly prisma: PrismaService,
   ) {}
+
+  /** Valida que el centro y el departamento (si se indican) existen. `undefined` = no se toca; `null` = quitar. */
+  private async validarEstructura(centerId?: number | null, departmentId?: number | null): Promise<void> {
+    if (centerId != null && !(await this.estructura.findCenter(centerId))) throw new RrhhError(`El centro #${centerId} no existe.`);
+    if (departmentId != null && !(await this.estructura.findDepartment(departmentId))) throw new RrhhError(`El departamento #${departmentId} no existe.`);
+  }
 
   me(userId: number): Promise<EmployeeRow | null> {
     return this.repo.findByUserId(userId);
@@ -53,10 +67,19 @@ export class RrhhService {
     if (dto.managerId != null && !(await this.repo.findById(dto.managerId))) {
       throw new RrhhError(`El responsable #${dto.managerId} no existe.`);
     }
+    await this.validarEstructura(dto.centerId, dto.departmentId);
 
     return this.prisma.$transaction(async (tx) => {
       const creado = await this.repo.create(
-        { userId, fullName, rrhhRole, position: dto.position?.trim() || undefined, managerId: dto.managerId ?? undefined },
+        {
+          userId,
+          fullName,
+          rrhhRole,
+          position: dto.position?.trim() || undefined,
+          managerId: dto.managerId ?? undefined,
+          centerId: dto.centerId ?? undefined,
+          departmentId: dto.departmentId ?? undefined,
+        },
         tx,
       );
       await this.actividad.record(
@@ -91,6 +114,14 @@ export class RrhhService {
         }
       }
       data.managerId = dto.managerId;
+    }
+    if (dto.centerId !== undefined) {
+      await this.validarEstructura(dto.centerId, undefined);
+      data.centerId = dto.centerId;
+    }
+    if (dto.departmentId !== undefined) {
+      await this.validarEstructura(undefined, dto.departmentId);
+      data.departmentId = dto.departmentId;
     }
 
     return this.prisma.$transaction(async (tx) => {

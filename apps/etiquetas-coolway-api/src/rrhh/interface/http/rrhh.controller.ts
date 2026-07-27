@@ -1,9 +1,21 @@
-import { BadRequestException, Body, Controller, ForbiddenException, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
-import { CreateEmployeeDto, EmployeeDto, RrhhMeDto, UpdateEmployeeDto } from '@yorga/contracts';
+import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get, HttpCode, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  CenterDto,
+  CreateCenterDto,
+  CreateDepartmentDto,
+  CreateEmployeeDto,
+  DepartmentDto,
+  EmployeeDto,
+  RrhhMeDto,
+  UpdateCenterDto,
+  UpdateDepartmentDto,
+  UpdateEmployeeDto,
+} from '@yorga/contracts';
 import { CurrentUser } from '../../../auth/interface/http/decorators';
 import { JwtPayload } from '../../../auth/application/auth.service';
-import { EmployeeRow } from '../../application/ports';
+import { CenterRow, DepartmentRow, EmployeeRow } from '../../application/ports';
 import { RrhhError, RrhhService } from '../../application/rrhh.service';
+import { RrhhStructureService } from '../../application/rrhh-structure.service';
 import { gestionaPlantilla } from '../../domain/rrhh-org';
 import { RrhhActor, RrhhGuard } from './rrhh.guard';
 
@@ -17,10 +29,15 @@ function toDto(e: EmployeeRow): EmployeeDto {
     managerId: e.managerId,
     active: e.active,
     department: e.department,
+    departmentId: e.departmentId,
     center: e.center,
+    centerId: e.centerId,
     brand: e.brand,
   };
 }
+
+const toCenterDto = (c: CenterRow): CenterDto => ({ id: c.id, name: c.name, brand: c.brand, employees: c.employees });
+const toDeptDto = (d: DepartmentRow): DepartmentDto => ({ id: d.id, name: d.name, employees: d.employees });
 
 /** Sólo RRHH/Admin gestionan la plantilla. */
 function exigeGestion(actor: EmployeeRow): void {
@@ -39,7 +56,10 @@ function traducir(e: unknown): never {
  */
 @Controller('rrhh')
 export class RrhhController {
-  constructor(private readonly service: RrhhService) {}
+  constructor(
+    private readonly service: RrhhService,
+    private readonly estructura: RrhhStructureService,
+  ) {}
 
   @Get('me')
   async me(@CurrentUser() u: JwtPayload): Promise<RrhhMeDto> {
@@ -79,5 +99,65 @@ export class RrhhController {
   async reactivar(@RrhhActor() actor: EmployeeRow, @Param('id') id: string): Promise<EmployeeDto> {
     exigeGestion(actor);
     return toDto(await this.service.reactivar(Number(id), { email: actor.email }).catch(traducir));
+  }
+
+  // ---- Estructura organizativa: centros (multimarca) y departamentos. Sólo RRHH/Admin. ----
+
+  @Get('centros')
+  @UseGuards(RrhhGuard)
+  async centros(@RrhhActor() actor: EmployeeRow): Promise<CenterDto[]> {
+    exigeGestion(actor);
+    return (await this.estructura.listCenters()).map(toCenterDto);
+  }
+
+  @Post('centros')
+  @UseGuards(RrhhGuard)
+  async crearCentro(@RrhhActor() actor: EmployeeRow, @Body() dto: CreateCenterDto): Promise<CenterDto> {
+    exigeGestion(actor);
+    return toCenterDto(await this.estructura.crearCentro(dto, { email: actor.email }).catch(traducir));
+  }
+
+  @Patch('centros/:id')
+  @UseGuards(RrhhGuard)
+  async editarCentro(@RrhhActor() actor: EmployeeRow, @Param('id') id: string, @Body() dto: UpdateCenterDto): Promise<CenterDto> {
+    exigeGestion(actor);
+    return toCenterDto(await this.estructura.editarCentro(Number(id), dto, { email: actor.email }).catch(traducir));
+  }
+
+  @Delete('centros/:id')
+  @HttpCode(204)
+  @UseGuards(RrhhGuard)
+  async borrarCentro(@RrhhActor() actor: EmployeeRow, @Param('id') id: string): Promise<void> {
+    exigeGestion(actor);
+    await this.estructura.borrarCentro(Number(id), { email: actor.email }).catch(traducir);
+  }
+
+  @Get('departamentos')
+  @UseGuards(RrhhGuard)
+  async departamentos(@RrhhActor() actor: EmployeeRow): Promise<DepartmentDto[]> {
+    exigeGestion(actor);
+    return (await this.estructura.listDepartments()).map(toDeptDto);
+  }
+
+  @Post('departamentos')
+  @UseGuards(RrhhGuard)
+  async crearDepartamento(@RrhhActor() actor: EmployeeRow, @Body() dto: CreateDepartmentDto): Promise<DepartmentDto> {
+    exigeGestion(actor);
+    return toDeptDto(await this.estructura.crearDepartamento(dto, { email: actor.email }).catch(traducir));
+  }
+
+  @Patch('departamentos/:id')
+  @UseGuards(RrhhGuard)
+  async editarDepartamento(@RrhhActor() actor: EmployeeRow, @Param('id') id: string, @Body() dto: UpdateDepartmentDto): Promise<DepartmentDto> {
+    exigeGestion(actor);
+    return toDeptDto(await this.estructura.editarDepartamento(Number(id), dto, { email: actor.email }).catch(traducir));
+  }
+
+  @Delete('departamentos/:id')
+  @HttpCode(204)
+  @UseGuards(RrhhGuard)
+  async borrarDepartamento(@RrhhActor() actor: EmployeeRow, @Param('id') id: string): Promise<void> {
+    exigeGestion(actor);
+    await this.estructura.borrarDepartamento(Number(id), { email: actor.email }).catch(traducir);
   }
 }
