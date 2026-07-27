@@ -18,6 +18,8 @@ type ConRelaciones = {
   rrhhRole: string;
   managerId: number | null;
   active: boolean;
+  departmentId: number | null;
+  centerId: number | null;
   user: { email: string };
   department: { name: string } | null;
   center: { name: string; brand: string } | null;
@@ -34,7 +36,9 @@ function toRow(e: ConRelaciones): EmployeeRow {
     managerId: e.managerId,
     active: e.active,
     department: e.department?.name ?? null,
+    departmentId: e.departmentId,
     center: e.center?.name ?? null,
+    centerId: e.centerId,
     brand: e.center?.brand ?? null,
   };
 }
@@ -72,6 +76,8 @@ export class PrismaEmployeeRepository implements EmployeeRepository {
         rrhhRole: nuevo.rrhhRole,
         position: nuevo.position,
         managerId: nuevo.managerId,
+        centerId: nuevo.centerId,
+        departmentId: nuevo.departmentId,
       },
       include: INCLUDE,
     });
@@ -86,6 +92,8 @@ export class PrismaEmployeeRepository implements EmployeeRepository {
         ...(data.position !== undefined ? { position: data.position } : {}),
         ...(data.rrhhRole !== undefined ? { rrhhRole: data.rrhhRole } : {}),
         ...(data.managerId !== undefined ? { managerId: data.managerId } : {}),
+        ...(data.centerId !== undefined ? { centerId: data.centerId } : {}),
+        ...(data.departmentId !== undefined ? { departmentId: data.departmentId } : {}),
         ...(data.active !== undefined ? { active: data.active, terminatedAt: data.active ? null : new Date() } : {}),
       },
       include: INCLUDE,

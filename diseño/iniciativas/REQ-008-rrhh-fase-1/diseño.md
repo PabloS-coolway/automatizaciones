@@ -148,8 +148,17 @@ Digitaliza el parte diario que hoy se firma en papel. Se acaban los partes físi
     patrón REQ-007 replicado, no reutilizado). Verificado en vivo (alta→editar→responsable→baja→reactivar, 4
     asientos de auditoría; el intento de ciclo devuelve 400 y **no** deja asiento). Break-on-purpose sobre
     `crearíaCiclo` confirmado en rojo.
-  - **Slice 2 · Organigrama + centros/departamentos** — ⏳ pendiente: organigrama visual navegable (multimarca
-    segmentado), gestión de centros/departamentos, y ocultar "Personas" del sidebar a quien no es empleado.
+  - **Slice 2 · Organigrama + centros/departamentos** — ✅ **hecho** (esta rama). **Organigrama visual navegable**
+    segmentado por marca (helper de dominio `construirOrganigrama`, testeado: anida el equipo, trata como raíz a
+    quien tiene el jefe fuera de su visibilidad, agrupa por enseña). **CRUD de centros (con marca) y
+    departamentos** auditado en `hr_activity`; **no se borra** un centro/departamento con empleados (dejaría
+    fichas huérfanas). Asignación de centro/departamento en la ficha. **Sidebar**: "Personas" sólo aparece si el
+    usuario tiene ficha de empleado (`RrhhContext` resuelve `/rrhh/me` una vez). Sin migración (los modelos
+    `Center`/`Department` y las columnas ya venían de Fase 0). Verificado en vivo (crear centro/depto → asignar →
+    borrado bloqueado con 400 → reasignar → borrado 204, con sus asientos de auditoría). Break-on-purpose de la
+    guardia "no borrar con empleados" confirmado en rojo.
+  - **Pendiente Fase 1:** foto/ficha ampliada (datos de contacto, contrato, bancarios) — se hará cuando entre en
+    valor; el modelo ya está preparado.
 
 ## Próximos pasos
 

@@ -1,30 +1,38 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Alert, Badge, Button, Card, Form, Modal, Spinner } from 'react-bootstrap';
-import { PencilSquare, PersonDash, PersonCheck, PlusLg } from 'react-bootstrap-icons';
+import { Alert, Badge, Button, Card, Form, Modal, Nav, Spinner } from 'react-bootstrap';
+import { Diagram3, PencilSquare, PersonDash, PersonCheck, PlusLg, Building } from 'react-bootstrap-icons';
 import {
   RRHH_ROLE_LABELS,
   RRHH_ROLES,
+  type CenterDto,
+  type DepartmentDto,
   type EmployeeDto,
-  type RrhhMeDto,
   type RrhhRole,
 } from '@yorga/contracts';
 import { rrhhGateway } from '../composition';
+import { useRrhh } from '../rrhh/RrhhContext';
 import { Column, DataTable, useMemoryTable } from '../components/table';
+import { OrganigramaView } from './personas/OrganigramaView';
+import { EstructuraManager } from './personas/EstructuraManager';
 
-const VACIO = { email: '', fullName: '', rrhhRole: 'EMPLEADO' as RrhhRole, position: '', managerId: '' };
+const VACIO = { email: '', fullName: '', rrhhRole: 'EMPLEADO' as RrhhRole, position: '', managerId: '', centerId: '', departmentId: '' };
+type Vista = 'plantilla' | 'organigrama' | 'estructura';
 
 /**
- * REQ-008 · Personas. El empleado entra con su usuario del panel; aquí ve su ficha y (según su rol RRHH) la
- * plantilla que le corresponde. RRHH/Admin gestiona la plantilla: **alta** (enlazando a un usuario existente),
- * **edición** de la ficha, asignación de **responsable** (organigrama) y **baja/reactivación**. Todo el dominio
- * de RRHH es independiente del resto del panel; sólo se comparte la identidad (login por correo).
+ * REQ-008 · Personas. El empleado ve su ficha y (según su rol RRHH) la plantilla que le corresponde. RRHH/Admin
+ * gestiona la plantilla (alta/edición/baja/reactivación + responsable + centro/departamento), navega el
+ * **organigrama** (segmentado por marca) y administra la **estructura** (centros y departamentos). Todo el
+ * dominio de RRHH es independiente del resto del panel; sólo se comparte la identidad (login por correo).
  */
 export function PersonasPage() {
-  const [me, setMe] = useState<RrhhMeDto | null>(null);
+  const { employee, loading: rrhhLoading, puedeGestionar, refetch } = useRrhh();
   const [empleados, setEmpleados] = useState<EmployeeDto[]>([]);
+  const [centros, setCentros] = useState<CenterDto[]>([]);
+  const [departamentos, setDepartamentos] = useState<DepartmentDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [vista, setVista] = useState<Vista>('plantilla');
 
   const [abierto, setAbierto] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
@@ -33,21 +41,27 @@ export function PersonasPage() {
   const [formError, setFormError] = useState('');
   const [busyId, setBusyId] = useState<number | null>(null);
 
-  const puedeGestionar = me?.employee?.rrhhRole === 'RRHH' || me?.employee?.rrhhRole === 'ADMIN';
-
-  const load = useCallback(() => {
+  const reload = useCallback(() => {
+    if (!employee) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
-    rrhhGateway
-      .me()
-      .then(async (m) => {
-        setMe(m);
-        if (m.employee) setEmpleados(await rrhhGateway.listEmpleados());
+    Promise.all([
+      rrhhGateway.listEmpleados(),
+      puedeGestionar ? rrhhGateway.listCentros() : Promise.resolve([]),
+      puedeGestionar ? rrhhGateway.listDepartamentos() : Promise.resolve([]),
+    ])
+      .then(([emps, cs, ds]) => {
+        setEmpleados(emps);
+        setCentros(cs);
+        setDepartamentos(ds);
       })
       .catch((e) => setError((e as Error).message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [employee, puedeGestionar]);
 
-  useEffect(() => load(), [load]);
+  useEffect(() => reload(), [reload]);
 
   const nombrePorId = useMemo(() => new Map(empleados.map((e) => [e.id, e.fullName])), [empleados]);
 
@@ -66,6 +80,8 @@ export function PersonasPage() {
       rrhhRole: e.rrhhRole,
       position: e.position ?? '',
       managerId: e.managerId != null ? String(e.managerId) : '',
+      centerId: e.centerId != null ? String(e.centerId) : '',
+      departmentId: e.departmentId != null ? String(e.departmentId) : '',
     });
     setFormError('');
     setAbierto(true);
@@ -77,6 +93,8 @@ export function PersonasPage() {
     setNotice('');
     setSaving(true);
     const managerId = form.managerId ? Number(form.managerId) : null;
+    const centerId = form.centerId ? Number(form.centerId) : null;
+    const departmentId = form.departmentId ? Number(form.departmentId) : null;
     try {
       if (editId == null) {
         const nuevo = await rrhhGateway.crearEmpleado({
@@ -85,6 +103,8 @@ export function PersonasPage() {
           rrhhRole: form.rrhhRole,
           position: form.position || undefined,
           managerId: managerId ?? undefined,
+          centerId: centerId ?? undefined,
+          departmentId: departmentId ?? undefined,
         });
         setNotice(`${nuevo.fullName} dado de alta y enlazado a ${nuevo.email}.`);
       } else {
@@ -93,12 +113,15 @@ export function PersonasPage() {
           rrhhRole: form.rrhhRole,
           position: form.position || null,
           managerId,
+          centerId,
+          departmentId,
         });
         setNotice(`Ficha de ${upd.fullName} actualizada.`);
       }
       setAbierto(false);
       setForm(VACIO);
-      load();
+      reload();
+      refetch(); // por si el usuario se editó su propia ficha (rol/marca)
     } catch (err) {
       setFormError((err as Error).message);
     } finally {
@@ -113,7 +136,7 @@ export function PersonasPage() {
     try {
       const r = e.active ? await rrhhGateway.darDeBaja(e.id) : await rrhhGateway.reactivar(e.id);
       setNotice(r.active ? `${r.fullName} reactivado.` : `${r.fullName} dado de baja.`);
-      load();
+      reload();
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -138,6 +161,7 @@ export function PersonasPage() {
         value: (e) => (e.managerId != null ? nombrePorId.get(e.managerId) ?? `#${e.managerId}` : ''),
         render: (e) => (e.managerId != null ? nombrePorId.get(e.managerId) ?? `#${e.managerId}` : '—'),
       },
+      { key: 'department', label: 'departamento', value: (e) => e.department ?? '', render: (e) => e.department ?? '—' },
       { key: 'center', label: 'centro / marca', value: (e) => [e.center, e.brand].filter(Boolean).join(' · '), render: (e) => [e.center, e.brand].filter(Boolean).join(' · ') || '—' },
       {
         key: 'active',
@@ -182,13 +206,9 @@ export function PersonasPage() {
 
   const tabla = useMemoryTable(empleados, columns);
 
-  // Posibles responsables al editar/dar de alta: cualquier empleado salvo el que se edita (no puede ser su propio jefe).
-  const posiblesResponsables = useMemo(
-    () => empleados.filter((e) => e.id !== editId),
-    [empleados, editId],
-  );
+  const posiblesResponsables = useMemo(() => empleados.filter((e) => e.id !== editId), [empleados, editId]);
 
-  if (loading) {
+  if (rrhhLoading || loading) {
     return (
       <div className="page page-wide">
         <Spinner animation="border" size="sm" className="me-2" /> Cargando…
@@ -203,7 +223,7 @@ export function PersonasPage() {
           <h1 className="h4 mb-1">Personas</h1>
           <p className="text-secondary mb-0">Gestión de personal del grupo. Cada empleado entra con su usuario del panel.</p>
         </div>
-        {puedeGestionar && (
+        {puedeGestionar && employee && (
           <Button className="btn-brand flex-shrink-0" onClick={abrirAlta}>
             <PlusLg className="me-1" />
             Nuevo empleado
@@ -214,18 +234,42 @@ export function PersonasPage() {
       {error && <Alert variant="danger" onClose={() => setError('')} dismissible>⚠ {error}</Alert>}
       {notice && <Alert variant="success" onClose={() => setNotice('')} dismissible>{notice}</Alert>}
 
-      {!me?.employee ? (
+      {!employee ? (
         <Alert variant="light" className="border">
           Aún no tienes <strong>ficha de empleado</strong> en el módulo de personal. Cuando RRHH te dé de alta,
           verás aquí tu ficha y la de tu equipo.
         </Alert>
       ) : (
-        <Card>
-          <Card.Body className="p-4">
-            <Card.Title className="mb-3">Plantilla ({empleados.length})</Card.Title>
-            <DataTable model={tabla} allRows={empleados} rowKey={(e) => String(e.id)} empty="No hay empleados visibles." />
-          </Card.Body>
-        </Card>
+        <>
+          <Nav variant="tabs" activeKey={vista} onSelect={(k) => setVista((k as Vista) ?? 'plantilla')} className="mb-3">
+            <Nav.Item><Nav.Link eventKey="plantilla">Plantilla</Nav.Link></Nav.Item>
+            <Nav.Item><Nav.Link eventKey="organigrama"><Diagram3 className="me-1" />Organigrama</Nav.Link></Nav.Item>
+            {puedeGestionar && (
+              <Nav.Item><Nav.Link eventKey="estructura"><Building className="me-1" />Centros y departamentos</Nav.Link></Nav.Item>
+            )}
+          </Nav>
+
+          {vista === 'plantilla' && (
+            <Card>
+              <Card.Body className="p-4">
+                <Card.Title className="mb-3">Plantilla ({empleados.length})</Card.Title>
+                <DataTable model={tabla} allRows={empleados} rowKey={(e) => String(e.id)} empty="No hay empleados visibles." />
+              </Card.Body>
+            </Card>
+          )}
+
+          {vista === 'organigrama' && (
+            <Card>
+              <Card.Body className="p-4">
+                <OrganigramaView empleados={empleados} />
+              </Card.Body>
+            </Card>
+          )}
+
+          {vista === 'estructura' && puedeGestionar && (
+            <EstructuraManager centros={centros} departamentos={departamentos} onChange={reload} />
+          )}
+        </>
       )}
 
       <Modal show={abierto} onHide={() => setAbierto(false)} centered backdrop="static">
@@ -241,9 +285,7 @@ export function PersonasPage() {
                 Usuarios.
               </p>
             ) : (
-              <p className="text-secondary small">
-                El correo/usuario no se cambia desde aquí. Se edita nombre, puesto, rol y responsable.
-              </p>
+              <p className="text-secondary small">El correo/usuario no se cambia desde aquí.</p>
             )}
             <div className="row g-3">
               <div className="col-12">
@@ -265,16 +307,34 @@ export function PersonasPage() {
                   ))}
                 </Form.Select>
               </div>
-              <div className="col-7">
+              <div className="col-12">
                 <Form.Label className="small" htmlFor="e-pos">Puesto (opcional)</Form.Label>
                 <Form.Control id="e-pos" value={form.position} onChange={(ev) => setForm({ ...form, position: ev.target.value })} placeholder="Dependienta" />
               </div>
-              <div className="col-5">
+              <div className="col-12 col-sm-4">
                 <Form.Label className="small" htmlFor="e-mgr">Responsable</Form.Label>
                 <Form.Select id="e-mgr" value={form.managerId} onChange={(ev) => setForm({ ...form, managerId: ev.target.value })}>
                   <option value="">— Sin responsable —</option>
                   {posiblesResponsables.map((e) => (
                     <option key={e.id} value={e.id}>{e.fullName}</option>
+                  ))}
+                </Form.Select>
+              </div>
+              <div className="col-12 col-sm-4">
+                <Form.Label className="small" htmlFor="e-center">Centro</Form.Label>
+                <Form.Select id="e-center" value={form.centerId} onChange={(ev) => setForm({ ...form, centerId: ev.target.value })}>
+                  <option value="">— Sin centro —</option>
+                  {centros.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name} ({c.brand})</option>
+                  ))}
+                </Form.Select>
+              </div>
+              <div className="col-12 col-sm-4">
+                <Form.Label className="small" htmlFor="e-dept">Departamento</Form.Label>
+                <Form.Select id="e-dept" value={form.departmentId} onChange={(ev) => setForm({ ...form, departmentId: ev.target.value })}>
+                  <option value="">— Sin departamento —</option>
+                  {departamentos.map((d) => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
                   ))}
                 </Form.Select>
               </div>

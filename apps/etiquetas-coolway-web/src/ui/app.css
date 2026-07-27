@@ -450,3 +450,12 @@ button, a, [role='button'], .form-control, .form-select { touch-action: manipula
 }
 .login-card { width: 100%; max-width: 380px; border: 1px solid var(--border); }
 .login-brand { font-weight: 700; font-size: 1.25rem; display: flex; align-items: center; color: var(--ink); }
+
+/* REQ-008 Fase 1 (Slice 2) · Organigrama */
+.org-tree .org-node { position: relative; }
+.org-tree ul { border-left: 1px solid var(--border); margin-left: 0.35rem; }
+.org-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--bs-success, #198754); flex-shrink: 0;
+}
+.org-dot-off { background: var(--border); }
