@@ -52,7 +52,10 @@ const NAV: NavGroup[] = [
   },
   {
     title: 'Personas',
-    items: [{ to: '/personas', label: 'Personas', icon: <PersonCircle />, ready: true, soloEmpleados: true }],
+    items: [
+      { to: '/fichar', label: 'Fichar', icon: <ClockHistory />, ready: true, soloEmpleados: true },
+      { to: '/personas', label: 'Personas', icon: <PersonCircle />, ready: true, soloEmpleados: true },
+    ],
   },
   {
     title: 'Administración',

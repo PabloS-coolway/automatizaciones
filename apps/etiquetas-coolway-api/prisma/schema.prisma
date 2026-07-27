@@ -155,9 +155,29 @@ model Employee {
   terminatedAt DateTime?   @map("terminated_at")
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
+  timeEntries  TimeEntry[]
 
   @@index([managerId])
   @@map("hr_employee")
+}
+
+/// REQ-008 Fase 2 · Fichaje (marcaje) de jornada. Registro **solo-añadir**: un fichaje no se edita ni se borra;
+/// una corrección se hace insertando un asiento nuevo (Slice 2). La marca de tiempo es del **servidor**
+/// (`at @default(now())`), nunca del dispositivo. `kind`: IN | OUT | BREAK_START | BREAK_END.
+model TimeEntry {
+  id         Int      @id @default(autoincrement())
+  employeeId Int      @map("employee_id")
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  kind       String
+  /// Sello de tiempo del SERVIDOR (no del dispositivo): es la hora que cuenta.
+  at         DateTime @default(now())
+  /// Desde dónde se fichó: WEB | MOBILE (informativo).
+  source     String   @default("WEB")
+  note       String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([employeeId, at])
+  @@map("hr_time_entry")
 }
 
 /// REQ-008 Fase 1 · Log de actividad PROPIO del módulo RRHH (independiente del panel, dato sensible). Append-only:
