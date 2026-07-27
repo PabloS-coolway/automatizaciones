@@ -3,8 +3,10 @@ import {
   CenterDto,
   CreateCenterDto,
   CreateDepartmentDto,
+  CorreccionFichajeDto,
   CreateEmployeeDto,
   DepartmentDto,
+  DiaDetalleFichajeDto,
   EmployeeDto,
   FicharDto,
   HistoricoFichajeDto,
@@ -21,7 +23,7 @@ import { JwtPayload } from '../../../auth/application/auth.service';
 import { CenterRow, DepartmentRow, EmployeeRow, TimeEntryRow } from '../../application/ports';
 import { RrhhError, RrhhService } from '../../application/rrhh.service';
 import { RrhhStructureService } from '../../application/rrhh-structure.service';
-import { DiaJornada, FichajeService, Jornada, Panel } from '../../application/fichaje.service';
+import { DiaDetalle, DiaJornada, FichajeService, Jornada, Panel } from '../../application/fichaje.service';
 import { esMarcaje } from '../../domain/fichaje';
 import { gestionaPlantilla } from '../../domain/rrhh-org';
 import { RrhhActor, RrhhGuard } from './rrhh.guard';
@@ -58,6 +60,19 @@ const toHistoricoDto = (desde: Date, hasta: Date, dias: DiaJornada[]): Historico
   desde: desde.toISOString().slice(0, 10),
   hasta: hasta.toISOString().slice(0, 10),
   dias: dias.map((d) => ({ fecha: d.fecha, minutosTrabajados: d.minutosTrabajados, fichajes: d.fichajes.map(toEntryDto) })),
+});
+const toDiaDetalleDto = (d: DiaDetalle): DiaDetalleFichajeDto => ({
+  fecha: d.fecha,
+  minutosTrabajados: d.minutosTrabajados,
+  entradas: d.entradas.map(({ row, anulado }) => ({
+    id: row.id,
+    kind: row.kind,
+    at: row.at.toISOString(),
+    source: row.source,
+    note: row.note,
+    actorEmail: row.actorEmail,
+    anulado,
+  })),
 });
 
 /** Rango `[desde, hasta)` a partir de query YYYY-MM-DD; por defecto, los últimos 30 días hasta mañana. */
@@ -173,13 +188,39 @@ export class RrhhController {
     @Query('desde') desde?: string,
     @Query('hasta') hasta?: string,
   ): Promise<HistoricoFichajeDto> {
-    const objetivo = Number(id);
-    const visibles = await this.service.listVisible(actor); // ya acotado a la rama que el actor puede ver
-    if (!visibles.some((e) => e.id === objetivo)) {
-      throw new ForbiddenException('No puedes ver los fichajes de ese empleado.');
-    }
+    const objetivo = await this.exigeVisible(actor, Number(id));
     const r = rangoDesdeQuery(desde, hasta);
     return toHistoricoDto(r.desde, r.hasta, await this.fichaje.historico(objetivo, r.desde, r.hasta));
+  }
+
+  @Get('empleados/:id/fichajes/dia')
+  @UseGuards(RrhhGuard)
+  async diaEmpleado(@RrhhActor() actor: EmployeeRow, @Param('id') id: string, @Query('fecha') fecha?: string): Promise<DiaDetalleFichajeDto> {
+    exigeGestion(actor);
+    const objetivo = await this.exigeVisible(actor, Number(id));
+    const dia = fecha ? new Date(`${fecha}T00:00:00`) : new Date();
+    if (Number.isNaN(dia.getTime())) throw new BadRequestException('Fecha inválida (usa YYYY-MM-DD).');
+    return toDiaDetalleDto(await this.fichaje.diaDetalle(objetivo, dia));
+  }
+
+  @Post('empleados/:id/fichajes/correccion')
+  @UseGuards(RrhhGuard)
+  async corregirFichaje(@RrhhActor() actor: EmployeeRow, @Param('id') id: string, @Body() dto: CorreccionFichajeDto): Promise<DiaDetalleFichajeDto> {
+    exigeGestion(actor);
+    const objetivo = await this.exigeVisible(actor, Number(id));
+    if (dto.action !== 'ADD' && dto.action !== 'VOID') throw new BadRequestException('Acción de corrección no válida (ADD | VOID).');
+    const at = dto.at ? new Date(dto.at) : undefined;
+    const detalle = await this.fichaje
+      .corregir(objetivo, { action: dto.action, kind: dto.kind, at, targetId: dto.targetId, note: dto.note }, { email: actor.email })
+      .catch(traducir);
+    return toDiaDetalleDto(detalle);
+  }
+
+  /** Exige que `objetivo` esté en la rama visible del actor (si no, 403). Devuelve el id validado. */
+  private async exigeVisible(actor: EmployeeRow, objetivo: number): Promise<number> {
+    const visibles = await this.service.listVisible(actor);
+    if (!visibles.some((e) => e.id === objetivo)) throw new ForbiddenException('No puedes ver los fichajes de ese empleado.');
+    return objetivo;
   }
 
   // ---- Estructura organizativa: centros (multimarca) y departamentos. Sólo RRHH/Admin. ----

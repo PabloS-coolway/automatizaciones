@@ -3,6 +3,25 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-27] REQ-008 · RRHH Fase 2 (Slice 2b) — corrección de fichajes con traza
+
+La parte sensible: RRHH corrige fichajes **sin borrar nada** y con traza completa.
+
+### Añadido
+- **Corrección append-only** (solo RRHH): **añadir** un marcaje que faltó, o **anular** uno erróneo con un
+  asiento `VOID` que lo referencia (`corrects_id`). El original nunca se edita ni se borra: queda tachado.
+- **Cómputo sobre fichajes efectivos** (`fichajesEfectivos`): estado, minutos, incidencias e histórico se
+  recalculan ignorando lo anulado. Cada corrección lleva **quién** (`actor_email`) y queda **auditada** en
+  `hr_activity` (entity `FICHAJE`, antes→después).
+- **UI**: modal de revisión del día desde el cuadro de mando (fichados ahora / incidencias) con anular y
+  añadir marcaje.
+
+### Verificado
+- typecheck + **267 tests API** + web + build. La regla append-only verificada **rompiéndola a propósito**
+  (que ignorara las anulaciones → 8 tests caen).
+- **En vivo:** añadir un OUT cierra una jornada abierta; anular un IN fantasma **no borra nada** (quedan el
+  original + el `VOID`) y deja 3 asientos de auditoría. *La migración de columnas se aplica sola en el deploy.*
+
 ## [2026-07-27] REQ-008 · RRHH Fase 2 (Slice 2a) — cuadro de mando + histórico
 
 Sobre el motor de fichaje (Slice 1), la capa de **supervisión de solo-lectura**.

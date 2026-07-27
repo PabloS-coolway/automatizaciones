@@ -63,12 +63,28 @@ export interface TimeEntryRow {
   at: Date;
   source: string;
   note: string | null;
+  /** Quién lo insertó (correo) si fue una corrección de RRHH; `null` si es fichaje propio en vivo. */
+  actorEmail: string | null;
+  /** Si anula/corrige otro fichaje, su id. */
+  correctsId: number | null;
+}
+
+/** Alta de un fichaje (propio en vivo o corrección de RRHH). */
+export interface NuevoFichaje {
+  employeeId: number;
+  kind: string;
+  source: string;
+  note?: string;
+  at?: Date;
+  actorEmail?: string;
+  correctsId?: number;
 }
 
 /** Puerto: fichajes (registro solo-añadir). No hay update ni delete: una corrección es un asiento nuevo. */
 export interface TimeEntryRepository {
   /** Registra un fichaje. La hora la pone la BD (`at @default(now())`) salvo que se pase `at` (correcciones). */
-  add(entry: { employeeId: number; kind: string; source: string; note?: string; at?: Date }): Promise<TimeEntryRow>;
+  add(entry: NuevoFichaje, tx?: Prisma.TransactionClient): Promise<TimeEntryRow>;
+  findById(id: number): Promise<TimeEntryRow | null>;
   /** Fichajes de un empleado en un rango `[desde, hasta)`, ordenados por hora. */
   listBetween(employeeId: number, desde: Date, hasta: Date): Promise<TimeEntryRow[]>;
   /** Fichajes de varios empleados en un rango `[desde, hasta)` (para el cuadro de mando), ordenados por hora. */
