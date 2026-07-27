@@ -1,6 +1,9 @@
 import {
+  agruparPorDia,
+  claveDia,
   esMarcaje,
   estadoActual,
+  jornadaSinCerrar,
   marcajesPosibles,
   minutosTrabajados,
   siguienteEstado,
@@ -60,5 +63,28 @@ describe('fichaje · minutos trabajados', () => {
   it('sin fichajes o estando fuera → 0', () => {
     expect(minutosTrabajados([], t('12:00'))).toBe(0);
     expect(minutosTrabajados([f('IN', '09:00'), f('OUT', '09:00')], t('12:00'))).toBe(0);
+  });
+});
+
+describe('fichaje · agrupación y jornadas sin cerrar', () => {
+  it('claveDia da la fecha local YYYY-MM-DD', () => {
+    expect(claveDia(new Date('2026-07-27T09:00:00'))).toBe('2026-07-27');
+  });
+
+  it('agruparPorDia separa los marcajes por fecha', () => {
+    const grupos = agruparPorDia([
+      { kind: 'IN', at: new Date('2026-07-26T09:00:00') },
+      { kind: 'OUT', at: new Date('2026-07-26T17:00:00') },
+      { kind: 'IN', at: new Date('2026-07-27T09:00:00') },
+    ]);
+    expect([...grupos.keys()].sort()).toEqual(['2026-07-26', '2026-07-27']);
+    expect(grupos.get('2026-07-26')).toHaveLength(2);
+  });
+
+  it('jornadaSinCerrar: entrar y no salir = sin cerrar; ciclo completo = cerrada', () => {
+    expect(jornadaSinCerrar([f('IN', '09:00')])).toBe(true);
+    expect(jornadaSinCerrar([f('IN', '09:00'), f('BREAK_START', '13:00')])).toBe(true); // se quedó en pausa
+    expect(jornadaSinCerrar([f('IN', '09:00'), f('OUT', '17:00')])).toBe(false);
+    expect(jornadaSinCerrar([])).toBe(false);
   });
 });

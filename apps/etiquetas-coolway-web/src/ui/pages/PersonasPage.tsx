@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Alert, Badge, Button, Card, Form, Modal, Nav, Spinner } from 'react-bootstrap';
-import { Diagram3, PencilSquare, PersonDash, PersonCheck, PlusLg, Building } from 'react-bootstrap-icons';
+import { Diagram3, PencilSquare, PersonDash, PersonCheck, PlusLg, Building, ClockHistory } from 'react-bootstrap-icons';
 import {
   RRHH_ROLE_LABELS,
   RRHH_ROLES,
@@ -14,9 +14,10 @@ import { useRrhh } from '../rrhh/RrhhContext';
 import { Column, DataTable, useMemoryTable } from '../components/table';
 import { OrganigramaView } from './personas/OrganigramaView';
 import { EstructuraManager } from './personas/EstructuraManager';
+import { PanelFichajes } from './personas/PanelFichajes';
 
 const VACIO = { email: '', fullName: '', rrhhRole: 'EMPLEADO' as RrhhRole, position: '', managerId: '', centerId: '', departmentId: '' };
-type Vista = 'plantilla' | 'organigrama' | 'estructura';
+type Vista = 'plantilla' | 'organigrama' | 'fichajes' | 'estructura';
 
 /**
  * REQ-008 · Personas. El empleado ve su ficha y (según su rol RRHH) la plantilla que le corresponde. RRHH/Admin
@@ -244,6 +245,9 @@ export function PersonasPage() {
           <Nav variant="tabs" activeKey={vista} onSelect={(k) => setVista((k as Vista) ?? 'plantilla')} className="mb-3">
             <Nav.Item><Nav.Link eventKey="plantilla">Plantilla</Nav.Link></Nav.Item>
             <Nav.Item><Nav.Link eventKey="organigrama"><Diagram3 className="me-1" />Organigrama</Nav.Link></Nav.Item>
+            {employee.rrhhRole !== 'EMPLEADO' && (
+              <Nav.Item><Nav.Link eventKey="fichajes"><ClockHistory className="me-1" />Control de fichajes</Nav.Link></Nav.Item>
+            )}
             {puedeGestionar && (
               <Nav.Item><Nav.Link eventKey="estructura"><Building className="me-1" />Centros y departamentos</Nav.Link></Nav.Item>
             )}
@@ -265,6 +269,8 @@ export function PersonasPage() {
               </Card.Body>
             </Card>
           )}
+
+          {vista === 'fichajes' && employee.rrhhRole !== 'EMPLEADO' && <PanelFichajes />}
 
           {vista === 'estructura' && puedeGestionar && (
             <EstructuraManager centros={centros} departamentos={departamentos} onChange={reload} />

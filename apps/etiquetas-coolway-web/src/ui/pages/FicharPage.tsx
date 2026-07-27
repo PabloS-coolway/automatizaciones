@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Badge, Button, Card, Spinner } from 'react-bootstrap';
-import { BoxArrowInRight, BoxArrowRight, CupHot, PlayFill } from 'react-bootstrap-icons';
+import { BoxArrowInRight, BoxArrowRight, CupHot, Download, PlayFill } from 'react-bootstrap-icons';
 import {
   ESTADO_JORNADA_LABELS,
   MARCAJE_LABELS,
+  type HistoricoFichajeDto,
   type JornadaHoyDto,
   type Marcaje,
 } from '@yorga/contracts';
 import { rrhhGateway } from '../composition';
 import { useRrhh } from '../rrhh/RrhhContext';
+import { formatearMinutos, historicoACsv } from '../../domain/fichaje-csv';
 
 const VARIANTE: Record<Marcaje, string> = { IN: 'success', OUT: 'danger', BREAK_START: 'warning', BREAK_END: 'primary' };
 const ICONO: Record<Marcaje, JSX.Element> = {
@@ -18,13 +20,6 @@ const ICONO: Record<Marcaje, JSX.Element> = {
   BREAK_END: <PlayFill />,
 };
 const VARIANTE_ESTADO: Record<string, string> = { FUERA: 'secondary', TRABAJANDO: 'success', EN_PAUSA: 'warning' };
-
-/** "2h 35m" a partir de minutos. */
-function formatearMinutos(min: number): string {
-  const h = Math.floor(min / 60);
-  const m = min % 60;
-  return h > 0 ? `${h}h ${m}m` : `${m}m`;
-}
 
 /** Hora local HH:MM de un ISO. */
 function hora(iso: string): string {
@@ -43,9 +38,14 @@ function origen(): 'WEB' | 'MOBILE' {
 export function FicharPage() {
   const { employee, loading: rrhhLoading } = useRrhh();
   const [jornada, setJornada] = useState<JornadaHoyDto | null>(null);
+  const [historico, setHistorico] = useState<HistoricoFichajeDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [marcando, setMarcando] = useState<Marcaje | null>(null);
+
+  const cargarHistorico = useCallback(() => {
+    rrhhGateway.miHistorico().then(setHistorico).catch(() => setHistorico(null));
+  }, []);
 
   const load = useCallback(() => {
     if (!employee) {
@@ -58,7 +58,8 @@ export function FicharPage() {
       .then(setJornada)
       .catch((e) => setError((e as Error).message))
       .finally(() => setLoading(false));
-  }, [employee]);
+    cargarHistorico();
+  }, [employee, cargarHistorico]);
 
   useEffect(() => load(), [load]);
 
@@ -67,11 +68,23 @@ export function FicharPage() {
     setMarcando(kind);
     try {
       setJornada(await rrhhGateway.fichar({ kind, source: origen() }));
+      cargarHistorico(); // el fichaje puede cerrar el día → refresca el historial
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setMarcando(null);
     }
+  }
+
+  function descargarCsv() {
+    if (!historico) return;
+    const blob = new Blob([historicoACsv(historico.dias)], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `fichajes_${historico.desde}_${historico.hasta}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   if (rrhhLoading || loading) {
@@ -129,7 +142,7 @@ export function FicharPage() {
             {jornada.posibles.length === 0 && <p className="text-secondary text-center">Jornada cerrada por hoy.</p>}
           </div>
 
-          <Card>
+          <Card className="mb-3">
             <Card.Body>
               <Card.Title className="h6 mb-3">Marcajes de hoy</Card.Title>
               {jornada.fichajes.length === 0 ? (
@@ -146,6 +159,27 @@ export function FicharPage() {
               )}
             </Card.Body>
           </Card>
+
+          {historico && historico.dias.length > 0 && (
+            <Card>
+              <Card.Body>
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <Card.Title className="h6 mb-0">Mi historial</Card.Title>
+                  <Button size="sm" variant="outline-secondary" onClick={descargarCsv}>
+                    <Download className="me-1" /> CSV
+                  </Button>
+                </div>
+                <ul className="list-unstyled mb-0">
+                  {historico.dias.map((d) => (
+                    <li key={d.fecha} className="d-flex justify-content-between py-1 border-bottom">
+                      <span>{d.fecha}</span>
+                      <span className="text-secondary">{formatearMinutos(d.minutosTrabajados)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </Card.Body>
+            </Card>
+          )}
         </>
       )}
     </div>

@@ -168,9 +168,15 @@ Digitaliza el parte diario que hoy se firma en papel. Se acaban los partes físi
     según el estado, "trabajados hoy", marcajes del día); en el sidebar sólo para empleados. Verificado en vivo
     (IN→pausa→volver→OUT; el IN repetido y un marcaje inventado devuelven 400 y **no** dejan asiento). *La
     migración `hr_time_entry` se aplica sola en el deploy.*
-  - **Slice 2 · Cuadro de mando + correcciones + cómputo** — ⏳ pendiente: quién está fichado ahora + incidencias
-    (jornadas sin cerrar), **corrección solo RRHH con traza** (asiento nuevo que referencia al anterior),
-    histórico personal descargable, horarios teóricos y **detección de horas extra**.
+  - **Slice 2a · Cuadro de mando + histórico (solo-lectura)** — ✅ **hecho** (esta rama). **Cuadro de mando**
+    acotado a la rama visible: quién está fichado **ahora** y **jornadas sin cerrar** de los últimos 7 días
+    (incidencias). **Histórico personal** por rango, agrupado por día, con **descarga CSV** (Excel ES). El
+    histórico de un empleado concreto respeta la **visibilidad jerárquica** (un EMPLEADO no ve al de al lado →
+    403). Dominio testeado (`jornadaSinCerrar`, `agruparPorDia`) + break-on-purpose de la detección de
+    incidencias. Sin migración. Verificado en vivo (panel con incidencia real; histórico 510 min en jornada
+    09:00–17:30; 403 al ajeno).
+  - **Slice 2b · Corrección + cómputo** — ⏳ pendiente: **corrección solo RRHH con traza** (asiento nuevo que
+    anula/referencia al anterior; append-only), horarios teóricos y **detección de horas extra**.
 
 ## Próximos pasos
 
