@@ -32,6 +32,7 @@ export function PodaPage() {
   const [borrador, setBorrador] = useState<File[]>([]);
   const [ficheros, setFicheros] = useState<File[]>([]);
   const [sociedad, setSociedad] = useState<SociedadCodigo | ''>('');
+  const [aplicarSurtidos, setAplicarSurtidos] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [res, setRes] = useState<PodaResponse | null>(null);
@@ -42,7 +43,7 @@ export function PodaPage() {
     setError('');
     setLoading(true);
     try {
-      setRes(await podaGateway.podar(borrador[0], ficheros, sociedad || undefined));
+      setRes(await podaGateway.podar(borrador[0], ficheros, sociedad || undefined, aplicarSurtidos));
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -55,6 +56,7 @@ export function PodaPage() {
     setBorrador([]);
     setFicheros([]);
     setSociedad('');
+    setAplicarSurtidos(false);
   }
 
   return (
@@ -110,6 +112,20 @@ export function PodaPage() {
                 Si eliges una, la poda reescribe el código de sociedad en los ficheros (A073 no la lleva).
               </Form.Text>
             </Form.Group>
+
+            <Form.Check
+              type="checkbox"
+              id="poda-surtidos"
+              className="mt-3"
+              checked={aplicarSurtidos}
+              onChange={(e) => setAplicarSurtidos(e.target.checked)}
+              label={
+                <>
+                  <strong>Aplicar surtidos</strong> — deja sólo los surtidos del catálogo por grupo (76/86). Gestiona
+                  el catálogo en <strong>Surtidos</strong>.
+                </>
+              }
+            />
 
             <Button type="button" className="btn-brand w-100 py-2 mt-4" disabled={loading || !ready} onClick={onPodar}>
               {loading ? (

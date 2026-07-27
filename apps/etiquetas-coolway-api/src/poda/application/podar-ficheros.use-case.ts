@@ -8,7 +8,6 @@ import {
   reescribirSociedadLinea,
   SociedadCodigo,
 } from '../domain/poda';
-import { familiaDeRef, normalizeColor } from '../domain/familia';
 import {
   leerFicheroSap,
   serializarFicheroSap,
@@ -60,35 +59,30 @@ export interface ResultadoPodaFicheros {
  * orquestación sobre el dominio: qué se compró (borrador) → filtrar cada fichero. No inventa nada y avisa de
  * lo que falte (fichero incompleto) o no reconozca.
  */
-/** REQ-010 · Fase 2 — un surtido (SURTD) asignado a una referencia. */
-export interface SurtidoAsignado {
-  ref: string;
-  surtido: string;
+/** REQ-011 · una entrada del catálogo de surtidos: un código SURTD dentro de un grupo (prefijo de ref). */
+export interface SurtidoDeGrupo {
+  grupo: string;
+  codigo: string;
 }
 
 /**
- * REQ-010 · Fase 2 — predicado para el fichero de surtidos: una fila comprada se conserva sólo si su surtido
- * es el asignado a su ref. La ref se recupera de (familia, color) usando el borrador. Si la ref no tiene
- * asignación, se conserva (el filtro de surtido es opt-in por referencia).
+ * REQ-011 · predicado para el fichero de surtidos: una fila comprada se conserva sólo si su `SURTD` está en el
+ * catálogo del **prefijo de su familia** (76/86…). El prefijo está en la propia familia del fichero, así que
+ * no hace falta cruzar con el borrador. Un prefijo sin catálogo no se filtra (opt-in por grupo).
  */
-function construirSurtidoOk(borrador: LineaBorrador[], asignacion: Map<string, string>): (fila: FilaSap) => boolean {
-  if (asignacion.size === 0) return () => true;
-  const refDe = new Map<string, string>();
-  for (const l of borrador) {
-    if (!(l.suma > 0)) continue;
-    try {
-      refDe.set(`${familiaDeRef(l.ourRef)}|${normalizeColor(l.colorSap)}`, String(l.ourRef).trim());
-    } catch {
-      // ref con formato raro: ya la reporta comprasDelBorrador; aquí no rompemos el filtro.
-    }
+function construirSurtidoOk(catalogo: SurtidoDeGrupo[]): (fila: FilaSap) => boolean {
+  if (catalogo.length === 0) return () => true;
+  const porGrupo = new Map<string, Set<string>>();
+  for (const s of catalogo) {
+    const set = porGrupo.get(s.grupo) ?? new Set<string>();
+    set.add(s.codigo);
+    porGrupo.set(s.grupo, set);
   }
   return (fila) => {
-    if (fila.familia === undefined || fila.colorSap === undefined) return true;
-    const ref = refDe.get(`${fila.familia}|${normalizeColor(fila.colorSap)}`);
-    if (!ref) return true; // no sabemos la ref → no filtramos
-    const asignado = asignacion.get(ref);
-    if (!asignado) return true; // ref sin surtido asignado → se conserva (opt-in)
-    return (fila.surtido ?? '') === asignado;
+    if (fila.familia === undefined || fila.surtido === undefined) return true;
+    const permitidos = porGrupo.get(fila.familia.slice(0, 2));
+    if (!permitidos) return true; // prefijo sin catálogo → no se filtra
+    return permitidos.has(fila.surtido);
   };
 }
 
@@ -96,12 +90,12 @@ export function podarFicheros(
   borrador: LineaBorrador[],
   entradas: FicheroEntrada[],
   sociedad?: SociedadCodigo,
-  surtidos?: SurtidoAsignado[],
+  surtidos?: SurtidoDeGrupo[],
 ): ResultadoPodaFicheros {
   const compras = comprasDelBorrador(borrador);
   const ficheros: FicheroPodado[] = [];
   const sinReconocer: string[] = [];
-  const surtidoOk = construirSurtidoOk(borrador, new Map((surtidos ?? []).map((s) => [s.ref.trim(), s.surtido.trim()])));
+  const surtidoOk = construirSurtidoOk(surtidos ?? []);
 
   for (const e of entradas) {
     const tipo = tipoPorNombre(e.nombre);

@@ -181,17 +181,17 @@ model ActivityEntry {
   @@map("activity_entry")
 }
 
-/// REQ-010 · Fase 2 — Catálogo de surtidos que Silvia elige POR REFERENCIA. Al podar el fichero de surtidos
-/// se conserva SÓLO el surtido (código `SURTD` de SAP) asignado a esa ref, en vez de arrastrar todos los que
-/// propone Access. Dato del negocio (de Silvia), gestionado desde la web (patrón REQ-004 · destinos).
-model Surtido {
+/// REQ-011 · Catálogo de surtidos por GRUPO de prefijo de referencia (`76` chica / `86` chico, extensible).
+/// Al podar (si se activa), se conserva un surtido sólo si su código está en el grupo del prefijo de su
+/// familia. Sustituye el modelo por-referencia de REQ-010 Fase 2. Dato del negocio (de Silvia).
+model PodaSurtido {
   id        Int      @id @default(autoincrement())
-  /// Ref color-a-color (7 dígitos). Único: un surtido por referencia.
-  ref       String   @unique
-  /// Código `SURTD` de SAP (p. ej. `0G2`, `U12`) que se conserva al podar esa ref.
-  surtido   String
+  /// Prefijo de referencia: "76" (chica), "86" (chico)… extensible.
+  grupo     String
+  /// Código `SURTD` de SAP (3 caracteres, p. ej. `S40`, `00I`).
+  codigo    String
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
 
-  @@map("surtido")
+  @@unique([grupo, codigo])
+  @@map("poda_surtido")
 }

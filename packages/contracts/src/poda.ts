@@ -34,24 +34,28 @@ export interface FicheroPodadoDto {
   podadoBase64: string;
 }
 
-/* ─────────────── Surtidos · REQ-010 Fase 2 (catálogo ref → SURTD, lo gestiona Silvia) ─────────────── */
+/* ─────────── Surtidos · REQ-011 (catálogo por PREFIJO de referencia, lo gestiona Silvia) ─────────── */
 
-/** Un surtido asignado a una referencia, tal como lo ve la pantalla de administración. */
-export interface SurtidoDto {
+/** Grupos de surtido por prefijo de referencia. **Extensible**; de momento 76 (chica) y 86 (chico). */
+export const SURTIDO_GRUPOS = ['76', '86'] as const;
+export type SurtidoGrupo = (typeof SURTIDO_GRUPOS)[number];
+
+export const SURTIDO_GRUPO_LABELS: Record<SurtidoGrupo, string> = {
+  '76': 'Chica (ref. 76…)',
+  '86': 'Chico (ref. 86…)',
+};
+
+/** Un código de surtido (SURTD) dentro de un grupo, tal como lo ve la pantalla. */
+export interface PodaSurtidoDto {
   id: number;
-  ref: string;
-  surtido: string;
+  grupo: string;
+  codigo: string;
 }
 
-/** Alta de surtido. `ref` es la identidad (única): un surtido por referencia. */
-export interface CreateSurtidoDto {
-  ref: string;
-  surtido: string;
-}
-
-/** Edición: sólo cambia el código de surtido; la `ref` es la identidad. */
-export interface UpdateSurtidoDto {
-  surtido: string;
+/** Alta de un código de surtido en un grupo. */
+export interface CreatePodaSurtidoDto {
+  grupo: string;
+  codigo: string;
 }
 
 export interface PodaResponse {
