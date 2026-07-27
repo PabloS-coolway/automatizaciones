@@ -21,10 +21,11 @@ lo rehace.
 ### Verificado
 - typecheck + build + **228 tests API** + web (cobertura 98%). Filtro por prefijo verificado **rompiéndolo a
   propósito** (el test cae). *La migración se aplica sola en el deploy.*
-- ⚠ **Hallazgo:** el Excel nuevo de Silvia (`compr poda materiales - nuevo.xlsx`) trae la Horma rellena
-  (BUG-006 resuelto por su lado) pero tiene una **peculiaridad de ZIP** que nuestro lector (exceljs) no abre,
-  aunque el contenido es válido (re-comprimido sí abre). Pendiente: que lo re-guarde desde Excel, o hacer el
-  lector del borrador tolerante.
+- **BUG-007 (arreglado en este mismo bloque):** el Excel nuevo de Silvia traía la Horma rellena (BUG-006
+  resuelto por su lado) pero tenía una **peculiaridad de ZIP** que exceljs no abría, aunque el contenido era
+  válido. Ahora el **lector del borrador es tolerante**: si exceljs falla, re-normaliza el zip con `fflate` y
+  reintenta (contenido intacto). **Verificado ejecutando la poda con el fichero original** → lo lee y saca las
+  96 (antes fallaba al leer). Adapter de Excel → se verifica ejecutando (convención del proyecto).
 
 ## [2026-07-27] REQ-008 · Módulo RRHH — diseño + Fase 0 (cimientos)
 
