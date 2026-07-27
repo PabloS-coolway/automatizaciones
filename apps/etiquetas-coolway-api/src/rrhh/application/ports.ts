@@ -71,6 +71,8 @@ export interface TimeEntryRepository {
   add(entry: { employeeId: number; kind: string; source: string; note?: string; at?: Date }): Promise<TimeEntryRow>;
   /** Fichajes de un empleado en un rango `[desde, hasta)`, ordenados por hora. */
   listBetween(employeeId: number, desde: Date, hasta: Date): Promise<TimeEntryRow[]>;
+  /** Fichajes de varios empleados en un rango `[desde, hasta)` (para el cuadro de mando), ordenados por hora. */
+  listBetweenMany(employeeIds: number[], desde: Date, hasta: Date): Promise<TimeEntryRow[]>;
 }
 
 export const RRHH_STRUCTURE_REPOSITORY = Symbol('RRHH_STRUCTURE_REPOSITORY');
