@@ -2,8 +2,10 @@ import type {
   CenterDto,
   CreateCenterDto,
   CreateDepartmentDto,
+  CorreccionFichajeDto,
   CreateEmployeeDto,
   DepartmentDto,
+  DiaDetalleFichajeDto,
   EmployeeDto,
   FicharDto,
   HistoricoFichajeDto,
@@ -138,6 +140,22 @@ export class HttpRrhhGateway {
   async panelFichajes(): Promise<PanelFichajeDto> {
     const res = await apiFetch('/rrhh/fichajes/panel');
     if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo cargar el cuadro de mando.'));
+    return res.json();
+  }
+
+  async diaEmpleado(id: number, fecha: string): Promise<DiaDetalleFichajeDto> {
+    const res = await apiFetch(`/rrhh/empleados/${id}/fichajes/dia?fecha=${fecha}`);
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo cargar el día.'));
+    return res.json();
+  }
+
+  async corregirFichaje(id: number, input: CorreccionFichajeDto): Promise<DiaDetalleFichajeDto> {
+    const res = await apiFetch(`/rrhh/empleados/${id}/fichajes/correccion`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo aplicar la corrección.'));
     return res.json();
   }
 }

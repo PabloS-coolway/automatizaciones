@@ -165,3 +165,35 @@ export interface HistoricoFichajeDto {
   hasta: string;
   dias: DiaJornadaDto[];
 }
+
+/** Un marcaje en la vista de revisión/corrección: incluye quién lo puso y si está anulado. */
+export interface EntradaFichajeDto {
+  id: number;
+  kind: string; // IN | OUT | BREAK_START | BREAK_END | VOID
+  at: string;
+  source: string;
+  note: string | null;
+  /** Correo de quien lo insertó si fue una corrección de RRHH; `null` si es fichaje propio del empleado. */
+  actorEmail: string | null;
+  /** ¿Anulado por una corrección posterior? (se pinta tachado, pero no se borra). */
+  anulado: boolean;
+}
+
+/** Detalle de un día de un empleado, para que RRHH lo revise y corrija. */
+export interface DiaDetalleFichajeDto {
+  fecha: string;
+  minutosTrabajados: number;
+  entradas: EntradaFichajeDto[];
+}
+
+/**
+ * Corrección de un fichaje (solo RRHH). `ADD` inserta un marcaje que faltó (con `kind` y `at`); `VOID` anula
+ * uno erróneo (con `targetId`). Append-only: nunca edita ni borra el original.
+ */
+export interface CorreccionFichajeDto {
+  action: 'ADD' | 'VOID';
+  kind?: Marcaje;
+  at?: string;
+  targetId?: number;
+  note?: string;
+}
