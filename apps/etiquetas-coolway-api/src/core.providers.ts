@@ -18,9 +18,11 @@ import { SURTIDO_REPOSITORY } from './surtidos/application/ports';
 import { SurtidosService } from './surtidos/application/surtidos.service';
 import { PrismaSurtidoRepository } from './surtidos/infrastructure/prisma-surtido.repository';
 import { EMPLOYEE_REPOSITORY } from './rrhh/application/ports';
+import { RRHH_ACTIVITY_RECORDER } from './rrhh/application/rrhh-activity.port';
 import { RrhhService } from './rrhh/application/rrhh.service';
 import { RrhhGuard } from './rrhh/interface/http/rrhh.guard';
 import { PrismaEmployeeRepository } from './rrhh/infrastructure/prisma-employee.repository';
+import { PrismaRrhhActivityRecorder } from './rrhh/infrastructure/prisma-rrhh-activity.recorder';
 
 /**
  * Proveedores comunes (hexágono) que comparten la CLI y la API HTTP:
@@ -46,6 +48,8 @@ export const coreProviders: Provider[] = [
   SurtidosService,
   PrismaEmployeeRepository,
   { provide: EMPLOYEE_REPOSITORY, useExisting: PrismaEmployeeRepository },
+  PrismaRrhhActivityRecorder,
+  { provide: RRHH_ACTIVITY_RECORDER, useExisting: PrismaRrhhActivityRecorder },
   RrhhService,
   RrhhGuard,
   {

@@ -1,25 +1,35 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { CreateEmployeeDto } from '@yorga/contracts';
-import { EMPLOYEE_REPOSITORY, EmployeeRepository, EmployeeRow } from './ports';
-import { empleadosVisibles, esRrhhRole } from '../domain/rrhh-org';
+import { CreateEmployeeDto, UpdateEmployeeDto } from '@yorga/contracts';
+import { EMPLOYEE_REPOSITORY, EmpleadoUpdate, EmployeeRepository, EmployeeRow } from './ports';
+import { crearíaCiclo, empleadosVisibles, esRrhhRole } from '../domain/rrhh-org';
+import { PrismaService } from '../../infrastructure/db/prisma.service';
+import { RRHH_ACTIVITY_RECORDER, RrhhActivityRecorder } from './rrhh-activity.port';
 
 /** Error de negocio de RRHH (el controller lo traduce a 400). */
 export class RrhhError extends Error {}
 
+/** Quién hace la acción (del JWT), para el log de actividad de RRHH. */
+export interface RrhhActor {
+  email: string;
+}
+
 /**
- * REQ-008 · Fase 0 — servicio del módulo RRHH. El alta enlaza con un usuario que YA existe (identidad
- * compartida por correo); RRHH no crea logins. El listado respeta la visibilidad jerárquica.
+ * REQ-008 · Servicio del módulo RRHH. El alta enlaza con un usuario existente (identidad compartida por
+ * correo); RRHH no crea logins. El listado respeta la visibilidad jerárquica. Toda mutación queda en el log
+ * de actividad PROPIO de RRHH (append-only), dentro de la misma transacción que el cambio.
  */
 @Injectable()
 export class RrhhService {
-  constructor(@Inject(EMPLOYEE_REPOSITORY) private readonly repo: EmployeeRepository) {}
+  constructor(
+    @Inject(EMPLOYEE_REPOSITORY) private readonly repo: EmployeeRepository,
+    @Inject(RRHH_ACTIVITY_RECORDER) private readonly actividad: RrhhActivityRecorder,
+    private readonly prisma: PrismaService,
+  ) {}
 
-  /** Ficha del empleado que corresponde a un usuario del login (o null si ese usuario no es empleado). */
   me(userId: number): Promise<EmployeeRow | null> {
     return this.repo.findByUserId(userId);
   }
 
-  /** La plantilla que `actor` puede ver: RRHH/Admin todos, Manager su rama, Empleado sólo a sí mismo. */
   async listVisible(actor: EmployeeRow): Promise<EmployeeRow[]> {
     const all = await this.repo.findAll();
     const visibles = empleadosVisibles(
@@ -29,7 +39,7 @@ export class RrhhService {
     return all.filter((e) => visibles.has(e.id));
   }
 
-  async crear(dto: CreateEmployeeDto): Promise<EmployeeRow> {
+  async crear(dto: CreateEmployeeDto, actor: RrhhActor): Promise<EmployeeRow> {
     const email = String(dto.email ?? '').trim();
     const fullName = String(dto.fullName ?? '').trim();
     if (!email) throw new RrhhError('Falta el correo del usuario a enlazar.');
@@ -37,7 +47,6 @@ export class RrhhService {
     const rrhhRole = dto.rrhhRole ?? 'EMPLEADO';
     if (!esRrhhRole(rrhhRole)) throw new RrhhError(`Rol RRHH no válido: "${rrhhRole}".`);
 
-    // Identidad compartida: el empleado se enlaza a un usuario existente. RRHH NO crea logins.
     const userId = await this.repo.findUserIdByEmail(email);
     if (!userId) throw new RrhhError(`No hay ningún usuario con el correo "${email}". Créalo antes en Usuarios.`);
     if (await this.repo.findByUserId(userId)) throw new RrhhError(`El usuario "${email}" ya tiene ficha de empleado.`);
@@ -45,12 +54,83 @@ export class RrhhService {
       throw new RrhhError(`El responsable #${dto.managerId} no existe.`);
     }
 
-    return this.repo.create({
-      userId,
-      fullName,
-      rrhhRole,
-      position: dto.position?.trim() || undefined,
-      managerId: dto.managerId ?? undefined,
+    return this.prisma.$transaction(async (tx) => {
+      const creado = await this.repo.create(
+        { userId, fullName, rrhhRole, position: dto.position?.trim() || undefined, managerId: dto.managerId ?? undefined },
+        tx,
+      );
+      await this.actividad.record(
+        { actorEmail: actor.email, action: 'CREATE', entity: 'EMPLEADO', entityId: String(creado.id), after: creado, summary: `Dio de alta a ${creado.fullName} (${creado.email})` },
+        tx,
+      );
+      return creado;
+    });
+  }
+
+  async editar(id: number, dto: UpdateEmployeeDto, actor: RrhhActor): Promise<EmployeeRow> {
+    const actual = await this.repo.findById(id);
+    if (!actual) throw new RrhhError(`No existe el empleado #${id}.`);
+
+    const data: EmpleadoUpdate = {};
+    if (dto.fullName !== undefined) {
+      const nombre = dto.fullName.trim();
+      if (!nombre) throw new RrhhError('El nombre del empleado no puede quedar vacío.');
+      data.fullName = nombre;
+    }
+    if (dto.position !== undefined) data.position = dto.position?.trim() || null;
+    if (dto.rrhhRole !== undefined) {
+      if (!esRrhhRole(dto.rrhhRole)) throw new RrhhError(`Rol RRHH no válido: "${dto.rrhhRole}".`);
+      data.rrhhRole = dto.rrhhRole;
+    }
+    if (dto.managerId !== undefined) {
+      if (dto.managerId !== null) {
+        if (!(await this.repo.findById(dto.managerId))) throw new RrhhError(`El responsable #${dto.managerId} no existe.`);
+        const org = (await this.repo.findAll()).map((e) => ({ id: e.id, managerId: e.managerId }));
+        if (crearíaCiclo(id, dto.managerId, org)) {
+          throw new RrhhError('Ese responsable crearía un ciclo en el organigrama (no puede ser un subordinado suyo).');
+        }
+      }
+      data.managerId = dto.managerId;
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const actualizado = await this.repo.update(id, data, tx);
+      await this.actividad.record(
+        { actorEmail: actor.email, action: 'UPDATE', entity: 'EMPLEADO', entityId: String(id), before: actual, after: actualizado, summary: `Editó la ficha de ${actualizado.fullName}` },
+        tx,
+      );
+      return actualizado;
+    });
+  }
+
+  darDeBaja(id: number, actor: RrhhActor): Promise<EmployeeRow> {
+    return this.cambiarEstado(id, false, actor);
+  }
+
+  reactivar(id: number, actor: RrhhActor): Promise<EmployeeRow> {
+    return this.cambiarEstado(id, true, actor);
+  }
+
+  private async cambiarEstado(id: number, active: boolean, actor: RrhhActor): Promise<EmployeeRow> {
+    const actual = await this.repo.findById(id);
+    if (!actual) throw new RrhhError(`No existe el empleado #${id}.`);
+    if (actual.active === active) return actual; // ya está en ese estado: nada que hacer
+
+    return this.prisma.$transaction(async (tx) => {
+      const actualizado = await this.repo.update(id, { active }, tx);
+      await this.actividad.record(
+        {
+          actorEmail: actor.email,
+          action: 'UPDATE',
+          entity: 'EMPLEADO',
+          entityId: String(id),
+          before: actual,
+          after: actualizado,
+          summary: active ? `Reactivó a ${actualizado.fullName}` : `Dio de baja a ${actualizado.fullName}`,
+        },
+        tx,
+      );
+      return actualizado;
     });
   }
 }

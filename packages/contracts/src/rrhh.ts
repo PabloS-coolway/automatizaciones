@@ -37,6 +37,14 @@ export interface CreateEmployeeDto {
   managerId?: number;
 }
 
+/** Edición de una ficha (Fase 1). Todo opcional; sólo lo presente se cambia. El correo/usuario no se cambia. */
+export interface UpdateEmployeeDto {
+  fullName?: string;
+  position?: string | null;
+  rrhhRole?: RrhhRole;
+  managerId?: number | null;
+}
+
 /** Contexto RRHH del usuario que ha entrado (para que la web sepa qué mostrar). `null` = no es empleado. */
 export interface RrhhMeDto {
   employee: EmployeeDto | null;
