@@ -8,6 +8,7 @@ import { LoginPage } from './pages/LoginPage';
 import { UsuariosPage } from './pages/UsuariosPage';
 import { RolesPage } from './pages/RolesPage';
 import { PodaPage } from './pages/PodaPage';
+import { SurtidosPage } from './pages/SurtidosPage';
 import { ActividadPage } from './pages/ActividadPage';
 import { DestinosPage } from './pages/DestinosPage';
 import { AuthProvider } from './auth/AuthContext';
@@ -37,6 +38,7 @@ export function App() {
               </Route>
               <Route element={<RequireFeature feature="maestro.cargar" />}>
                 <Route path="/poda" element={<PodaPage />} />
+                <Route path="/surtidos" element={<SurtidosPage />} />
               </Route>
               <Route element={<RequireFeature feature="actividad.ver" />}>
                 <Route path="/actividad" element={<ActividadPage />} />

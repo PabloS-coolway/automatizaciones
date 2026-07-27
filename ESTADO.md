@@ -1,7 +1,7 @@
 # Estado del proyecto · dónde vamos y qué sigue
 
 > Documento de traspaso. Si retomas el trabajo (o cambias de ordenador), **empieza por aquí**.
-> Última actualización: **2026-07-21**. Historial detallado en [`CHANGELOG.md`](CHANGELOG.md).
+> Última actualización: **2026-07-24**. Historial detallado en [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Arranque en un ordenador nuevo
 
@@ -207,14 +207,24 @@ Todo el andamiaje está hecho y **probado construyendo la imagen de verdad**. Gu
 --spec .do/app.yaml` o importar el spec en el panel), poner el `JWT_SECRET` como secreto, crear el primer
 admin por la consola del componente, y cargar el maestro desde la web. Usa el subdominio `.ondigitalocean.app`.
 
+## En vuelo (24/07)
+
+- **REQ-005 (poda)** está en prod. Encima, del correo «FICHERO DE MATERIALES Y BASE DE DATOS» salió un
+  bloque, hoy en **PR** (`feat/bug-006-poda-color-y-req-010`):
+  - **BUG-006** — la poda de materiales anulaba todo y "mentía" cuando el borrador no traía el código de
+    color (Horma). Ahora **avisa** («N refs sin color»). Arreglado + test.
+  - **REQ-010 · poda configurable** (Fases 1 y 2): **elegir sociedad** (2000/4000, se reescribe en la
+    columna verificada) y **elegir surtidos** (catálogo `ref→SURTD` en la nueva pantalla *Surtidos*; al
+    podar deja sólo el asignado). Verificado en vivo. *La migración `surtido` se aplica sola en el deploy.*
+- **Acción de negocio (Silvia), no de BD:** para podar materiales/surtidos por color, el borrador **debe
+  traer la Horma** (el código de color de SAP). Con el borrador actual sale a 0 líneas — y el sistema ahora
+  lo avisa. Tarifas y cambio de sociedad no lo necesitan.
+- **REQ-006 (roles/features), REQ-007 (log de actividad) y REQ-009 (editar color web)** ya están en prod.
+
 ## Siguiente hilo (elige uno)
 
-1. **REQ-005 · Podar los ficheros de SAP a lo realmente comprado** (materiales, tarifas 906/073,
-   surtidos) — registrado desde el correo «FUNCIONES» de Silvia. **Empieza por lo que lo desatasca:**
-   verificar si el maestro que ya tenemos contiene el **código de color de SAP** (100, 766…). Si está,
-   el mapeo color↔SAP se resuelve solo y el REQ es viable; si no, hay que pedírselo a Tomás. Diseño en
-   [`diseño/iniciativas/REQ-005-podar-ficheros-sap/`](diseño/iniciativas/REQ-005-podar-ficheros-sap/diseño.md).
-   Es, de hecho, la **Fase 3** del epic REQ-001.
+1. **Adopción con Silvia:** que rellene la Horma en su borrador y asigne los surtidos en la pantalla nueva;
+   validar la poda completa con un prepedido real. Es lo que desbloquea el valor de REQ-005/REQ-010.
 2. **Fase 2 · Bloque 3 — gobernanza del maestro**: publicar el maestro a Excel/Sheets para los
    departamentos, y coordinar accesos con Tomás.
 3. **Demo a Silvia** con la herramienta, y pasarle los 29 EAN13 duplicados.

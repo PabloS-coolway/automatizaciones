@@ -43,6 +43,7 @@ const NAV: NavGroup[] = [
       { to: '/etiquetas', label: 'Etiquetas', icon: <Tags />, ready: true },
       { to: '/maestro', label: 'Base de datos', icon: <Database />, ready: true },
       { to: '/poda', label: 'Podar SAP', icon: <Scissors />, ready: true, feature: 'maestro.cargar' },
+      { to: '/surtidos', label: 'Surtidos', icon: <BoxSeamFill />, ready: true, feature: 'maestro.cargar' },
       { to: '/destinos', label: 'Destinos', icon: <GeoAlt />, ready: true, feature: 'destinos.gestionar' },
     ],
   },

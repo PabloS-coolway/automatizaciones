@@ -124,3 +124,18 @@ model ActivityEntry {
   @@index([entity, entityId])
   @@map("activity_entry")
 }
+
+/// REQ-010 · Fase 2 — Catálogo de surtidos que Silvia elige POR REFERENCIA. Al podar el fichero de surtidos
+/// se conserva SÓLO el surtido (código `SURTD` de SAP) asignado a esa ref, en vez de arrastrar todos los que
+/// propone Access. Dato del negocio (de Silvia), gestionado desde la web (patrón REQ-004 · destinos).
+model Surtido {
+  id        Int      @id @default(autoincrement())
+  /// Ref color-a-color (7 dígitos). Único: un surtido por referencia.
+  ref       String   @unique
+  /// Código `SURTD` de SAP (p. ej. `0G2`, `U12`) que se conserva al podar esa ref.
+  surtido   String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("surtido")
+}
