@@ -17,11 +17,13 @@ import { PrismaDestinationRepository } from './destinos/infrastructure/prisma-de
 import { SURTIDO_REPOSITORY } from './surtidos/application/ports';
 import { SurtidosService } from './surtidos/application/surtidos.service';
 import { PrismaSurtidoRepository } from './surtidos/infrastructure/prisma-surtido.repository';
-import { EMPLOYEE_REPOSITORY } from './rrhh/application/ports';
+import { EMPLOYEE_REPOSITORY, RRHH_STRUCTURE_REPOSITORY } from './rrhh/application/ports';
 import { RRHH_ACTIVITY_RECORDER } from './rrhh/application/rrhh-activity.port';
 import { RrhhService } from './rrhh/application/rrhh.service';
+import { RrhhStructureService } from './rrhh/application/rrhh-structure.service';
 import { RrhhGuard } from './rrhh/interface/http/rrhh.guard';
 import { PrismaEmployeeRepository } from './rrhh/infrastructure/prisma-employee.repository';
+import { PrismaStructureRepository } from './rrhh/infrastructure/prisma-structure.repository';
 import { PrismaRrhhActivityRecorder } from './rrhh/infrastructure/prisma-rrhh-activity.recorder';
 
 /**
@@ -48,9 +50,12 @@ export const coreProviders: Provider[] = [
   SurtidosService,
   PrismaEmployeeRepository,
   { provide: EMPLOYEE_REPOSITORY, useExisting: PrismaEmployeeRepository },
+  PrismaStructureRepository,
+  { provide: RRHH_STRUCTURE_REPOSITORY, useExisting: PrismaStructureRepository },
   PrismaRrhhActivityRecorder,
   { provide: RRHH_ACTIVITY_RECORDER, useExisting: PrismaRrhhActivityRecorder },
   RrhhService,
+  RrhhStructureService,
   RrhhGuard,
   {
     provide: GENERATE_LABELS_USE_CASE,
