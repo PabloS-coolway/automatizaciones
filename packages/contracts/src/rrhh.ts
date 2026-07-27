@@ -20,14 +20,17 @@ export interface EmployeeDto {
   rrhhRole: RrhhRole;
   managerId: number | null;
   active: boolean;
+  /** Nombres resueltos (para pintar) + ids (para editar). El centro aporta la marca del organigrama. */
   department: string | null;
+  departmentId: number | null;
   center: string | null;
+  centerId: number | null;
   brand: string | null;
 }
 
 /**
  * Alta de empleado (la hace RRHH). Se enlaza con un **usuario que ya existe** por su `email` — el módulo
- * RRHH no crea logins. `managerId` sostiene el organigrama.
+ * RRHH no crea logins. `managerId` sostiene el organigrama; `centerId` lo segmenta por marca.
  */
 export interface CreateEmployeeDto {
   email: string;
@@ -35,6 +38,8 @@ export interface CreateEmployeeDto {
   rrhhRole?: RrhhRole;
   position?: string;
   managerId?: number;
+  centerId?: number;
+  departmentId?: number;
 }
 
 /** Edición de una ficha (Fase 1). Todo opcional; sólo lo presente se cambia. El correo/usuario no se cambia. */
@@ -43,7 +48,38 @@ export interface UpdateEmployeeDto {
   position?: string | null;
   rrhhRole?: RrhhRole;
   managerId?: number | null;
+  centerId?: number | null;
+  departmentId?: number | null;
 }
+
+/** Un centro/tienda del grupo. La `brand` (enseña) es la que **segmenta el organigrama** (multimarca). */
+export interface CenterDto {
+  id: number;
+  name: string;
+  brand: string;
+  /** Nº de empleados asignados — para avisar antes de borrar y para la vista de estructura. */
+  employees: number;
+}
+
+export interface CreateCenterDto {
+  name: string;
+  brand: string;
+}
+
+export type UpdateCenterDto = Partial<CreateCenterDto>;
+
+/** Un departamento (transversal a las marcas). */
+export interface DepartmentDto {
+  id: number;
+  name: string;
+  employees: number;
+}
+
+export interface CreateDepartmentDto {
+  name: string;
+}
+
+export type UpdateDepartmentDto = Partial<CreateDepartmentDto>;
 
 /** Contexto RRHH del usuario que ha entrado (para que la web sepa qué mostrar). `null` = no es empleado. */
 export interface RrhhMeDto {

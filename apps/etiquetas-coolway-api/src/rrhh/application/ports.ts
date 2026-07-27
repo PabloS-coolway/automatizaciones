@@ -3,7 +3,7 @@ import { RrhhRole } from '@yorga/contracts';
 
 export const EMPLOYEE_REPOSITORY = Symbol('EMPLOYEE_REPOSITORY');
 
-/** Una fila de empleado ya resuelta (con el correo del usuario enlazado y los nombres de depto/centro). */
+/** Una fila de empleado ya resuelta (con el correo del usuario enlazado y los nombres+ids de depto/centro). */
 export interface EmployeeRow {
   id: number;
   userId: number;
@@ -14,7 +14,9 @@ export interface EmployeeRow {
   managerId: number | null;
   active: boolean;
   department: string | null;
+  departmentId: number | null;
   center: string | null;
+  centerId: number | null;
   brand: string | null;
 }
 
@@ -24,6 +26,8 @@ export interface NuevoEmpleado {
   rrhhRole: RrhhRole;
   position?: string;
   managerId?: number;
+  centerId?: number;
+  departmentId?: number;
 }
 
 /** Cambios sobre una ficha (edición / baja / reactivación). Sólo los campos presentes se tocan. */
@@ -32,6 +36,8 @@ export interface EmpleadoUpdate {
   position?: string | null;
   rrhhRole?: RrhhRole;
   managerId?: number | null;
+  centerId?: number | null;
+  departmentId?: number | null;
   active?: boolean;
 }
 
@@ -45,4 +51,39 @@ export interface EmployeeRepository {
   findUserIdByEmail(email: string): Promise<number | null>;
   create(nuevo: NuevoEmpleado, tx?: Prisma.TransactionClient): Promise<EmployeeRow>;
   update(id: number, data: EmpleadoUpdate, tx?: Prisma.TransactionClient): Promise<EmployeeRow>;
+}
+
+export const RRHH_STRUCTURE_REPOSITORY = Symbol('RRHH_STRUCTURE_REPOSITORY');
+
+/** Un centro/tienda con la cuenta de empleados asignados (para avisar antes de borrar). */
+export interface CenterRow {
+  id: number;
+  name: string;
+  brand: string;
+  employees: number;
+}
+
+/** Un departamento con su cuenta de empleados. */
+export interface DepartmentRow {
+  id: number;
+  name: string;
+  employees: number;
+}
+
+/**
+ * Puerto: estructura organizativa (centros y departamentos). Segmentan el organigrama: el centro aporta la
+ * **marca** (multimarca). El borrado se bloquea si hay empleados asignados (no se deja huérfano el organigrama).
+ */
+export interface StructureRepository {
+  listCenters(): Promise<CenterRow[]>;
+  createCenter(data: { name: string; brand: string }, tx?: Prisma.TransactionClient): Promise<CenterRow>;
+  updateCenter(id: number, data: { name?: string; brand?: string }, tx?: Prisma.TransactionClient): Promise<CenterRow>;
+  deleteCenter(id: number, tx?: Prisma.TransactionClient): Promise<void>;
+  findCenter(id: number): Promise<CenterRow | null>;
+
+  listDepartments(): Promise<DepartmentRow[]>;
+  createDepartment(data: { name: string }, tx?: Prisma.TransactionClient): Promise<DepartmentRow>;
+  updateDepartment(id: number, data: { name?: string }, tx?: Prisma.TransactionClient): Promise<DepartmentRow>;
+  deleteDepartment(id: number, tx?: Prisma.TransactionClient): Promise<void>;
+  findDepartment(id: number): Promise<DepartmentRow | null>;
 }

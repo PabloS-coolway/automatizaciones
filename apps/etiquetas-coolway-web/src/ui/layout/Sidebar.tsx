@@ -19,6 +19,7 @@ import { Button } from 'react-bootstrap';
 import { ThemeSwitcher } from './ThemeSwitcher';
 import type { Theme } from '../useTheme';
 import { useAuth } from '../auth/AuthContext';
+import { useRrhh } from '../rrhh/RrhhContext';
 
 interface NavItem {
   to: string;
@@ -27,6 +28,8 @@ interface NavItem {
   ready?: boolean;
   /** REQ-006 · Si se declara, la entrada sólo se ve con esa feature. */
   feature?: Feature;
+  /** REQ-008 · Si es true, la entrada sólo se ve si el usuario tiene ficha de empleado (módulo RRHH). */
+  soloEmpleados?: boolean;
 }
 
 /** MEJ-003 · La navegación se agrupa por módulos (antes era plana). Un grupo sin título va suelto. */
@@ -49,7 +52,7 @@ const NAV: NavGroup[] = [
   },
   {
     title: 'Personas',
-    items: [{ to: '/personas', label: 'Personas', icon: <PersonCircle />, ready: true }],
+    items: [{ to: '/personas', label: 'Personas', icon: <PersonCircle />, ready: true, soloEmpleados: true }],
   },
   {
     title: 'Administración',
@@ -67,7 +70,9 @@ const NAV: NavGroup[] = [
 
 export function Sidebar({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) => void }) {
   const { user, logout, hasFeature } = useAuth();
-  const visibles = (items: NavItem[]) => items.filter((n) => !n.feature || hasFeature(n.feature));
+  const { esEmpleado } = useRrhh();
+  const visibles = (items: NavItem[]) =>
+    items.filter((n) => (!n.feature || hasFeature(n.feature)) && (!n.soloEmpleados || esEmpleado));
 
   return (
     <aside className="sidebar">
