@@ -53,6 +53,26 @@ export interface EmployeeRepository {
   update(id: number, data: EmpleadoUpdate, tx?: Prisma.TransactionClient): Promise<EmployeeRow>;
 }
 
+export const TIME_ENTRY_REPOSITORY = Symbol('TIME_ENTRY_REPOSITORY');
+
+/** Un fichaje ya persistido. `at` es la hora del servidor. */
+export interface TimeEntryRow {
+  id: number;
+  employeeId: number;
+  kind: string;
+  at: Date;
+  source: string;
+  note: string | null;
+}
+
+/** Puerto: fichajes (registro solo-añadir). No hay update ni delete: una corrección es un asiento nuevo. */
+export interface TimeEntryRepository {
+  /** Registra un fichaje. La hora la pone la BD (`at @default(now())`) salvo que se pase `at` (correcciones). */
+  add(entry: { employeeId: number; kind: string; source: string; note?: string; at?: Date }): Promise<TimeEntryRow>;
+  /** Fichajes de un empleado en un rango `[desde, hasta)`, ordenados por hora. */
+  listBetween(employeeId: number, desde: Date, hasta: Date): Promise<TimeEntryRow[]>;
+}
+
 export const RRHH_STRUCTURE_REPOSITORY = Symbol('RRHH_STRUCTURE_REPOSITORY');
 
 /** Un centro/tienda con la cuenta de empleados asignados (para avisar antes de borrar). */

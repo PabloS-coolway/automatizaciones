@@ -213,20 +213,20 @@ admin por la consola del componente, y cargar el maestro desde la web. Usa el su
   **prefijo** 76/86 — rediseña la Fase 2 de REQ-010 tras el feedback de Silvia), BUG-007 (lectura tolerante
   del Excel de Silvia), y **REQ-008 RRHH Fase 0** (cimientos: identidad + roles jerárquicos + esqueleto
   "Personas"). REQ-006/007/009 ya estaban en prod.
-- **REQ-008 · RRHH Fase 1** — **Slice 1 ya en `main`** (editar/baja/reactivar + responsable con guardia
-  anti-ciclo + log propio `hr_activity`). **Slice 2** en **rama** `feat/req-008-rrhh-fase-1-slice2`, listo para
-  PR: **organigrama visual** segmentado por marca, **CRUD de centros/departamentos** (auditado; no se borra con
-  empleados), asignación de centro/depto en la ficha, y **«Personas» oculto en el sidebar** a quien no es
-  empleado. Verificado en vivo (borrado bloqueado 400 → reasignar → 204). **Sin migración** (modelos de Fase 0).
+- **REQ-008 · RRHH** — **Fase 1 completa en `main`** (ficha + organigrama + centros/departamentos + gating).
+  **Fase 2 · Fichajes, Slice 1** en **rama** `feat/req-008-rrhh-fase-2-fichajes`, listo para PR: fichar
+  entrada/salida/pausa con **marca de servidor**, registro **solo-añadir** (`hr_time_entry`), **máquina de
+  estados** que rechaza marcajes imposibles, página **«Fichar» móvil**. Verificado en vivo (ciclo completo; el
+  IN repetido y un marcaje inválido devuelven 400 y no dejan asiento). *La migración se aplica sola en el deploy.*
 - **Acción de negocio pendiente (Silvia), no de BD:** para podar materiales/surtidos por color el borrador
   debe traer la **Horma**. En el último Excel ya venía rellena (BUG-006 resuelto por su lado). Falta validar
   la poda completa con un prepedido real.
 
 ## Siguiente hilo (elige uno)
 
-1. **REQ-008 · RRHH Fase 2 (Fichajes):** digitalizar el parte diario — fichar con marca de tiempo del
-   **servidor**, **móvil** desde el arranque, "mi jornada", corrección con traza (append-only), cuadro de mando
-   y cómputo de horas/extra. Es el de mayor valor operativo inmediato.
+1. **REQ-008 · RRHH Fase 2 Slice 2 (Fichajes):** cuadro de mando RRHH (quién está fichado ahora + incidencias),
+   **corrección solo RRHH con traza** (asiento nuevo que referencia al anterior), histórico personal
+   descargable, horarios teóricos y **detección de horas extra**. (El motor de fichaje ya está en Slice 1.)
 2. **Adopción con Silvia:** validar la poda completa (materiales + surtidos por prefijo) con un prepedido real
    ahora que la Horma viene rellena. Es lo que desbloquea el valor de REQ-005/010/011.
 3. **Fase 2 · Bloque 3 — gobernanza del maestro**: publicar el maestro a Excel/Sheets para los
