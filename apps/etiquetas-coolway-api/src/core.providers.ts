@@ -17,6 +17,10 @@ import { PrismaDestinationRepository } from './destinos/infrastructure/prisma-de
 import { SURTIDO_REPOSITORY } from './surtidos/application/ports';
 import { SurtidosService } from './surtidos/application/surtidos.service';
 import { PrismaSurtidoRepository } from './surtidos/infrastructure/prisma-surtido.repository';
+import { EMPLOYEE_REPOSITORY } from './rrhh/application/ports';
+import { RrhhService } from './rrhh/application/rrhh.service';
+import { RrhhGuard } from './rrhh/interface/http/rrhh.guard';
+import { PrismaEmployeeRepository } from './rrhh/infrastructure/prisma-employee.repository';
 
 /**
  * Proveedores comunes (hexágono) que comparten la CLI y la API HTTP:
@@ -40,6 +44,10 @@ export const coreProviders: Provider[] = [
   PrismaSurtidoRepository,
   { provide: SURTIDO_REPOSITORY, useExisting: PrismaSurtidoRepository },
   SurtidosService,
+  PrismaEmployeeRepository,
+  { provide: EMPLOYEE_REPOSITORY, useExisting: PrismaEmployeeRepository },
+  RrhhService,
+  RrhhGuard,
   {
     provide: GENERATE_LABELS_USE_CASE,
     useFactory: (order: OrderReaderPort, master: MasterProvider) => new GenerateLabelsUseCase(order, master),

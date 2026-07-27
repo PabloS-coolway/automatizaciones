@@ -98,10 +98,66 @@ model User {
   role         String   @default("operador")
   roleRef      Role     @relation(fields: [role], references: [key])
   active       Boolean  @default(true)
+  /// REQ-008 · Enlace 1:1 con su ficha de empleado (RRHH). El módulo RRHH comparte SÓLO la identidad.
+  employee     Employee?
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   @@map("app_user")
+}
+
+/// REQ-008 · Centro de trabajo (con su marca/enseña). Un empleado pertenece a un centro; el organigrama
+/// es multimarca segmentado por marca/centro.
+model Center {
+  id        Int        @id @default(autoincrement())
+  name      String
+  /// Marca/enseña del grupo Yorga (COOLWAY, …). Segmenta el organigrama y los permisos.
+  brand     String
+  employees Employee[]
+
+  @@map("hr_center")
+}
+
+/// REQ-008 · Departamento (Ventas, Almacén, IT…).
+model Department {
+  id        Int        @id @default(autoincrement())
+  name      String     @unique
+  employees Employee[]
+
+  @@map("hr_department")
+}
+
+/// REQ-008 · Empleado. Dominio RRHH INDEPENDIENTE; comparte con el panel sólo la identidad (`userId` 1:1 con
+/// `User`, por correo). `rrhhRole` es el rol DENTRO del módulo (no reutiliza REQ-006). `managerId` sostiene el
+/// organigrama y la visibilidad jerárquica. Baja = `active=false` (archiva, no borra).
+model Employee {
+  id           Int         @id @default(autoincrement())
+  /// Identidad compartida: el empleado entra con este usuario del login existente.
+  userId       Int         @unique @map("user_id")
+  user         User        @relation(fields: [userId], references: [id])
+  fullName     String      @map("full_name")
+  position     String?
+  /// EMPLEADO | MANAGER | RRHH | ADMIN (rol del módulo RRHH, jerárquico).
+  rrhhRole     String      @default("EMPLEADO") @map("rrhh_role")
+  /// Responsable directo → organigrama automático.
+  managerId    Int?        @map("manager_id")
+  manager      Employee?   @relation("Org", fields: [managerId], references: [id])
+  reports      Employee[]  @relation("Org")
+  departmentId Int?        @map("department_id")
+  department   Department? @relation(fields: [departmentId], references: [id])
+  centerId     Int?        @map("center_id")
+  center       Center?     @relation(fields: [centerId], references: [id])
+  contractType String?     @map("contract_type")
+  /// Datos bancarios opcionales, preparados para una futura nómina (no se usan en Fase 1).
+  iban         String?
+  active       Boolean     @default(true)
+  hiredAt      DateTime?   @map("hired_at")
+  terminatedAt DateTime?   @map("terminated_at")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  @@index([managerId])
+  @@map("hr_employee")
 }
 
 /// REQ-007 · Log de actividad (auditoría de create/update/delete). **Append-only**: sólo la API escribe,
