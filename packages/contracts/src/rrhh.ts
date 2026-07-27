@@ -85,3 +85,48 @@ export type UpdateDepartmentDto = Partial<CreateDepartmentDto>;
 export interface RrhhMeDto {
   employee: EmployeeDto | null;
 }
+
+// ---- REQ-008 Fase 2 · Fichajes ----
+
+export const MARCAJES = ['IN', 'OUT', 'BREAK_START', 'BREAK_END'] as const;
+export type Marcaje = (typeof MARCAJES)[number];
+
+export const MARCAJE_LABELS: Record<Marcaje, string> = {
+  IN: 'Entrar',
+  OUT: 'Salir',
+  BREAK_START: 'Iniciar pausa',
+  BREAK_END: 'Volver de pausa',
+};
+
+export const ESTADOS_JORNADA = ['FUERA', 'TRABAJANDO', 'EN_PAUSA'] as const;
+export type EstadoJornada = (typeof ESTADOS_JORNADA)[number];
+
+export const ESTADO_JORNADA_LABELS: Record<EstadoJornada, string> = {
+  FUERA: 'Fuera de jornada',
+  TRABAJANDO: 'Trabajando',
+  EN_PAUSA: 'En pausa',
+};
+
+/** Un fichaje ya registrado. `at` es ISO-8601 (hora del servidor). */
+export interface TimeEntryDto {
+  id: number;
+  kind: Marcaje;
+  at: string;
+  source: string;
+  note: string | null;
+}
+
+/** Petición de fichaje. La hora la pone el servidor; el cliente sólo dice qué marca y desde dónde. */
+export interface FicharDto {
+  kind: Marcaje;
+  source?: 'WEB' | 'MOBILE';
+}
+
+/** "Mi jornada de hoy": estado actual, marcajes posibles, fichajes del día y minutos trabajados. */
+export interface JornadaHoyDto {
+  fecha: string;
+  estado: EstadoJornada;
+  posibles: Marcaje[];
+  minutosTrabajados: number;
+  fichajes: TimeEntryDto[];
+}

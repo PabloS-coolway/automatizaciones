@@ -6,16 +6,21 @@ import {
   CreateEmployeeDto,
   DepartmentDto,
   EmployeeDto,
+  FicharDto,
+  JornadaHoyDto,
   RrhhMeDto,
+  TimeEntryDto,
   UpdateCenterDto,
   UpdateDepartmentDto,
   UpdateEmployeeDto,
 } from '@yorga/contracts';
 import { CurrentUser } from '../../../auth/interface/http/decorators';
 import { JwtPayload } from '../../../auth/application/auth.service';
-import { CenterRow, DepartmentRow, EmployeeRow } from '../../application/ports';
+import { CenterRow, DepartmentRow, EmployeeRow, TimeEntryRow } from '../../application/ports';
 import { RrhhError, RrhhService } from '../../application/rrhh.service';
 import { RrhhStructureService } from '../../application/rrhh-structure.service';
+import { FichajeService, Jornada } from '../../application/fichaje.service';
+import { esMarcaje } from '../../domain/fichaje';
 import { gestionaPlantilla } from '../../domain/rrhh-org';
 import { RrhhActor, RrhhGuard } from './rrhh.guard';
 
@@ -38,6 +43,14 @@ function toDto(e: EmployeeRow): EmployeeDto {
 
 const toCenterDto = (c: CenterRow): CenterDto => ({ id: c.id, name: c.name, brand: c.brand, employees: c.employees });
 const toDeptDto = (d: DepartmentRow): DepartmentDto => ({ id: d.id, name: d.name, employees: d.employees });
+const toEntryDto = (e: TimeEntryRow): TimeEntryDto => ({ id: e.id, kind: e.kind as TimeEntryDto['kind'], at: e.at.toISOString(), source: e.source, note: e.note });
+const toJornadaDto = (j: Jornada): JornadaHoyDto => ({
+  fecha: j.fecha.toISOString().slice(0, 10),
+  estado: j.estado,
+  posibles: j.posibles,
+  minutosTrabajados: j.minutosTrabajados,
+  fichajes: j.fichajes.map(toEntryDto),
+});
 
 /** Sólo RRHH/Admin gestionan la plantilla. */
 function exigeGestion(actor: EmployeeRow): void {
@@ -59,6 +72,7 @@ export class RrhhController {
   constructor(
     private readonly service: RrhhService,
     private readonly estructura: RrhhStructureService,
+    private readonly fichaje: FichajeService,
   ) {}
 
   @Get('me')
@@ -99,6 +113,22 @@ export class RrhhController {
   async reactivar(@RrhhActor() actor: EmployeeRow, @Param('id') id: string): Promise<EmployeeDto> {
     exigeGestion(actor);
     return toDto(await this.service.reactivar(Number(id), { email: actor.email }).catch(traducir));
+  }
+
+  // ---- Fichajes: cada empleado ficha por sí mismo (no requiere rol de gestión). ----
+
+  @Get('fichajes/hoy')
+  @UseGuards(RrhhGuard)
+  async miJornada(@RrhhActor() actor: EmployeeRow): Promise<JornadaHoyDto> {
+    return toJornadaDto(await this.fichaje.jornadaHoy(actor.id));
+  }
+
+  @Post('fichajes')
+  @UseGuards(RrhhGuard)
+  async fichar(@RrhhActor() actor: EmployeeRow, @Body() dto: FicharDto): Promise<JornadaHoyDto> {
+    if (!esMarcaje(String(dto.kind))) throw new BadRequestException(`Marcaje no válido: "${dto.kind}".`);
+    const source = dto.source === 'MOBILE' ? 'MOBILE' : 'WEB';
+    return toJornadaDto(await this.fichaje.fichar(actor.id, dto.kind, source).catch(traducir));
   }
 
   // ---- Estructura organizativa: centros (multimarca) y departamentos. Sólo RRHH/Admin. ----

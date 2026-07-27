@@ -159,6 +159,18 @@ Digitaliza el parte diario que hoy se firma en papel. Se acaban los partes físi
     guardia "no borrar con empleados" confirmado en rojo.
   - **Pendiente Fase 1:** foto/ficha ampliada (datos de contacto, contrato, bancarios) — se hará cuando entre en
     valor; el modelo ya está preparado.
+- **Fase 2 · Fichajes** — 🚧 **en curso.**
+  - **Slice 1 · Motor de fichaje** — ✅ **hecho** (esta rama). Fichar entrada/salida/pausa con **marca de tiempo
+    del servidor** (`hr_time_entry`, **solo-añadir**: ni update ni delete). **Máquina de estados pura**
+    (`domain/fichaje.ts`, testeada + break-on-purpose): rechaza transiciones imposibles (entrar dos veces, salir
+    sin entrar) para que el registro **no mienta**; calcula el estado y los **minutos trabajados** (resta la
+    pausa, cuenta hasta ahora si la jornada sigue abierta). Página **«Fichar»** móvil-first (botones grandes
+    según el estado, "trabajados hoy", marcajes del día); en el sidebar sólo para empleados. Verificado en vivo
+    (IN→pausa→volver→OUT; el IN repetido y un marcaje inventado devuelven 400 y **no** dejan asiento). *La
+    migración `hr_time_entry` se aplica sola en el deploy.*
+  - **Slice 2 · Cuadro de mando + correcciones + cómputo** — ⏳ pendiente: quién está fichado ahora + incidencias
+    (jornadas sin cerrar), **corrección solo RRHH con traza** (asiento nuevo que referencia al anterior),
+    histórico personal descargable, horarios teóricos y **detección de horas extra**.
 
 ## Próximos pasos
 
