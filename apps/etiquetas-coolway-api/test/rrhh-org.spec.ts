@@ -1,4 +1,4 @@
-import { empleadosVisibles, esRrhhRole, gestionaPlantilla, puedeVer, OrgNode } from '../src/rrhh/domain/rrhh-org';
+import { crearíaCiclo, empleadosVisibles, esRrhhRole, gestionaPlantilla, puedeVer, OrgNode } from '../src/rrhh/domain/rrhh-org';
 
 /**
  * Organigrama de prueba:
@@ -46,6 +46,19 @@ describe('rrhh-org · visibilidad jerárquica (REQ-008 Fase 0)', () => {
     expect(puedeVer({ id: 2, rrhhRole: 'MANAGER' }, 8, ORG)).toBe(true); // nieto
     expect(puedeVer({ id: 2, rrhhRole: 'MANAGER' }, 6, ORG)).toBe(false); // otra rama
     expect(puedeVer({ id: 1, rrhhRole: 'RRHH' }, 6, ORG)).toBe(true); // RRHH ve a todos
+  });
+
+  it('crearíaCiclo · un subordinado (directo o indirecto) NO puede pasar a ser tu responsable', () => {
+    // Poner a 3 (subordinado directo de 2) como jefe de 2 → ciclo.
+    expect(crearíaCiclo(2, 3, ORG)).toBe(true);
+    // Poner al nieto 8 como jefe de 2 → también ciclo (subordinado indirecto).
+    expect(crearíaCiclo(2, 8, ORG)).toBe(true);
+    // Uno no puede ser su propio responsable.
+    expect(crearíaCiclo(2, 2, ORG)).toBe(true);
+    // Un ajeno a tu rama (5, de la otra rama; 7, tu propio jefe) SÍ es un responsable válido.
+    expect(crearíaCiclo(2, 5, ORG)).toBe(false);
+    expect(crearíaCiclo(2, 7, ORG)).toBe(false);
+    // Si esta guardia se rompiera (p.ej. devolver siempre false), A podría mandar a B y B a A: organigrama imposible.
   });
 
   it('helpers de rol', () => {

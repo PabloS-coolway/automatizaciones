@@ -160,6 +160,24 @@ model Employee {
   @@map("hr_employee")
 }
 
+/// REQ-008 Fase 1 · Log de actividad PROPIO del módulo RRHH (independiente del panel, dato sensible). Append-only:
+/// sólo la app escribe, nadie edita ni borra. `before`/`after` guardan el estado antes→después.
+model HrActivity {
+  id         Int      @id @default(autoincrement())
+  createdAt  DateTime @default(now()) @map("created_at")
+  /// Quién lo hizo (snapshot del correo del usuario).
+  actorEmail String   @map("actor_email")
+  action     String // CREATE | UPDATE | DELETE
+  entity     String // EMPLEADO | …
+  entityId   String   @map("entity_id")
+  before     Json?
+  after      Json?
+  summary    String
+
+  @@index([createdAt])
+  @@map("hr_activity")
+}
+
 /// REQ-007 · Log de actividad (auditoría de create/update/delete). **Append-only**: sólo la API escribe,
 /// nadie edita ni borra — un log modificable no vale como auditoría. `before`/`after` guardan el estado
 /// antes→después (nunca datos sensibles: el hash de contraseña se redacta).

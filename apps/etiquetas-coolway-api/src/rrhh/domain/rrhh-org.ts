@@ -63,3 +63,12 @@ export function empleadosVisibles(actor: { id: number; rrhhRole: RrhhRole }, org
 export function puedeVer(actor: { id: number; rrhhRole: RrhhRole }, targetId: number, org: OrgNode[]): boolean {
   return empleadosVisibles(actor, org).has(targetId);
 }
+
+/**
+ * ¿Poner a `nuevoManagerId` como responsable de `empleadoId` crearía un **ciclo** en el organigrama? Lo haría
+ * si el nuevo responsable es el propio empleado o alguien de su subárbol (un subordinado, directo o indirecto).
+ * Se comprueba para no dejar un organigrama imposible (A manda a B y B manda a A).
+ */
+export function crearíaCiclo(empleadoId: number, nuevoManagerId: number, org: OrgNode[]): boolean {
+  return empleadosVisibles({ id: empleadoId, rrhhRole: 'MANAGER' }, org).has(nuevoManagerId);
+}

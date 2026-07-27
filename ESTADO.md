@@ -1,7 +1,7 @@
 # Estado del proyecto · dónde vamos y qué sigue
 
 > Documento de traspaso. Si retomas el trabajo (o cambias de ordenador), **empieza por aquí**.
-> Última actualización: **2026-07-24**. Historial detallado en [`CHANGELOG.md`](CHANGELOG.md).
+> Última actualización: **2026-07-27**. Historial detallado en [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Arranque en un ordenador nuevo
 
@@ -207,27 +207,28 @@ Todo el andamiaje está hecho y **probado construyendo la imagen de verdad**. Gu
 --spec .do/app.yaml` o importar el spec en el panel), poner el `JWT_SECRET` como secreto, crear el primer
 admin por la consola del componente, y cargar el maestro desde la web. Usa el subdominio `.ondigitalocean.app`.
 
-## En vuelo (24/07)
+## En vuelo (27/07)
 
-- **REQ-005 (poda)** está en prod. Encima, del correo «FICHERO DE MATERIALES Y BASE DE DATOS» salió un
-  bloque, hoy en **PR** (`feat/bug-006-poda-color-y-req-010`):
-  - **BUG-006** — la poda de materiales anulaba todo y "mentía" cuando el borrador no traía el código de
-    color (Horma). Ahora **avisa** («N refs sin color»). Arreglado + test.
-  - **REQ-010 · poda configurable** (Fases 1 y 2): **elegir sociedad** (2000/4000, se reescribe en la
-    columna verificada) y **elegir surtidos** (catálogo `ref→SURTD` en la nueva pantalla *Surtidos*; al
-    podar deja sólo el asignado). Verificado en vivo. *La migración `surtido` se aplica sola en el deploy.*
-- **Acción de negocio (Silvia), no de BD:** para podar materiales/surtidos por color, el borrador **debe
-  traer la Horma** (el código de color de SAP). Con el borrador actual sale a 0 líneas — y el sistema ahora
-  lo avisa. Tarifas y cambio de sociedad no lo necesitan.
-- **REQ-006 (roles/features), REQ-007 (log de actividad) y REQ-009 (editar color web)** ya están en prod.
+- **Ya en `main`:** BUG-006 + **REQ-010** (poda configurable: sociedad + surtidos), **REQ-011** (surtidos por
+  **prefijo** 76/86 — rediseña la Fase 2 de REQ-010 tras el feedback de Silvia), BUG-007 (lectura tolerante
+  del Excel de Silvia), y **REQ-008 RRHH Fase 0** (cimientos: identidad + roles jerárquicos + esqueleto
+  "Personas"). REQ-006/007/009 ya estaban en prod.
+- **REQ-008 · RRHH Fase 1 (Slice 1)** — en **rama** `feat/req-008-rrhh-fase-1`, listo para PR: editar ficha,
+  **baja/reactivar** (archiva, no borra), **asignar responsable** con **guardia anti-ciclo**, y **log de
+  actividad propio de RRHH** (`hr_activity`, append-only, transaccional). Verificado en vivo (4 asientos de
+  auditoría; el ciclo devuelve 400 y no deja rastro). *La migración `hr_activity` se aplica sola en el deploy.*
+- **Acción de negocio pendiente (Silvia), no de BD:** para podar materiales/surtidos por color el borrador
+  debe traer la **Horma**. En el último Excel ya venía rellena (BUG-006 resuelto por su lado). Falta validar
+  la poda completa con un prepedido real.
 
 ## Siguiente hilo (elige uno)
 
-1. **Adopción con Silvia:** que rellene la Horma en su borrador y asigne los surtidos en la pantalla nueva;
-   validar la poda completa con un prepedido real. Es lo que desbloquea el valor de REQ-005/REQ-010.
-2. **Fase 2 · Bloque 3 — gobernanza del maestro**: publicar el maestro a Excel/Sheets para los
+1. **REQ-008 · RRHH Fase 1 Slice 2:** organigrama visual navegable (multimarca segmentado), gestión de
+   centros/departamentos, y ocultar "Personas" del sidebar a quien no es empleado.
+2. **Adopción con Silvia:** validar la poda completa (materiales + surtidos por prefijo) con un prepedido real
+   ahora que la Horma viene rellena. Es lo que desbloquea el valor de REQ-005/010/011.
+3. **Fase 2 · Bloque 3 — gobernanza del maestro**: publicar el maestro a Excel/Sheets para los
    departamentos, y coordinar accesos con Tomás.
-3. **Demo a Silvia** con la herramienta, y pasarle los 29 EAN13 duplicados.
 4. **Fase 4**: plantillas de ventas.
 5. Próximos requerimientos anunciados: gestión de email, listados de stocks, listados de ventas.
 
