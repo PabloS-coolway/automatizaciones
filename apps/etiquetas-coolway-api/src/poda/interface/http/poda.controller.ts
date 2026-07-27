@@ -22,7 +22,11 @@ export class PodaController {
 
   @Post()
   @UseInterceptors(FileFieldsInterceptor([{ name: 'borrador', maxCount: 1 }, { name: 'ficheros', maxCount: 20 }]))
-  async podar(@UploadedFiles() files: Subidos, @Body('sociedad') sociedadRaw?: string): Promise<PodaResponse> {
+  async podar(
+    @UploadedFiles() files: Subidos,
+    @Body('sociedad') sociedadRaw?: string,
+    @Body('aplicarSurtidos') aplicarSurtidosRaw?: string,
+  ): Promise<PodaResponse> {
     const borradorFile = files.borrador?.[0];
     const ficheros = files.ficheros ?? [];
     if (!borradorFile) throw new BadRequestException('Falta el borrador de prepedidos (Excel).');
@@ -43,14 +47,18 @@ export class PodaController {
         ficheros.map(async (f) => ({ nombre: f.originalname, contenido: await readFile(f.path, 'latin1') })),
       );
 
-      // REQ-010 · Fase 2 — asignaciones de surtido por ref (las gestiona Silvia); la poda deja sólo el SURTD elegido.
-      const surtidosAsignados = (await this.surtidos.findAll()).map((s) => ({ ref: s.ref, surtido: s.surtido }));
+      // REQ-011 · sólo si se activa, se carga el catálogo de surtidos por grupo; la poda deja sólo los del
+      // grupo del prefijo de cada familia. Sin activar, se conservan todos (comportamiento de REQ-005).
+      const aplicarSurtidos = aplicarSurtidosRaw === 'true' || aplicarSurtidosRaw === '1';
+      const surtidos = aplicarSurtidos
+        ? (await this.surtidos.findAll()).map((s) => ({ grupo: s.grupo, codigo: s.codigo }))
+        : undefined;
 
       const { compras, ficheros: podados, sinReconocer, comprasSinColor } = podarFicheros(
         borrador,
         entradas,
         sociedad,
-        surtidosAsignados,
+        surtidos,
       );
       return {
         compras: compras.length,

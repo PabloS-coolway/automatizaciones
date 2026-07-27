@@ -201,11 +201,11 @@ describe('REQ-010 · Fase 1 · podarFicheros aplica la sociedad por tipo de fich
   });
 });
 
-describe('REQ-010 · Fase 2 · filtrar surtidos por el SURTD asignado a la ref', () => {
-  // Borrador compra la ref 7613553 (→ familia 76035530) en color 500.
+describe('REQ-011 · filtrar surtidos por PREFIJO de familia (76/86)', () => {
+  // Borrador compra la ref 7613553 (→ familia 76035530, prefijo 76) en color 500.
   const borrador: LineaBorrador[] = [{ ourRef: '7613553', colorSap: '500', suma: 13 }];
 
-  // Fichero de surtidos: idx4=familia, idx6=color, idx8=SURTD. Tres surtidos para el mismo (familia,color).
+  // Fichero de surtidos: idx4=familia (76035530 → prefijo 76), idx6=color, idx8=SURTD.
   const surLine = (surtd: string) => {
     const f = Array(9).fill('z');
     f[4] = '76035530';
@@ -213,21 +213,29 @@ describe('REQ-010 · Fase 2 · filtrar surtidos por el SURTD asignado a la ref',
     f[8] = surtd;
     return f.join('\t');
   };
-  const surtidos = [surLine('0G2'), surLine('U12'), surLine('0KR')].join('\n');
+  const surtidos = [surLine('S40'), surLine('U12'), surLine('M40')].join('\n');
 
-  it('con la ref asignada a un surtido, deja SÓLO ese (rompe el filtro `surtidoOk` → este test cae)', () => {
+  it('con catálogo del grupo 76, deja SÓLO los surtidos de ese grupo (rompe el filtro → este test cae)', () => {
     const r = podarFicheros(borrador, [{ nombre: 'ZCAL surtidos.txt', contenido: surtidos }], undefined, [
-      { ref: '7613553', surtido: '0G2' },
+      { grupo: '76', codigo: 'S40' },
+      { grupo: '76', codigo: 'M40' },
     ]);
     const f = r.ficheros[0];
     expect(f.tipo).toBe('surtidos');
-    expect(f.podado).toBe(surLine('0G2')); // sólo el asignado
-    expect(f.conservadas).toBe(1);
-    expect(f.retiradas).toBe(2);
+    expect(f.conservadas).toBe(2); // S40 y M40, no U12
+    expect(f.retiradas).toBe(1);
   });
 
-  it('sin asignación para la ref, se conservan todos los surtidos comprados (opt-in por ref)', () => {
+  it('un prefijo SIN catálogo no se filtra (opt-in por grupo)', () => {
+    // catálogo sólo del grupo 86 → el fichero (familia 76…) no se filtra: se conservan todos
+    const r = podarFicheros(borrador, [{ nombre: 'ZCAL surtidos.txt', contenido: surtidos }], undefined, [
+      { grupo: '86', codigo: 'S40' },
+    ]);
+    expect(r.ficheros[0].conservadas).toBe(3);
+  });
+
+  it('sin activar surtidos, se conservan todos los comprados', () => {
     const r = podarFicheros(borrador, [{ nombre: 'ZCAL surtidos.txt', contenido: surtidos }]);
-    expect(r.ficheros[0].conservadas).toBe(3); // los tres, como antes
+    expect(r.ficheros[0].conservadas).toBe(3);
   });
 });
