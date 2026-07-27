@@ -4,3 +4,4 @@ export * from './permissions';
 export * from './poda';
 export * from './actividad';
 export * from './auth';
+export * from './rrhh';
