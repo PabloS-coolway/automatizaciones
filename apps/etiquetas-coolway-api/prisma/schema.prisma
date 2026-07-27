@@ -168,12 +168,18 @@ model TimeEntry {
   id         Int      @id @default(autoincrement())
   employeeId Int      @map("employee_id")
   employee   Employee @relation(fields: [employeeId], references: [id])
+  /// IN | OUT | BREAK_START | BREAK_END, o VOID (asiento que ANULA otro fichaje, en una corrección).
   kind       String
   /// Sello de tiempo del SERVIDOR (no del dispositivo): es la hora que cuenta.
   at         DateTime @default(now())
-  /// Desde dónde se fichó: WEB | MOBILE (informativo).
+  /// Desde dónde se fichó: WEB | MOBILE (informativo), o CORRECTION si lo insertó RRHH.
   source     String   @default("WEB")
   note       String?
+  /// Corrección con traza: quién lo insertó (correo). `null` = fichaje propio en vivo del empleado.
+  actorEmail String?  @map("actor_email")
+  /// Si este asiento ANULA otro (kind=VOID) o lo sustituye, apunta al fichaje corregido. Append-only: no se
+  /// edita ni se borra el original; se añade este asiento que lo referencia.
+  correctsId Int?     @map("corrects_id")
   createdAt  DateTime @default(now()) @map("created_at")
 
   @@index([employeeId, at])

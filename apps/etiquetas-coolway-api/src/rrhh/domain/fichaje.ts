@@ -22,6 +22,41 @@ export interface Fichaje {
   at: Date;
 }
 
+/** Marcaje meta que ANULA otro fichaje (kind especial, fuera de la máquina de estados de jornada). */
+export const VOID = 'VOID';
+
+/** Un fichaje tal como está guardado (incluye anulaciones), antes de calcular los efectivos. */
+export interface FichajeCrudo {
+  id: number;
+  kind: string;
+  at: Date;
+  correctsId: number | null;
+}
+
+/** IDs anulados por un asiento VOID. */
+function idsAnulados(crudos: FichajeCrudo[]): Set<number> {
+  const anulados = new Set<number>();
+  for (const c of crudos) if (c.kind === VOID && c.correctsId != null) anulados.add(c.correctsId);
+  return anulados;
+}
+
+/**
+ * Fichajes **efectivos**: los marcajes reales que quedan tras aplicar las correcciones (se descartan los
+ * anulados por un VOID y los propios asientos VOID). Es lo único sobre lo que se computa estado y minutos —
+ * así una corrección se refleja sin borrar el original (append-only).
+ */
+export function fichajesEfectivos(crudos: FichajeCrudo[]): Fichaje[] {
+  const anulados = idsAnulados(crudos);
+  return crudos
+    .filter((c) => c.kind !== VOID && !anulados.has(c.id) && esMarcaje(c.kind))
+    .map((c) => ({ kind: c.kind as Marcaje, at: c.at }));
+}
+
+/** ¿Está este fichaje anulado por una corrección? (para pintarlo tachado en la revisión de RRHH). */
+export function estaAnulado(id: number, crudos: FichajeCrudo[]): boolean {
+  return idsAnulados(crudos).has(id);
+}
+
 /**
  * Transiciones VÁLIDAS. Lo que no esté aquí se rechaza (no se puede entrar dos veces, ni salir sin haber
  * entrado, ni empezar una pausa fuera de la jornada). Es lo que impide que el registro mienta.

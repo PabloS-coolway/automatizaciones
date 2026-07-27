@@ -2,12 +2,16 @@ import {
   agruparPorDia,
   claveDia,
   esMarcaje,
+  estaAnulado,
   estadoActual,
+  fichajesEfectivos,
   jornadaSinCerrar,
   marcajesPosibles,
   minutosTrabajados,
   siguienteEstado,
+  VOID,
   type Fichaje,
+  type FichajeCrudo,
 } from '../src/rrhh/domain/fichaje';
 
 const t = (hhmm: string): Date => new Date(`2026-07-27T${hhmm}:00`);
@@ -86,5 +90,22 @@ describe('fichaje · agrupación y jornadas sin cerrar', () => {
     expect(jornadaSinCerrar([f('IN', '09:00'), f('BREAK_START', '13:00')])).toBe(true); // se quedó en pausa
     expect(jornadaSinCerrar([f('IN', '09:00'), f('OUT', '17:00')])).toBe(false);
     expect(jornadaSinCerrar([])).toBe(false);
+  });
+});
+
+describe('fichaje · efectivos (correcciones)', () => {
+  const crudo = (id: number, kind: string, hhmm: string, correctsId: number | null = null): FichajeCrudo => ({ id, kind, at: t(hhmm), correctsId });
+
+  it('un VOID saca del cómputo el fichaje que referencia, y se excluye a sí mismo', () => {
+    const crudos = [crudo(1, 'IN', '09:00'), crudo(2, 'OUT', '13:00'), crudo(3, 'IN', '15:00'), crudo(4, VOID, '15:00', 3)];
+    const efectivos = fichajesEfectivos(crudos);
+    expect(efectivos.map((e) => e.kind)).toEqual(['IN', 'OUT']); // el IN de las 15:00 y el propio VOID fuera
+    expect(estaAnulado(3, crudos)).toBe(true);
+    expect(estaAnulado(1, crudos)).toBe(false);
+  });
+
+  it('sin correcciones, los efectivos son todos los marcajes reales', () => {
+    const crudos = [crudo(1, 'IN', '09:00'), crudo(2, 'OUT', '17:00')];
+    expect(fichajesEfectivos(crudos)).toHaveLength(2);
   });
 });

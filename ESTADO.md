@@ -213,26 +213,27 @@ admin por la consola del componente, y cargar el maestro desde la web. Usa el su
   **prefijo** 76/86 — rediseña la Fase 2 de REQ-010 tras el feedback de Silvia), BUG-007 (lectura tolerante
   del Excel de Silvia), y **REQ-008 RRHH Fase 0** (cimientos: identidad + roles jerárquicos + esqueleto
   "Personas"). REQ-006/007/009 ya estaban en prod.
-- **REQ-008 · RRHH** — **Fase 1 completa + Fase 2 Slice 1 (motor de fichaje) en `main`.**
-  **Fase 2 · Slice 2a** en **rama** `feat/req-008-rrhh-fase-2b-panel-historico`, listo para PR: **cuadro de
-  mando** (quién ficha ahora + jornadas sin cerrar, acotado a la rama visible), **histórico personal + CSV**, e
-  histórico de empleado con visibilidad jerárquica (403 al ajeno). **Sin migración** (reusa `hr_time_entry`).
-  Verificado en vivo (incidencia real; 510 min en jornada 09:00–17:30; 403 al ajeno).
+- **REQ-008 · RRHH** — **Fase 1 completa + Fase 2 Slices 1 y 2a en `main`** (motor de fichaje + cuadro de mando
+  + histórico/CSV). **Fase 2 · Slice 2b** en **rama** `feat/req-008-rrhh-fase-2c-correcciones`, listo para PR:
+  **corrección de fichajes con traza** (append-only: añadir el que faltó / anular con `VOID` que referencia al
+  original; cómputo sobre efectivos; auditado con `actor_email`). Verificado en vivo (anular no borra nada; 3
+  asientos de auditoría). *La migración de columnas se aplica sola en el deploy.*
 - **Acción de negocio pendiente (Silvia), no de BD:** para podar materiales/surtidos por color el borrador
   debe traer la **Horma**. En el último Excel ya venía rellena (BUG-006 resuelto por su lado). Falta validar
   la poda completa con un prepedido real.
 
 ## Siguiente hilo (elige uno)
 
-1. **REQ-008 · RRHH Fase 2 Slice 2b (Fichajes):** **corrección solo RRHH con traza** (asiento nuevo que
-   anula/referencia al anterior, append-only), horarios teóricos y **detección de horas extra**. (El motor y la
-   supervisión de solo-lectura ya están.)
-2. **Adopción con Silvia:** validar la poda completa (materiales + surtidos por prefijo) con un prepedido real
+1. **REQ-008 · RRHH Fase 2 Slice 2c (Fichajes):** **horario teórico por empleado** y **detección de horas
+   extra** (worked vs jornada teórica). Con esto se cierra la Fase 2. (Motor, supervisión y corrección ya están.)
+2. **REQ-008 · RRHH Fase 3 (Ausencias y vacaciones):** catálogo de tipos, solicitudes → aprobación, saldos,
+   calendarios laborales, coordinación con el fichaje.
+3. **Adopción con Silvia:** validar la poda completa (materiales + surtidos por prefijo) con un prepedido real
    ahora que la Horma viene rellena. Es lo que desbloquea el valor de REQ-005/010/011.
-3. **Fase 2 · Bloque 3 — gobernanza del maestro**: publicar el maestro a Excel/Sheets para los
+4. **Fase 2 · Bloque 3 — gobernanza del maestro**: publicar el maestro a Excel/Sheets para los
    departamentos, y coordinar accesos con Tomás.
-4. **Fase 4**: plantillas de ventas.
-5. Próximos requerimientos anunciados: gestión de email, listados de stocks, listados de ventas.
+5. **Fase 4**: plantillas de ventas.
+6. Próximos requerimientos anunciados: gestión de email, listados de stocks, listados de ventas.
 
 ## Cómo se clasifica lo que entra (no todo es un requerimiento)
 

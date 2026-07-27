@@ -1,8 +1,16 @@
 import { useEffect, useState } from 'react';
-import { Alert, Badge, Card, Spinner } from 'react-bootstrap';
+import { Alert, Badge, Button, Card, Spinner } from 'react-bootstrap';
+import { PencilSquare } from 'react-bootstrap-icons';
 import { ESTADO_JORNADA_LABELS, type PanelFichajeDto } from '@yorga/contracts';
 import { rrhhGateway } from '../../composition';
 import { formatearMinutos } from '../../../domain/fichaje-csv';
+import { CorreccionModal } from './CorreccionModal';
+
+/** Fecha local de hoy en YYYY-MM-DD (para corregir la jornada en curso desde "fichados ahora"). */
+function hoyISO(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 const VARIANTE_ESTADO: Record<string, string> = { TRABAJANDO: 'success', EN_PAUSA: 'warning' };
 
@@ -14,14 +22,17 @@ export function PanelFichajes() {
   const [panel, setPanel] = useState<PanelFichajeDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [corrigiendo, setCorrigiendo] = useState<{ employeeId: number; fullName: string; fecha: string } | null>(null);
 
-  useEffect(() => {
+  const cargar = () => {
     rrhhGateway
       .panelFichajes()
       .then(setPanel)
       .catch((e) => setError((e as Error).message))
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(cargar, []);
 
   if (loading) return <Spinner animation="border" size="sm" />;
   if (error) return <Alert variant="danger">⚠ {error}</Alert>;
@@ -45,7 +56,12 @@ export function PanelFichajes() {
                         {ESTADO_JORNADA_LABELS[a.estado]}
                       </Badge>
                     </span>
-                    <span className="text-secondary">{formatearMinutos(a.minutosTrabajados)}</span>
+                    <span className="d-flex align-items-center gap-2">
+                      <span className="text-secondary">{formatearMinutos(a.minutosTrabajados)}</span>
+                      <Button size="sm" variant="outline-secondary" title="Corregir jornada de hoy" onClick={() => setCorrigiendo({ employeeId: a.employeeId, fullName: a.fullName, fecha: hoyISO() })}>
+                        <PencilSquare />
+                      </Button>
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -63,9 +79,14 @@ export function PanelFichajes() {
             ) : (
               <ul className="list-unstyled mb-0">
                 {panel.incidencias.map((i) => (
-                  <li key={`${i.employeeId}-${i.fecha}`} className="d-flex justify-content-between py-1 border-bottom">
+                  <li key={`${i.employeeId}-${i.fecha}`} className="d-flex justify-content-between align-items-center py-1 border-bottom">
                     <span>{i.fullName}</span>
-                    <span className="text-secondary">{i.fecha}</span>
+                    <span className="d-flex align-items-center gap-2">
+                      <span className="text-secondary">{i.fecha}</span>
+                      <Button size="sm" variant="outline-secondary" title="Revisar y corregir" onClick={() => setCorrigiendo({ employeeId: i.employeeId, fullName: i.fullName, fecha: i.fecha })}>
+                        <PencilSquare />
+                      </Button>
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -73,6 +94,16 @@ export function PanelFichajes() {
           </Card.Body>
         </Card>
       </div>
+
+      {corrigiendo && (
+        <CorreccionModal
+          employeeId={corrigiendo.employeeId}
+          fullName={corrigiendo.fullName}
+          fecha={corrigiendo.fecha}
+          onClose={() => setCorrigiendo(null)}
+          onCorregido={cargar}
+        />
+      )}
     </div>
   );
 }
