@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { RrhhRole } from '@yorga/contracts';
 import { PrismaService } from '../../infrastructure/db/prisma.service';
-import { EmployeeRepository, EmployeeRow, NuevoEmpleado } from '../application/ports';
+import { EmpleadoUpdate, EmployeeRepository, EmployeeRow, NuevoEmpleado } from '../application/ports';
 
 const INCLUDE = {
   user: { select: { email: true } },
@@ -63,14 +64,29 @@ export class PrismaEmployeeRepository implements EmployeeRepository {
     return u?.id ?? null;
   }
 
-  async create(nuevo: NuevoEmpleado): Promise<EmployeeRow> {
-    const e = await this.prisma.employee.create({
+  async create(nuevo: NuevoEmpleado, tx?: Prisma.TransactionClient): Promise<EmployeeRow> {
+    const e = await (tx ?? this.prisma).employee.create({
       data: {
         userId: nuevo.userId,
         fullName: nuevo.fullName,
         rrhhRole: nuevo.rrhhRole,
         position: nuevo.position,
         managerId: nuevo.managerId,
+      },
+      include: INCLUDE,
+    });
+    return toRow(e);
+  }
+
+  async update(id: number, data: EmpleadoUpdate, tx?: Prisma.TransactionClient): Promise<EmployeeRow> {
+    const e = await (tx ?? this.prisma).employee.update({
+      where: { id },
+      data: {
+        ...(data.fullName !== undefined ? { fullName: data.fullName } : {}),
+        ...(data.position !== undefined ? { position: data.position } : {}),
+        ...(data.rrhhRole !== undefined ? { rrhhRole: data.rrhhRole } : {}),
+        ...(data.managerId !== undefined ? { managerId: data.managerId } : {}),
+        ...(data.active !== undefined ? { active: data.active, terminatedAt: data.active ? null : new Date() } : {}),
       },
       include: INCLUDE,
     });

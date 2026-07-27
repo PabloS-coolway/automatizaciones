@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { RrhhRole } from '@yorga/contracts';
 
 export const EMPLOYEE_REPOSITORY = Symbol('EMPLOYEE_REPOSITORY');
@@ -25,6 +26,15 @@ export interface NuevoEmpleado {
   managerId?: number;
 }
 
+/** Cambios sobre una ficha (edición / baja / reactivación). Sólo los campos presentes se tocan. */
+export interface EmpleadoUpdate {
+  fullName?: string;
+  position?: string | null;
+  rrhhRole?: RrhhRole;
+  managerId?: number | null;
+  active?: boolean;
+}
+
 /** Puerto: plantilla (Postgres). El enlace de identidad se resuelve por `userId` (1:1 con el login). */
 export interface EmployeeRepository {
   findByUserId(userId: number): Promise<EmployeeRow | null>;
@@ -33,5 +43,6 @@ export interface EmployeeRepository {
   findAll(): Promise<EmployeeRow[]>;
   /** Identidad compartida: id del usuario del login con ese correo (o null si no existe). */
   findUserIdByEmail(email: string): Promise<number | null>;
-  create(nuevo: NuevoEmpleado): Promise<EmployeeRow>;
+  create(nuevo: NuevoEmpleado, tx?: Prisma.TransactionClient): Promise<EmployeeRow>;
+  update(id: number, data: EmpleadoUpdate, tx?: Prisma.TransactionClient): Promise<EmployeeRow>;
 }
