@@ -175,8 +175,14 @@ Digitaliza el parte diario que hoy se firma en papel. Se acaban los partes físi
     403). Dominio testeado (`jornadaSinCerrar`, `agruparPorDia`) + break-on-purpose de la detección de
     incidencias. Sin migración. Verificado en vivo (panel con incidencia real; histórico 510 min en jornada
     09:00–17:30; 403 al ajeno).
-  - **Slice 2b · Corrección + cómputo** — ⏳ pendiente: **corrección solo RRHH con traza** (asiento nuevo que
-    anula/referencia al anterior; append-only), horarios teóricos y **detección de horas extra**.
+  - **Slice 2b · Corrección con traza** — ✅ **hecho** (esta rama). **Corrección solo RRHH, append-only**: un
+    marcaje no se edita ni se borra; se **añade** el que faltó (ADD) o se **anula** el erróneo con un asiento
+    `VOID` que lo referencia (`corrects_id`). El cómputo pasa a hacerse sobre los **fichajes efectivos**
+    (`fichajesEfectivos`, testeado + break-on-purpose): el anulado queda tachado pero fuera del cálculo. Cada
+    corrección lleva `actor_email` y queda **auditada** en `hr_activity` (entity `FICHAJE`). UI: modal de
+    revisión del día desde el cuadro de mando (anular / añadir). Verificado en vivo (añadir OUT cierra la
+    jornada; anular un IN fantasma no borra nada — quedan original + `VOID` — y deja 3 asientos de auditoría).
+  - **Slice 2c · Horas extra** — ⏳ pendiente: horario teórico por empleado y **detección de horas extra**.
 
 ## Próximos pasos
 

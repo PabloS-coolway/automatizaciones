@@ -2,16 +2,23 @@ import { Inject, Injectable } from '@nestjs/common';
 import { MARCAJE_LABELS, type Marcaje } from '@yorga/contracts';
 import { TIME_ENTRY_REPOSITORY, TimeEntryRepository, TimeEntryRow } from './ports';
 import { RrhhError } from './rrhh.service';
+import { RRHH_ACTIVITY_RECORDER, RrhhActivityRecorder } from './rrhh-activity.port';
+import { PrismaService } from '../../infrastructure/db/prisma.service';
 import {
   agruparPorDia,
   claveDia,
+  esMarcaje,
+  estaAnulado,
   estadoActual,
+  fichajesEfectivos,
   jornadaSinCerrar,
   marcajesPosibles,
   minutosTrabajados,
   siguienteEstado,
+  VOID,
   type EstadoJornada,
   type Fichaje,
+  type FichajeCrudo,
 } from '../domain/fichaje';
 
 /** Error de fichaje (transición imposible). Extiende RrhhError → el controller lo traduce a 400. */
@@ -49,7 +56,28 @@ export interface DiaJornada {
   fichajes: TimeEntryRow[];
 }
 
-const toFichaje = (e: TimeEntryRow): Fichaje => ({ kind: e.kind as Marcaje, at: e.at });
+/** Detalle de un día para la revisión de RRHH: cada marcaje con si está anulado, + minutos efectivos. */
+export interface DiaDetalle {
+  fecha: string;
+  minutosTrabajados: number;
+  entradas: { row: TimeEntryRow; anulado: boolean }[];
+}
+
+/** Parámetros de una corrección: añadir un marcaje que faltó, o anular uno erróneo. */
+export interface Correccion {
+  action: 'ADD' | 'VOID';
+  kind?: string;
+  at?: Date;
+  targetId?: number;
+  note?: string;
+}
+
+const toCrudo = (e: TimeEntryRow): FichajeCrudo => ({ id: e.id, kind: e.kind, at: e.at, correctsId: e.correctsId });
+
+/** Último instante de una lista de fichajes efectivos (para computar un día ya cerrado), o `porDefecto`. */
+function ultimoInstante(efectivos: Fichaje[], porDefecto: Date): Date {
+  return efectivos.reduce((max, f) => (f.at > max ? f.at : max), porDefecto);
+}
 
 /** Ventana [00:00, 24:00) del día de `d` en hora local del servidor. */
 function rangoDiaDe(d: Date): { desde: Date; hasta: Date } {
@@ -66,12 +94,16 @@ function rangoDiaDe(d: Date): { desde: Date; hasta: Date } {
  */
 @Injectable()
 export class FichajeService {
-  constructor(@Inject(TIME_ENTRY_REPOSITORY) private readonly repo: TimeEntryRepository) {}
+  constructor(
+    @Inject(TIME_ENTRY_REPOSITORY) private readonly repo: TimeEntryRepository,
+    @Inject(RRHH_ACTIVITY_RECORDER) private readonly actividad: RrhhActivityRecorder,
+    private readonly prisma: PrismaService,
+  ) {}
 
   async fichar(employeeId: number, kind: Marcaje, source: 'WEB' | 'MOBILE' = 'WEB'): Promise<Jornada> {
     const { desde, hasta } = rangoDiaDe(new Date());
     const hoy = await this.repo.listBetween(employeeId, desde, hasta);
-    const estado = estadoActual(hoy.map(toFichaje));
+    const estado = estadoActual(fichajesEfectivos(hoy.map(toCrudo)));
     if (!siguienteEstado(estado, kind)) {
       throw new FichajeError(`No puedes «${MARCAJE_LABELS[kind]}» ahora mismo: estás ${ESTADO_HUMANO[estado]}.`);
     }
@@ -83,12 +115,13 @@ export class FichajeService {
     const ahora = new Date();
     const { desde, hasta } = rangoDiaDe(ahora);
     const fichajes = await this.repo.listBetween(employeeId, desde, hasta);
-    const estado = estadoActual(fichajes.map(toFichaje));
+    const efectivos = fichajesEfectivos(fichajes.map(toCrudo));
+    const estado = estadoActual(efectivos);
     return {
       fecha: desde,
       estado,
       posibles: marcajesPosibles(estado),
-      minutosTrabajados: minutosTrabajados(fichajes.map(toFichaje), ahora),
+      minutosTrabajados: minutosTrabajados(efectivos, ahora),
       fichajes,
     };
   }
@@ -105,22 +138,23 @@ export class FichajeService {
 
     const ids = empleados.map((e) => e.id);
     const rows = await this.repo.listBetweenMany(ids, desde7, mañana0);
-    const porEmp = new Map<number, Fichaje[]>();
+    const porEmp = new Map<number, FichajeCrudo[]>();
     for (const r of rows) {
       const arr = porEmp.get(r.employeeId) ?? [];
-      arr.push(toFichaje(r));
+      arr.push(toCrudo(r));
       porEmp.set(r.employeeId, arr);
     }
 
     const panel: Panel = { ahora: [], incidencias: [] };
     for (const e of empleados) {
       const suyos = porEmp.get(e.id) ?? [];
-      const hoy = suyos.filter((f) => f.at >= hoy0);
+      const hoy = fichajesEfectivos(suyos.filter((c) => c.at >= hoy0));
       const estado = estadoActual(hoy);
       if (estado !== 'FUERA') {
         panel.ahora.push({ employeeId: e.id, fullName: e.fullName, estado, minutosTrabajados: minutosTrabajados(hoy, ahora) });
       }
-      const anteriores = suyos.filter((f) => f.at < hoy0);
+      // Días anteriores: agrupar los efectivos por día y ver cuáles no cerraron.
+      const anteriores = fichajesEfectivos(suyos.filter((c) => c.at < hoy0));
       for (const [fecha, delDia] of agruparPorDia(anteriores)) {
         if (jornadaSinCerrar(delDia)) panel.incidencias.push({ employeeId: e.id, fullName: e.fullName, fecha });
       }
@@ -140,10 +174,62 @@ export class FichajeService {
     }
     const dias: DiaJornada[] = [];
     for (const [fecha, filas] of porFila) {
-      // El día ya cerrado: se computa hasta su último marcaje (no hasta "ahora").
-      const ultimo = filas.reduce((max, r) => (r.at > max ? r.at : max), filas[0].at);
-      dias.push({ fecha, minutosTrabajados: minutosTrabajados(filas.map(toFichaje), ultimo), fichajes: filas });
+      const efectivos = fichajesEfectivos(filas.map(toCrudo));
+      // El día ya cerrado: se computa hasta su último marcaje EFECTIVO (no hasta "ahora").
+      const ultimo = ultimoInstante(efectivos, filas[0].at);
+      dias.push({ fecha, minutosTrabajados: minutosTrabajados(efectivos, ultimo), fichajes: filas });
     }
     return dias.sort((a, b) => b.fecha.localeCompare(a.fecha));
+  }
+
+  /** Detalle de un día para revisión/corrección: cada marcaje (con si está anulado) + minutos efectivos. */
+  async diaDetalle(employeeId: number, fecha: Date): Promise<DiaDetalle> {
+    const { desde, hasta } = rangoDiaDe(fecha);
+    const rows = await this.repo.listBetween(employeeId, desde, hasta);
+    const crudos = rows.map(toCrudo);
+    const efectivos = fichajesEfectivos(crudos);
+    return {
+      fecha: claveDia(desde),
+      minutosTrabajados: minutosTrabajados(efectivos, ultimoInstante(efectivos, desde)),
+      entradas: rows.map((row) => ({ row, anulado: estaAnulado(row.id, crudos) })),
+    };
+  }
+
+  /**
+   * Corrección de fichajes **con traza** (solo RRHH). Append-only: no se edita ni se borra el original. **ADD**
+   * inserta un marcaje que faltó; **VOID** inserta un asiento que ANULA uno erróneo (referenciándolo). Todo
+   * queda en el log de RRHH, en la misma transacción. Devuelve el día afectado ya recomputado.
+   */
+  async corregir(employeeId: number, c: Correccion, actor: { email: string }): Promise<DiaDetalle> {
+    if (c.action === 'ADD') {
+      if (!c.kind || !esMarcaje(c.kind)) throw new FichajeError(`Marcaje no válido para la corrección: "${c.kind}".`);
+      if (!c.at || Number.isNaN(c.at.getTime())) throw new FichajeError('Falta la hora del marcaje a añadir.');
+      const at = c.at;
+      await this.prisma.$transaction(async (tx) => {
+        const creado = await this.repo.add({ employeeId, kind: c.kind!, source: 'CORRECTION', at, actorEmail: actor.email, note: c.note }, tx);
+        await this.actividad.record(
+          { actorEmail: actor.email, action: 'CREATE', entity: 'FICHAJE', entityId: String(creado.id), after: creado, summary: `Añadió el marcaje «${MARCAJE_LABELS[c.kind as Marcaje]}» del ${claveDia(at)}` },
+          tx,
+        );
+      });
+      return this.diaDetalle(employeeId, at);
+    }
+
+    // VOID
+    if (!c.targetId) throw new FichajeError('Falta el fichaje a anular.');
+    const target = await this.repo.findById(c.targetId);
+    if (!target || target.employeeId !== employeeId) throw new FichajeError('Ese fichaje no existe o no es de ese empleado.');
+    if (target.kind === VOID) throw new FichajeError('No se puede anular un asiento de anulación.');
+    await this.prisma.$transaction(async (tx) => {
+      const anulacion = await this.repo.add(
+        { employeeId, kind: VOID, source: 'CORRECTION', at: target.at, actorEmail: actor.email, note: c.note, correctsId: target.id },
+        tx,
+      );
+      await this.actividad.record(
+        { actorEmail: actor.email, action: 'DELETE', entity: 'FICHAJE', entityId: String(target.id), before: target, after: anulacion, summary: `Anuló el marcaje «${MARCAJE_LABELS[target.kind as Marcaje] ?? target.kind}» del ${claveDia(target.at)}` },
+        tx,
+      );
+    });
+    return this.diaDetalle(employeeId, target.at);
   }
 }
