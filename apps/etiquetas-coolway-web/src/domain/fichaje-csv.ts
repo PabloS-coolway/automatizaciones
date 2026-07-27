@@ -12,7 +12,8 @@ export function formatearMinutos(min: number): string {
  * lo que Excel en español espera. Cabecera incluida. Puro y testeado: es lo que el empleado se descarga.
  */
 export function historicoACsv(dias: DiaJornadaDto[]): string {
-  const cab = 'fecha;minutos;horas';
-  const filas = dias.map((d) => `${d.fecha};${d.minutosTrabajados};${(d.minutosTrabajados / 60).toFixed(2).replace('.', ',')}`);
+  const cab = 'fecha;minutos;horas;extra_min;extra_horas';
+  const h = (min: number) => (min / 60).toFixed(2).replace('.', ',');
+  const filas = dias.map((d) => `${d.fecha};${d.minutosTrabajados};${h(d.minutosTrabajados)};${d.minutosExtra};${h(d.minutosExtra)}`);
   return [cab, ...filas].join('\n');
 }

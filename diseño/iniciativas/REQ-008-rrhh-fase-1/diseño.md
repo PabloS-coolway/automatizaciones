@@ -182,7 +182,11 @@ Digitaliza el parte diario que hoy se firma en papel. Se acaban los partes físi
     corrección lleva `actor_email` y queda **auditada** en `hr_activity` (entity `FICHAJE`). UI: modal de
     revisión del día desde el cuadro de mando (anular / añadir). Verificado en vivo (añadir OUT cierra la
     jornada; anular un IN fantasma no borra nada — quedan original + `VOID` — y deja 3 asientos de auditoría).
-  - **Slice 2c · Horas extra** — ⏳ pendiente: horario teórico por empleado y **detección de horas extra**.
+  - **Slice 2c · Horario teórico + horas extra** — ✅ **hecho** (esta rama). Campo **jornada teórica semanal**
+    en la ficha (`weekly_minutes`); la diaria se deriva repartiendo entre L–V. El histórico marca las **horas
+    extra** de cada día (exceso sobre la teórica) y el total del periodo, y salen también en el CSV. Dominio
+    puro testeado (`minutosExtra`) + break-on-purpose. Verificado en vivo (jornada de 10 h con teórica de 8 h →
+    2 h extra). **Con esto la Fase 2 (Fichajes) queda cerrada.**
 
 ## Próximos pasos
 

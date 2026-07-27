@@ -148,6 +148,25 @@ describe('FichajeService · histórico', () => {
     expect(dias.find((d) => d.fecha === dias[0].fecha)!.minutosTrabajados).toBe(180); // el más reciente (ayer)
     expect(dias[1].minutosTrabajados).toBe(240);
   });
+
+  it('con jornada teórica, marca las horas extra del día (exceso sobre la diaria)', async () => {
+    const repo = repoMem();
+    const { svc } = nuevoServicio(repo);
+    sembrar(repo, 1, 'IN', conDia(1, '08:00'));
+    sembrar(repo, 1, 'OUT', conDia(1, '18:00')); // 600 min = 10 h
+    const dias = await svc.historico(1, conDia(3, '00:00'), conDia(0, '00:00'), 2400); // teórica 8 h/día
+    expect(dias[0].minutosTrabajados).toBe(600);
+    expect(dias[0].minutosExtra).toBe(120); // 2 h de más
+  });
+
+  it('sin jornada teórica (null), no hay horas extra', async () => {
+    const repo = repoMem();
+    const { svc } = nuevoServicio(repo);
+    sembrar(repo, 1, 'IN', conDia(1, '08:00'));
+    sembrar(repo, 1, 'OUT', conDia(1, '20:00'));
+    const dias = await svc.historico(1, conDia(3, '00:00'), conDia(0, '00:00'));
+    expect(dias[0].minutosExtra).toBe(0);
+  });
 });
 
 describe('FichajeService · corrección con traza', () => {

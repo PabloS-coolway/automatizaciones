@@ -26,6 +26,8 @@ export interface EmployeeDto {
   center: string | null;
   centerId: number | null;
   brand: string | null;
+  /** Jornada teórica semanal en minutos (para horas extra); `null` = sin horario definido. */
+  weeklyMinutes: number | null;
 }
 
 /**
@@ -40,6 +42,7 @@ export interface CreateEmployeeDto {
   managerId?: number;
   centerId?: number;
   departmentId?: number;
+  weeklyMinutes?: number | null;
 }
 
 /** Edición de una ficha (Fase 1). Todo opcional; sólo lo presente se cambia. El correo/usuario no se cambia. */
@@ -50,6 +53,7 @@ export interface UpdateEmployeeDto {
   managerId?: number | null;
   centerId?: number | null;
   departmentId?: number | null;
+  weeklyMinutes?: number | null;
 }
 
 /** Un centro/tienda del grupo. La `brand` (enseña) es la que **segmenta el organigrama** (multimarca). */
@@ -152,18 +156,22 @@ export interface PanelFichajeDto {
   incidencias: IncidenciaFichajeDto[];
 }
 
-/** Un día del histórico personal: minutos trabajados y sus marcajes. */
+/** Un día del histórico personal: minutos trabajados, horas extra y sus marcajes. */
 export interface DiaJornadaDto {
   fecha: string;
   minutosTrabajados: number;
+  /** Minutos por encima de la jornada teórica diaria (0 si no hay horario o no hay exceso). */
+  minutosExtra: number;
   fichajes: TimeEntryDto[];
 }
 
-/** Histórico personal de fichajes en un rango. */
+/** Histórico personal de fichajes en un rango, con totales. */
 export interface HistoricoFichajeDto {
   desde: string;
   hasta: string;
   dias: DiaJornadaDto[];
+  totalMinutos: number;
+  totalExtra: number;
 }
 
 /** Un marcaje en la vista de revisión/corrección: incluye quién lo puso y si está anulado. */

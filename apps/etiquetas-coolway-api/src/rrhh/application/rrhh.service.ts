@@ -79,6 +79,7 @@ export class RrhhService {
           managerId: dto.managerId ?? undefined,
           centerId: dto.centerId ?? undefined,
           departmentId: dto.departmentId ?? undefined,
+          weeklyMinutes: dto.weeklyMinutes ?? undefined,
         },
         tx,
       );
@@ -122,6 +123,12 @@ export class RrhhService {
     if (dto.departmentId !== undefined) {
       await this.validarEstructura(undefined, dto.departmentId);
       data.departmentId = dto.departmentId;
+    }
+    if (dto.weeklyMinutes !== undefined) {
+      if (dto.weeklyMinutes !== null && (!Number.isFinite(dto.weeklyMinutes) || dto.weeklyMinutes < 0)) {
+        throw new RrhhError('La jornada teórica semanal debe ser un número de minutos no negativo.');
+      }
+      data.weeklyMinutes = dto.weeklyMinutes;
     }
 
     return this.prisma.$transaction(async (tx) => {
