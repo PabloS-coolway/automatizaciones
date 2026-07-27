@@ -1,205 +1,130 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Alert, Button, Card, Form, Modal, Spinner } from 'react-bootstrap';
-import { PencilFill, PlusLg, Trash } from 'react-bootstrap-icons';
-import type { SurtidoDto } from '@yorga/contracts';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert, Badge, Button, Card, Form, InputGroup, Spinner } from 'react-bootstrap';
+import { PlusLg, X } from 'react-bootstrap-icons';
+import { SURTIDO_GRUPOS, SURTIDO_GRUPO_LABELS, type PodaSurtidoDto } from '@yorga/contracts';
 import { surtidosGateway } from '../composition';
-import { Column, DataTable, useMemoryTable } from '../components/table';
-
-const VACIO = { ref: '', surtido: '' };
 
 /**
- * REQ-010 · Fase 2 — Catálogo de surtidos. Silvia asigna a cada referencia el código de surtido (`SURTD`)
- * que quiere conservar; al podar el fichero de surtidos, se deja sólo ese (en vez de arrastrar todos los que
- * propone Access). Un surtido por referencia. Patrón de gestión igual que Destinos (REQ-004).
+ * REQ-011 · Catálogo de surtidos por GRUPO de prefijo de referencia (76 chica / 86 chico). Silvia da de alta
+ * los códigos SURTD que usa en cada grupo; al podar (si lo activa) el fichero de surtidos sale sólo con esos.
+ * Sustituye el modelo por-referencia anterior.
  */
 export function SurtidosPage() {
-  const [surtidos, setSurtidos] = useState<SurtidoDto[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [items, setItems] = useState<PodaSurtidoDto[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
   const [busyId, setBusyId] = useState<number | null>(null);
-
-  const [abierto, setAbierto] = useState(false);
-  const [editando, setEditando] = useState<SurtidoDto | null>(null);
-  const [form, setForm] = useState(VACIO);
-  const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState('');
+  const [nuevo, setNuevo] = useState<Record<string, string>>({});
+  const [adding, setAdding] = useState<string | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
     surtidosGateway
       .list()
-      .then(setSurtidos)
+      .then(setItems)
       .catch((e) => setError((e as Error).message))
       .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => load(), [load]);
 
-  function abrirNuevo() {
-    setEditando(null);
-    setForm(VACIO);
-    setFormError('');
-    setAbierto(true);
-  }
+  const porGrupo = useMemo(() => {
+    const m: Record<string, PodaSurtidoDto[]> = {};
+    for (const g of SURTIDO_GRUPOS) m[g] = [];
+    for (const s of items) (m[s.grupo] ??= []).push(s);
+    return m;
+  }, [items]);
 
-  function abrirEdicion(s: SurtidoDto) {
-    setEditando(s);
-    setForm({ ref: s.ref, surtido: s.surtido });
-    setFormError('');
-    setAbierto(true);
-  }
-
-  function cerrar() {
-    setAbierto(false);
-    setEditando(null);
-    setForm(VACIO);
-  }
-
-  async function onSubmit(e: FormEvent) {
-    e.preventDefault();
-    setFormError('');
-    setNotice('');
-    setSaving(true);
+  async function agregar(grupo: string) {
+    const codigo = (nuevo[grupo] ?? '').trim().toUpperCase();
+    if (!codigo) return;
+    setError('');
+    setAdding(grupo);
     try {
-      if (editando) {
-        await surtidosGateway.update(editando.id, { surtido: form.surtido });
-        setNotice(`Surtido de la ref ${editando.ref} actualizado.`);
-      } else {
-        const s = await surtidosGateway.create(form);
-        setNotice(`Surtido ${s.surtido} asignado a la ref ${s.ref}.`);
-      }
-      cerrar();
+      await surtidosGateway.agregar({ grupo, codigo });
+      setNuevo((n) => ({ ...n, [grupo]: '' }));
       load();
-    } catch (err) {
-      setFormError((err as Error).message);
+    } catch (e) {
+      setError((e as Error).message);
     } finally {
-      setSaving(false);
+      setAdding(null);
     }
   }
 
-  async function quitar(s: SurtidoDto) {
-    if (!confirm(`¿Quitar el surtido asignado a la ref ${s.ref}?`)) return;
+  async function quitar(s: PodaSurtidoDto) {
     setError('');
-    setNotice('');
     setBusyId(s.id);
     try {
-      await surtidosGateway.remove(s.id);
-      setNotice(`Surtido de la ref ${s.ref} quitado.`);
+      await surtidosGateway.quitar(s.id);
       load();
-    } catch (err) {
-      setError((err as Error).message);
+    } catch (e) {
+      setError((e as Error).message);
     } finally {
       setBusyId(null);
     }
   }
 
-  const columns = useMemo<Column<SurtidoDto>[]>(
-    () => [
-      { key: 'ref', label: 'referencia', value: (s) => s.ref, render: (s) => <code>{s.ref}</code> },
-      { key: 'surtido', label: 'surtido (SURTD)', value: (s) => s.surtido, render: (s) => <code>{s.surtido}</code> },
-      {
-        key: 'acciones',
-        label: 'acciones',
-        align: 'end',
-        sortable: false,
-        filter: 'none',
-        value: () => '',
-        render: (s) => (
-          <div className="d-inline-flex gap-2">
-            <Button size="sm" variant="outline-secondary" disabled={busyId === s.id} aria-label={`Editar ${s.ref}`} onClick={() => abrirEdicion(s)}>
-              <PencilFill className="me-1" />
-              editar
-            </Button>
-            <Button size="sm" variant="outline-danger" disabled={busyId === s.id} aria-label={`Quitar ${s.ref}`} onClick={() => quitar(s)}>
-              <Trash className="me-1" />
-              quitar
-            </Button>
-          </div>
-        ),
-      },
-    ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [busyId],
-  );
-
-  const tabla = useMemoryTable(surtidos, columns);
-
   return (
     <div className="page page-wide">
-      <header className="page-head mb-4 d-flex justify-content-between align-items-start gap-3">
-        <div>
-          <h1 className="h4 mb-1">Surtidos</h1>
-          <p className="text-secondary mb-0">
-            Qué surtido (código <code>SURTD</code> de SAP) conservar por referencia al podar. Sin asignación, la
-            poda deja todos los surtidos que trae el fichero.
-          </p>
-        </div>
-        <Button className="btn-brand flex-shrink-0" onClick={abrirNuevo}>
-          <PlusLg className="me-1" />
-          Asignar surtido
-        </Button>
+      <header className="page-head mb-4">
+        <h1 className="h4 mb-1">Surtidos</h1>
+        <p className="text-secondary mb-0">
+          Qué surtidos (código <code>SURTD</code>) conservar por <strong>grupo de referencia</strong> al podar.
+          Al podar, actívalo y el fichero de surtidos saldrá sólo con los de cada grupo.
+        </p>
       </header>
 
       {error && <Alert variant="danger" onClose={() => setError('')} dismissible>⚠ {error}</Alert>}
-      {notice && <Alert variant="success" onClose={() => setNotice('')} dismissible>{notice}</Alert>}
 
-      <Card>
-        <Card.Body className="p-4">
-          <div className="d-flex justify-content-between align-items-center mb-3">
-            <Card.Title className="mb-0">Surtidos ({surtidos.length})</Card.Title>
-            {loading && <Spinner as="span" size="sm" animation="border" />}
-          </div>
-          <DataTable model={tabla} allRows={surtidos} rowKey={(s) => String(s.id)} empty="Ningún surtido asignado todavía." />
-        </Card.Body>
-      </Card>
+      {loading ? (
+        <div><Spinner animation="border" size="sm" className="me-2" /> Cargando…</div>
+      ) : (
+        <div className="row g-3">
+          {SURTIDO_GRUPOS.map((grupo) => (
+            <div className="col-md-6" key={grupo}>
+              <Card className="h-100">
+                <Card.Body className="p-4">
+                  <Card.Title className="mb-1">{SURTIDO_GRUPO_LABELS[grupo]}</Card.Title>
+                  <p className="text-secondary small">Referencias que empiezan por <code>{grupo}</code>.</p>
 
-      <Modal show={abierto} onHide={cerrar} centered backdrop="static">
-        <Form onSubmit={onSubmit}>
-          <Modal.Header closeButton>
-            <Modal.Title className="h5">{editando ? `Editar surtido de ${editando.ref}` : 'Asignar surtido'}</Modal.Title>
-          </Modal.Header>
+                  <div className="d-flex flex-wrap gap-2 mb-3">
+                    {porGrupo[grupo].length === 0 && <span className="text-secondary small">Ningún surtido todavía.</span>}
+                    {porGrupo[grupo].map((s) => (
+                      <Badge key={s.id} bg="light" text="dark" className="border d-inline-flex align-items-center gap-1 py-2">
+                        <code>{s.codigo}</code>
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="p-0 text-danger lh-1"
+                          aria-label={`Quitar ${s.codigo} de ${grupo}`}
+                          disabled={busyId === s.id}
+                          onClick={() => quitar(s)}
+                        >
+                          <X />
+                        </Button>
+                      </Badge>
+                    ))}
+                  </div>
 
-          <Modal.Body>
-            {formError && <Alert variant="danger" className="py-2">⚠ {formError}</Alert>}
-
-            <div className="row g-3">
-              <div className="col-6">
-                <Form.Label className="small" htmlFor="s-ref">Referencia</Form.Label>
-                <Form.Control
-                  id="s-ref"
-                  value={form.ref}
-                  onChange={(e) => setForm({ ...form, ref: e.target.value })}
-                  placeholder="7613553"
-                  disabled={!!editando}
-                  autoFocus={!editando}
-                  required
-                />
-                {editando && <Form.Text muted>La ref no se cambia: es la identidad.</Form.Text>}
-              </div>
-              <div className="col-6">
-                <Form.Label className="small" htmlFor="s-surtido">Surtido (SURTD)</Form.Label>
-                <Form.Control
-                  id="s-surtido"
-                  value={form.surtido}
-                  onChange={(e) => setForm({ ...form, surtido: e.target.value.toUpperCase() })}
-                  placeholder="0G2"
-                  autoFocus={!!editando}
-                  required
-                />
-                <Form.Text muted>El código que aparece en el fichero de surtidos.</Form.Text>
-              </div>
+                  <InputGroup size="sm">
+                    <Form.Control
+                      value={nuevo[grupo] ?? ''}
+                      maxLength={3}
+                      placeholder="Código (3 car.)"
+                      aria-label={`Nuevo surtido en ${grupo}`}
+                      onChange={(e) => setNuevo((n) => ({ ...n, [grupo]: e.target.value.toUpperCase() }))}
+                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), agregar(grupo))}
+                    />
+                    <Button variant="outline-secondary" disabled={adding === grupo} onClick={() => agregar(grupo)}>
+                      {adding === grupo ? <Spinner as="span" size="sm" animation="border" /> : <><PlusLg className="me-1" />Añadir</>}
+                    </Button>
+                  </InputGroup>
+                </Card.Body>
+              </Card>
             </div>
-          </Modal.Body>
-
-          <Modal.Footer>
-            <Button variant="outline-secondary" onClick={cerrar} disabled={saving}>Cancelar</Button>
-            <Button type="submit" className="btn-brand" disabled={saving}>
-              {saving ? <Spinner as="span" size="sm" animation="border" /> : editando ? 'Guardar cambios' : 'Asignar'}
-            </Button>
-          </Modal.Footer>
-        </Form>
-      </Modal>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

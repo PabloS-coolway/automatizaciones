@@ -1,14 +1,19 @@
 import { Prisma } from '@prisma/client';
-import { Surtido } from '../domain/surtido';
 
 export const SURTIDO_REPOSITORY = Symbol('SURTIDO_REPOSITORY');
 
-/** Puerto: catálogo de surtidos (Postgres). Sólo la app escribe. `tx` permite escribir dentro de una transacción. */
+/** Una entrada del catálogo de surtidos: un código dentro de un grupo (prefijo de referencia). */
+export interface SurtidoRow {
+  id: number;
+  grupo: string;
+  codigo: string;
+}
+
+/** Puerto: catálogo de surtidos por grupo (Postgres). Sólo la app escribe. */
 export interface SurtidoRepository {
-  findAll(): Promise<(Surtido & { id: number })[]>;
-  findByRef(ref: string): Promise<(Surtido & { id: number }) | null>;
-  findById(id: number): Promise<(Surtido & { id: number }) | null>;
-  create(s: Surtido, tx?: Prisma.TransactionClient): Promise<Surtido & { id: number }>;
-  update(id: number, surtido: string, tx?: Prisma.TransactionClient): Promise<Surtido & { id: number }>;
+  findAll(): Promise<SurtidoRow[]>;
+  findById(id: number): Promise<SurtidoRow | null>;
+  findByGrupoCodigo(grupo: string, codigo: string): Promise<SurtidoRow | null>;
+  create(grupo: string, codigo: string, tx?: Prisma.TransactionClient): Promise<SurtidoRow>;
   delete(id: number, tx?: Prisma.TransactionClient): Promise<void>;
 }
