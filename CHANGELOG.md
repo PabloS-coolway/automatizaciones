@@ -3,6 +3,30 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-27] REQ-011 · Surtidos por prefijo de referencia (rediseña REQ-010 Fase 2)
+
+Silvia probó los surtidos por referencia (REQ-010 Fase 2) y dijo que era "un rollo". Los quería **por
+prefijo, como la sociedad**: las `76*` (chica) con unos surtidos y las `86*` (chico) con otros. Este bloque
+lo rehace.
+
+### Cambiado
+- **De "por referencia" → "por grupo de prefijo".** Nueva tabla `poda_surtido (grupo, codigo)` que **sustituye**
+  la `surtido` (ref→SURTD, que estaba vacía en prod) + migración con **seed** de las dos listas que pasó Silvia.
+- **Pantalla «Surtidos»** rehecha: dos listas (76 chica / 86 chico) donde da de alta/quita códigos SURTD.
+  Extensible a más grupos. Mutaciones auditadas (REQ-007).
+- **Al podar**, un nuevo control **«Aplicar surtidos»** deja el fichero de surtidos sólo con los códigos del
+  grupo del **prefijo de cada familia**. Sin activarlo, se conservan todos. **Ya no hace falta cruzar con el
+  borrador** — el prefijo está en la propia familia del fichero: más simple y más rápido.
+
+### Verificado
+- typecheck + build + **228 tests API** + web (cobertura 98%). Filtro por prefijo verificado **rompiéndolo a
+  propósito** (el test cae). *La migración se aplica sola en el deploy.*
+- **BUG-007 (arreglado en este mismo bloque):** el Excel nuevo de Silvia traía la Horma rellena (BUG-006
+  resuelto por su lado) pero tenía una **peculiaridad de ZIP** que exceljs no abría, aunque el contenido era
+  válido. Ahora el **lector del borrador es tolerante**: si exceljs falla, re-normaliza el zip con `fflate` y
+  reintenta (contenido intacto). **Verificado ejecutando la poda con el fichero original** → lo lee y saca las
+  96 (antes fallaba al leer). Adapter de Excel → se verifica ejecutando (convención del proyecto).
+
 ## [2026-07-27] REQ-008 · Módulo RRHH — diseño + Fase 0 (cimientos)
 
 Arranca el módulo de Recursos Humanos que pidió el Comité (tipo Factorial acotado). Este bloque deja el
