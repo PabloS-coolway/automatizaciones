@@ -47,8 +47,8 @@ const NAV: NavGroup[] = [
   {
     title: 'Etiquetas y colección',
     items: [
-      { to: '/etiquetas', label: 'Etiquetas', icon: <Tags />, ready: true },
-      { to: '/maestro', label: 'Base de datos', icon: <Database />, ready: true },
+      { to: '/etiquetas', label: 'Etiquetas', icon: <Tags />, ready: true, feature: 'etiquetas.ver' },
+      { to: '/maestro', label: 'Base de datos', icon: <Database />, ready: true, feature: 'maestro.ver' },
       { to: '/poda', label: 'Podar SAP', icon: <Scissors />, ready: true, feature: 'maestro.cargar' },
       { to: '/surtidos', label: 'Surtidos', icon: <BoxSeamFill />, ready: true, feature: 'maestro.cargar' },
       { to: '/destinos', label: 'Destinos', icon: <GeoAlt />, ready: true, feature: 'destinos.gestionar' },
