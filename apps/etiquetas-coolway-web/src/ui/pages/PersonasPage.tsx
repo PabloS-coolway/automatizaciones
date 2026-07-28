@@ -19,7 +19,7 @@ import { PanelFichajes } from './personas/PanelFichajes';
 import { ActividadRrhh } from './personas/ActividadRrhh';
 import { plantillaACsv } from '../../domain/plantilla-csv';
 
-const VACIO = { email: '', fullName: '', rrhhRole: 'EMPLEADO' as RrhhRole, position: '', managerId: '', centerId: '', departmentId: '', weeklyHours: '', annualLeaveDays: '', birthDate: '' };
+const VACIO = { email: '', fullName: '', rrhhRole: 'EMPLEADO' as RrhhRole, position: '', managerId: '', centerId: '', departmentId: '', weeklyHours: '', annualLeaveDays: '', birthDate: '', hideBirthday: false };
 type Vista = 'plantilla' | 'organigrama' | 'fichajes' | 'estructura' | 'actividad';
 
 /**
@@ -92,6 +92,7 @@ export function PersonasPage() {
       weeklyHours: e.weeklyMinutes != null ? String(e.weeklyMinutes / 60) : '',
       annualLeaveDays: e.annualLeaveDays != null ? String(e.annualLeaveDays) : '',
       birthDate: e.birthDate ?? '',
+      hideBirthday: e.hideBirthday,
     });
     setFormError('');
     setAbierto(true);
@@ -121,6 +122,7 @@ export function PersonasPage() {
           weeklyMinutes,
           annualLeaveDays,
           birthDate,
+          hideBirthday: form.hideBirthday,
         });
         setNotice(`${nuevo.fullName} dado de alta y enlazado a ${nuevo.email}.`);
       } else {
@@ -134,6 +136,7 @@ export function PersonasPage() {
           weeklyMinutes,
           annualLeaveDays,
           birthDate,
+          hideBirthday: form.hideBirthday,
         });
         setNotice(`Ficha de ${upd.fullName} actualizada.`);
       }
@@ -358,6 +361,13 @@ export function PersonasPage() {
               <div className="col-6">
                 <Form.Label className="small" htmlFor="e-birth">Nacimiento (opcional)</Form.Label>
                 <Form.Control id="e-birth" type="date" value={form.birthDate} onChange={(ev) => setForm({ ...form, birthDate: ev.target.value })} />
+                <Form.Check
+                  id="e-hide-birth"
+                  className="small mt-1"
+                  label="Ocultar el cumpleaños al equipo"
+                  checked={form.hideBirthday}
+                  onChange={(ev) => setForm({ ...form, hideBirthday: ev.target.checked })}
+                />
               </div>
               <div className="col-3">
                 <Form.Label className="small" htmlFor="e-hrs">Jornada (h/sem)</Form.Label>

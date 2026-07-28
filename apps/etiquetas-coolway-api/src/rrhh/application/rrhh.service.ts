@@ -52,7 +52,7 @@ export class RrhhService {
   /** Empleados activos con su fecha de nacimiento (para calcular próximos cumpleaños). */
   async plantillaParaCumples(): Promise<{ id: number; fullName: string; birthDate: Date | null }[]> {
     return (await this.repo.findAll())
-      .filter((e) => e.active)
+      .filter((e) => e.active && !e.hideBirthday)
       .map((e) => ({ id: e.id, fullName: e.fullName, birthDate: e.birthDate ? new Date(`${e.birthDate}T00:00:00Z`) : null }));
   }
 
@@ -103,6 +103,7 @@ export class RrhhService {
           weeklyMinutes: dto.weeklyMinutes ?? undefined,
           annualLeaveDays: dto.annualLeaveDays ?? undefined,
           birthDate: dto.birthDate ?? undefined,
+          hideBirthday: dto.hideBirthday ?? undefined,
         },
         tx,
       );
@@ -165,6 +166,7 @@ export class RrhhService {
       }
       data.birthDate = dto.birthDate;
     }
+    if (dto.hideBirthday !== undefined) data.hideBirthday = dto.hideBirthday;
 
     return this.prisma.$transaction(async (tx) => {
       const actualizado = await this.repo.update(id, data, tx);
