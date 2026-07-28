@@ -14,7 +14,7 @@ import {
   Tags,
 } from 'react-bootstrap-icons';
 import type { Feature } from '@yorga/contracts';
-import { actividadGateway, gateway, maestroGateway, rrhhGateway } from '../composition';
+import { rrhhGateway } from '../composition';
 import { useAuth } from '../auth/AuthContext';
 import { useRrhh } from '../rrhh/RrhhContext';
 
@@ -63,25 +63,17 @@ export function InicioPage() {
   const { employee, esEmpleado } = useRrhh();
   const gestionaEquipo = employee != null && employee.rrhhRole !== 'EMPLEADO';
 
-  // KPIs de etiquetas/maestro (solo con feature).
-  const [refs, setRefs] = useState<number | null>(null);
-  const [destinos, setDestinos] = useState<number | null>(null);
-  const [movs, setMovs] = useState<number | null>(null);
   // KPIs de personal (solo para quien gestiona equipo).
   const [activos, setActivos] = useState<number | null>(null);
+  const [sinFicha, setSinFicha] = useState<number | null>(null);
   const [fichadosAhora, setFichadosAhora] = useState<number | null>(null);
   const [incidencias, setIncidencias] = useState<number | null>(null);
   const [pendientes, setPendientes] = useState<number | null>(null);
 
   useEffect(() => {
-    if (hasFeature('maestro.ver')) maestroGateway.getStats().then((s) => setRefs(s.total)).catch(() => setRefs(null));
-    if (hasFeature('destinos.gestionar')) gateway.getMarkets().then((m) => setDestinos(m.length)).catch(() => setDestinos(null));
-    if (hasFeature('actividad.ver')) actividadGateway.list(1).then((a) => setMovs(a.total)).catch(() => setMovs(null));
-  }, [hasFeature]);
-
-  useEffect(() => {
     if (!gestionaEquipo) return;
     rrhhGateway.listEmpleados().then((e) => setActivos(e.filter((x) => x.active).length)).catch(() => setActivos(null));
+    rrhhGateway.usuariosSinFicha().then((u) => setSinFicha(u.length)).catch(() => setSinFicha(null));
     rrhhGateway.panelFichajes().then((p) => { setFichadosAhora(p.ahora.length); setIncidencias(p.incidencias.length); }).catch(() => { setFichadosAhora(null); setIncidencias(null); });
     rrhhGateway.ausenciasPendientes().then((a) => setPendientes(a.length)).catch(() => setPendientes(null));
   }, [gestionaEquipo]);
@@ -112,27 +104,16 @@ export function InicioPage() {
         </Card>
       )}
 
-      {/* RRHH / Responsable: KPIs de personal. */}
+      {/* RRHH / Responsable: KPIs de personal (lo que importa). */}
       {gestionaEquipo && (
         <>
           <h2 className="h6 text-secondary mb-3">Personal</h2>
           <Row className="g-3 mb-4">
-            <Col xs={6} md={3}><Kpi label="Empleados activos" value={num(activos)} /></Col>
-            <Col xs={6} md={3}><Kpi label="Fichados ahora" value={num(fichadosAhora)} /></Col>
-            <Col xs={6} md={3}><Kpi label="Jornadas sin cerrar" value={num(incidencias)} hint="últimos 7 días" /></Col>
-            <Col xs={6} md={3}><Kpi label="Ausencias por aprobar" value={num(pendientes)} /></Col>
-          </Row>
-        </>
-      )}
-
-      {/* Etiquetas / maestro: solo con feature. */}
-      {(hasFeature('maestro.ver') || hasFeature('destinos.gestionar') || hasFeature('actividad.ver')) && (
-        <>
-          <h2 className="h6 text-secondary mb-3">Colección y maestro</h2>
-          <Row className="g-3 mb-4">
-            {hasFeature('maestro.ver') && <Col xs={6} md={4}><Kpi label="Referencias en el maestro" value={num(refs)} /></Col>}
-            {hasFeature('destinos.gestionar') && <Col xs={6} md={4}><Kpi label="Destinos disponibles" value={num(destinos)} /></Col>}
-            {hasFeature('actividad.ver') && <Col xs={6} md={4}><Kpi label="Movimientos registrados" value={num(movs)} hint="en el log de actividad" /></Col>}
+            <Col xs={6} md><Kpi label="Empleados activos" value={num(activos)} /></Col>
+            <Col xs={6} md><Kpi label="Ausencias por aprobar" value={num(pendientes)} /></Col>
+            <Col xs={6} md><Kpi label="Usuarios sin ficha" value={num(sinFicha)} hint="por dar de alta" /></Col>
+            <Col xs={6} md><Kpi label="Jornadas sin cerrar" value={num(incidencias)} hint="últimos 7 días" /></Col>
+            <Col xs={6} md><Kpi label="Fichados ahora" value={num(fichadosAhora)} /></Col>
           </Row>
         </>
       )}
