@@ -213,16 +213,15 @@ admin por la consola del componente, y cargar el maestro desde la web. Usa el su
   **prefijo** 76/86 — rediseña la Fase 2 de REQ-010 tras el feedback de Silvia), BUG-007 (lectura tolerante
   del Excel de Silvia), y **REQ-008 RRHH Fase 0** (cimientos: identidad + roles jerárquicos + esqueleto
   "Personas"). REQ-006/007/009 ya estaban en prod.
-- **REQ-008 · RRHH** — **Fase 1 completa + Fase 2 Slices 1/2a en `main`.** Ramas **apiladas** pendientes de PR
-  (mergear **en este orden**, cada una sobre la anterior porque `main` no avanza mientras tanto):
-  1. `feat/req-008-rrhh-fase-2c-correcciones` — corrección de fichajes con traza.
-  2. `feat/req-008-rrhh-fase-2d-horas-extra` — horario teórico + horas extra (**cierra Fase 2**).
-  3. `feat/req-008-rrhh-fase-3a-ausencias` — ausencias: tipos + solicitudes + aprobación.
-  4. `feat/req-008-rrhh-fase-3b-saldos` — saldos + calendario + coordinación con fichaje (**cierra Fase 3**).
-  5. `feat/req-008-rrhh-fase-4-refinos` — avisos in-app + export de plantilla (**cierra el módulo RRHH**).
-
-  **Con las 5 ramas mergeadas, REQ-008 (RRHH Fases 1–4) queda completo.** Único pendiente de infra: el **envío
-  por correo** de los avisos (necesita SMTP; el modelo ya deja el enganche). El resto está verificado en vivo.
+- **REQ-008 · RRHH — Fases 1–4 COMPLETAS y en `main`.** Fichajes (motor + cuadro de mando + histórico +
+  corrección con traza + horas extra), ausencias (tipos + aprobación + saldos + calendario + coordinación con
+  fichaje) y refinos (avisos in-app + export). Único pendiente de infra: el **envío por correo** de los avisos
+  (necesita SMTP; el modelo ya deja el enganche).
+- **Arranque en frío del módulo (IMPORTANTE):** el módulo exige ficha de empleado para verlo, y sólo un empleado
+  de gestión da de alta a otros → nadie puede crear el primero desde la UI. Se resuelve con **`RRHH_BOOTSTRAP_EMAIL`**
+  (opcional `RRHH_BOOTSTRAP_NAME`): al arrancar, enlaza ese **usuario del login existente** con una ficha de
+  empleado **ADMIN**. Idempotente; tras el primer arranque se puede quitar. En el deploy: definir la variable y
+  redesplegar. En local: en el `.env`, o `RRHH_BOOTSTRAP_EMAIL=… npm run dev`. Mismo patrón que `ADMIN_EMAIL`.
 - **Acción de negocio pendiente (Silvia), no de BD:** para podar materiales/surtidos por color el borrador
   debe traer la **Horma**. En el último Excel ya venía rellena (BUG-006 resuelto por su lado). Falta validar
   la poda completa con un prepedido real.
