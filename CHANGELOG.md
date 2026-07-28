@@ -3,6 +3,27 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-28] REQ-008 · RRHH Fase 3 (Slice 3a) — ausencias: tipos, solicitudes y aprobación
+
+Arranca la Fase 3 (ausencias y vacaciones).
+
+### Añadido
+- **Catálogo de tipos** de ausencia configurable por RRHH (si computa saldo, si requiere aprobación, si exige
+  justificante; activar/desactivar). Un tipo con solicitudes no se borra: se desactiva.
+- **Solicitud** de ausencia por el empleado (rango de días o medio día, motivo). Si el tipo no requiere
+  aprobación, queda aprobada al vuelo.
+- **Flujo de aprobación**: el responsable (su rama) o RRHH aprueba/rechaza con traza (quién, cuándo, nota).
+  Estados PENDING→APPROVED/REJECTED. Nadie aprueba su propia ausencia ni la de fuera de su equipo.
+- **Regla que no se negocia**: no se aprueba —ni se solicita— una ausencia que **solape** con otra ya aprobada
+  del mismo empleado. Todo auditado en `hr_activity`.
+- **Página «Ausencias»** (sidebar, sólo empleados): solicitar + mis solicitudes; aprobaciones (responsables);
+  tipos (RRHH).
+
+### Verificado
+- typecheck + **287 tests API** + web + build. El solape verificado **rompiéndolo a propósito** (4 tests caen).
+- **En vivo:** solicitar→aprobar por el responsable; el empleado no puede aprobar (403); una solicitud que
+  solapa con una aprobada se rechaza. *Las migraciones se aplican solas en el deploy.*
+
 ## [2026-07-27] REQ-008 · RRHH Fase 2 (Slice 2c) — horario teórico + horas extra
 
 Cierra la Fase 2: detección de horas extra sobre el horario teórico.
