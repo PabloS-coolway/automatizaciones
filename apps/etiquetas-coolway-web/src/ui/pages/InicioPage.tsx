@@ -13,10 +13,11 @@ import {
   ShieldLock,
   Tags,
 } from 'react-bootstrap-icons';
-import type { Feature } from '@yorga/contracts';
+import { ESTADO_JORNADA_LABELS, type Feature, type JornadaHoyDto } from '@yorga/contracts';
 import { rrhhGateway } from '../composition';
 import { useAuth } from '../auth/AuthContext';
 import { useRrhh } from '../rrhh/RrhhContext';
+import { formatearMinutos } from '../../domain/fichaje-csv';
 
 interface Acceso {
   to: string;
@@ -69,6 +70,12 @@ export function InicioPage() {
   const [fichadosAhora, setFichadosAhora] = useState<number | null>(null);
   const [incidencias, setIncidencias] = useState<number | null>(null);
   const [pendientes, setPendientes] = useState<number | null>(null);
+  const [jornada, setJornada] = useState<JornadaHoyDto | null>(null);
+
+  useEffect(() => {
+    if (!esEmpleado) return;
+    rrhhGateway.jornadaHoy().then(setJornada).catch(() => setJornada(null));
+  }, [esEmpleado]);
 
   useEffect(() => {
     if (!gestionaEquipo) return;
@@ -88,16 +95,29 @@ export function InicioPage() {
         <p className="text-secondary mb-0">Este es el panel de Coolway. Desde aquí llegas a todo lo que puedes usar.</p>
       </header>
 
-      {/* Empleado: lo primero, fichar. */}
+      {/* Empleado: lo primero, fichar — y si está fichando, se dice. */}
       {esEmpleado && (
-        <Card className="mb-4 border-primary-subtle">
+        <Card className={`mb-4 ${jornada && jornada.estado !== 'FUERA' ? 'border-success' : 'border-primary-subtle'}`}>
           <Card.Body className="p-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
-            <div>
-              <div className="fw-semibold">Tu jornada</div>
-              <div className="small text-secondary">Ficha tu entrada/salida o consulta tu historial.</div>
+            <div className="d-flex align-items-center gap-3">
+              {jornada && jornada.estado !== 'FUERA' && (
+                <span className={`estado-punto ${jornada.estado === 'TRABAJANDO' ? 'trabajando' : 'pausa'}`} aria-hidden />
+              )}
+              <div>
+                <div className="fw-semibold">
+                  {jornada && jornada.estado !== 'FUERA'
+                    ? <>Estás <span className={jornada.estado === 'TRABAJANDO' ? 'text-success' : 'text-warning'}>{ESTADO_JORNADA_LABELS[jornada.estado].toLowerCase()}</span></>
+                    : 'Tu jornada'}
+                </div>
+                <div className="small text-secondary">
+                  {jornada && jornada.estado !== 'FUERA'
+                    ? `Llevas ${formatearMinutos(jornada.minutosTrabajados)} trabajados hoy.`
+                    : 'Ficha tu entrada/salida o consulta tu historial.'}
+                </div>
+              </div>
             </div>
             <div className="d-flex gap-2 flex-wrap">
-              <Link to="/fichar" className="btn btn-brand"><BoxArrowInRight className="me-1" /> Fichar</Link>
+              <Link to="/fichar" className="btn btn-brand"><BoxArrowInRight className="me-1" /> {jornada && jornada.estado !== 'FUERA' ? 'Ir a fichar' : 'Fichar'}</Link>
               <Link to="/ausencias" className="btn btn-outline-secondary"><CalendarCheck className="me-1" /> Ausencias</Link>
             </div>
           </Card.Body>
