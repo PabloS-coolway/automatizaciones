@@ -235,13 +235,14 @@ export interface CorreccionFichajeDto {
 
 // ---- REQ-008 Fase 3 · Ausencias y vacaciones ----
 
-export const ESTADOS_AUSENCIA = ['PENDING', 'APPROVED', 'REJECTED'] as const;
+export const ESTADOS_AUSENCIA = ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'] as const;
 export type EstadoAusencia = (typeof ESTADOS_AUSENCIA)[number];
 
 export const ESTADO_AUSENCIA_LABELS: Record<EstadoAusencia, string> = {
   PENDING: 'Pendiente',
   APPROVED: 'Aprobada',
   REJECTED: 'Rechazada',
+  CANCELLED: 'Cancelada',
 };
 
 /** Un tipo de ausencia del catálogo (configurable por RRHH). */

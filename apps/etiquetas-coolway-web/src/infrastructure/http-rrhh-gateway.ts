@@ -248,6 +248,13 @@ export class HttpRrhhGateway {
     URL.revokeObjectURL(url);
   }
 
+  /** Cancela (borrado lógico) una solicitud: PENDING el propio empleado o admin; APROBADA solo admin. */
+  async anularAusencia(id: number): Promise<AbsenceDto> {
+    const res = await apiFetch(`/rrhh/ausencias/${id}/anular`, { method: 'POST' });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo cancelar la solicitud.'));
+    return res.json();
+  }
+
   async decidirAusencia(id: number, aprobar: boolean, note?: string): Promise<AbsenceDto> {
     const res = await apiFetch(`/rrhh/ausencias/${id}/${aprobar ? 'aprobar' : 'rechazar'}`, {
       method: 'POST',
