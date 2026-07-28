@@ -169,14 +169,25 @@ export function FicharPage() {
                     <Download className="me-1" /> CSV
                   </Button>
                 </div>
-                <ul className="list-unstyled mb-0">
+                <ul className="list-unstyled mb-2">
                   {historico.dias.map((d) => (
-                    <li key={d.fecha} className="d-flex justify-content-between py-1 border-bottom">
+                    <li key={d.fecha} className="d-flex justify-content-between align-items-center py-1 border-bottom">
                       <span>{d.fecha}</span>
-                      <span className="text-secondary">{formatearMinutos(d.minutosTrabajados)}</span>
+                      <span className="d-flex align-items-center gap-2">
+                        {d.minutosExtra > 0 && (
+                          <Badge bg="warning-subtle" text="warning">+{formatearMinutos(d.minutosExtra)} extra</Badge>
+                        )}
+                        <span className="text-secondary">{formatearMinutos(d.minutosTrabajados)}</span>
+                      </span>
                     </li>
                   ))}
                 </ul>
+                {historico.totalExtra > 0 && (
+                  <p className="text-secondary small mb-0">
+                    Total del periodo: <strong>{formatearMinutos(historico.totalMinutos)}</strong> · horas extra:{' '}
+                    <strong>{formatearMinutos(historico.totalExtra)}</strong>
+                  </p>
+                )}
               </Card.Body>
             </Card>
           )}

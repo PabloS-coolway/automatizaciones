@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { DiaJornadaDto } from '@yorga/contracts';
 import { formatearMinutos, historicoACsv } from '../src/domain/fichaje-csv';
 
-const dia = (fecha: string, min: number): DiaJornadaDto => ({ fecha, minutosTrabajados: min, fichajes: [] });
+const dia = (fecha: string, min: number, extra = 0): DiaJornadaDto => ({ fecha, minutosTrabajados: min, minutosExtra: extra, fichajes: [] });
 
 describe('formatearMinutos', () => {
   it('muestra horas y minutos', () => {
@@ -13,15 +13,15 @@ describe('formatearMinutos', () => {
 });
 
 describe('historicoACsv', () => {
-  it('cabecera + una fila por día, horas con coma decimal (Excel ES)', () => {
-    const csv = historicoACsv([dia('2026-07-27', 480), dia('2026-07-26', 150)]);
+  it('cabecera + una fila por día, horas con coma decimal (Excel ES) e horas extra', () => {
+    const csv = historicoACsv([dia('2026-07-27', 600, 120), dia('2026-07-26', 150)]);
     const lineas = csv.split('\n');
-    expect(lineas[0]).toBe('fecha;minutos;horas');
-    expect(lineas[1]).toBe('2026-07-27;480;8,00');
-    expect(lineas[2]).toBe('2026-07-26;150;2,50');
+    expect(lineas[0]).toBe('fecha;minutos;horas;extra_min;extra_horas');
+    expect(lineas[1]).toBe('2026-07-27;600;10,00;120;2,00');
+    expect(lineas[2]).toBe('2026-07-26;150;2,50;0;0,00');
   });
 
   it('sin días, sólo cabecera', () => {
-    expect(historicoACsv([])).toBe('fecha;minutos;horas');
+    expect(historicoACsv([])).toBe('fecha;minutos;horas;extra_min;extra_horas');
   });
 });

@@ -20,6 +20,7 @@ import {
   type Fichaje,
   type FichajeCrudo,
 } from '../domain/fichaje';
+import { minutosExtra } from '../domain/horario';
 
 /** Error de fichaje (transición imposible). Extiende RrhhError → el controller lo traduce a 400. */
 export class FichajeError extends RrhhError {}
@@ -53,6 +54,7 @@ export interface Panel {
 export interface DiaJornada {
   fecha: string;
   minutosTrabajados: number;
+  minutosExtra: number;
   fichajes: TimeEntryRow[];
 }
 
@@ -162,8 +164,11 @@ export class FichajeService {
     return panel;
   }
 
-  /** Histórico personal en `[desde, hasta)`, agrupado por día (minutos trabajados + marcajes), más reciente primero. */
-  async historico(employeeId: number, desde: Date, hasta: Date): Promise<DiaJornada[]> {
+  /**
+   * Histórico personal en `[desde, hasta)`, agrupado por día (minutos trabajados + horas extra + marcajes),
+   * más reciente primero. `weeklyMinutes` es la jornada teórica semanal del empleado (para las extras).
+   */
+  async historico(employeeId: number, desde: Date, hasta: Date, weeklyMinutes: number | null = null): Promise<DiaJornada[]> {
     const rows = await this.repo.listBetween(employeeId, desde, hasta);
     const porFila = new Map<string, TimeEntryRow[]>();
     for (const r of rows) {
@@ -177,7 +182,8 @@ export class FichajeService {
       const efectivos = fichajesEfectivos(filas.map(toCrudo));
       // El día ya cerrado: se computa hasta su último marcaje EFECTIVO (no hasta "ahora").
       const ultimo = ultimoInstante(efectivos, filas[0].at);
-      dias.push({ fecha, minutosTrabajados: minutosTrabajados(efectivos, ultimo), fichajes: filas });
+      const trabajados = minutosTrabajados(efectivos, ultimo);
+      dias.push({ fecha, minutosTrabajados: trabajados, minutosExtra: minutosExtra(trabajados, weeklyMinutes), fichajes: filas });
     }
     return dias.sort((a, b) => b.fecha.localeCompare(a.fecha));
   }
