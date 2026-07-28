@@ -213,11 +213,10 @@ admin por la consola del componente, y cargar el maestro desde la web. Usa el su
   **prefijo** 76/86 — rediseña la Fase 2 de REQ-010 tras el feedback de Silvia), BUG-007 (lectura tolerante
   del Excel de Silvia), y **REQ-008 RRHH Fase 0** (cimientos: identidad + roles jerárquicos + esqueleto
   "Personas"). REQ-006/007/009 ya estaban en prod.
-- **REQ-008 · RRHH** — **Fase 1 completa + Fase 2 Slices 1 y 2a en `main`** (motor de fichaje + cuadro de mando
-  + histórico/CSV). **Fase 2 · Slice 2b** en **rama** `feat/req-008-rrhh-fase-2c-correcciones`, listo para PR:
-  **corrección de fichajes con traza** (append-only: añadir el que faltó / anular con `VOID` que referencia al
-  original; cómputo sobre efectivos; auditado con `actor_email`). Verificado en vivo (anular no borra nada; 3
-  asientos de auditoría). *La migración de columnas se aplica sola en el deploy.*
+- **REQ-008 · RRHH** — **Fase 1 completa + Fase 2 Slices 1/2a en `main`.** Ramas apiladas pendientes de PR (se
+  mergean **en este orden**): (1) `feat/req-008-rrhh-fase-2c-correcciones` — corrección con traza; (2)
+  `feat/req-008-rrhh-fase-2d-horas-extra` — horario teórico + horas extra (**cierra Fase 2**); luego las de la
+  Fase 3 y 4 (ver más abajo). Cada rama va sobre la anterior porque `main` no avanza mientras tanto.
 - **Acción de negocio pendiente (Silvia), no de BD:** para podar materiales/surtidos por color el borrador
   debe traer la **Horma**. En el último Excel ya venía rellena (BUG-006 resuelto por su lado). Falta validar
   la poda completa con un prepedido real.

@@ -18,6 +18,8 @@ export interface EmployeeRow {
   center: string | null;
   centerId: number | null;
   brand: string | null;
+  /** Jornada teórica semanal en minutos (para horas extra); `null` = sin horario definido. */
+  weeklyMinutes: number | null;
 }
 
 export interface NuevoEmpleado {
@@ -28,6 +30,7 @@ export interface NuevoEmpleado {
   managerId?: number;
   centerId?: number;
   departmentId?: number;
+  weeklyMinutes?: number | null;
 }
 
 /** Cambios sobre una ficha (edición / baja / reactivación). Sólo los campos presentes se tocan. */
@@ -38,6 +41,7 @@ export interface EmpleadoUpdate {
   managerId?: number | null;
   centerId?: number | null;
   departmentId?: number | null;
+  weeklyMinutes?: number | null;
   active?: boolean;
 }
 

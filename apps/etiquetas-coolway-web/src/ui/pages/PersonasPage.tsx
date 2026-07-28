@@ -16,7 +16,7 @@ import { OrganigramaView } from './personas/OrganigramaView';
 import { EstructuraManager } from './personas/EstructuraManager';
 import { PanelFichajes } from './personas/PanelFichajes';
 
-const VACIO = { email: '', fullName: '', rrhhRole: 'EMPLEADO' as RrhhRole, position: '', managerId: '', centerId: '', departmentId: '' };
+const VACIO = { email: '', fullName: '', rrhhRole: 'EMPLEADO' as RrhhRole, position: '', managerId: '', centerId: '', departmentId: '', weeklyHours: '' };
 type Vista = 'plantilla' | 'organigrama' | 'fichajes' | 'estructura';
 
 /**
@@ -83,6 +83,7 @@ export function PersonasPage() {
       managerId: e.managerId != null ? String(e.managerId) : '',
       centerId: e.centerId != null ? String(e.centerId) : '',
       departmentId: e.departmentId != null ? String(e.departmentId) : '',
+      weeklyHours: e.weeklyMinutes != null ? String(e.weeklyMinutes / 60) : '',
     });
     setFormError('');
     setAbierto(true);
@@ -96,6 +97,7 @@ export function PersonasPage() {
     const managerId = form.managerId ? Number(form.managerId) : null;
     const centerId = form.centerId ? Number(form.centerId) : null;
     const departmentId = form.departmentId ? Number(form.departmentId) : null;
+    const weeklyMinutes = form.weeklyHours.trim() ? Math.round(Number(form.weeklyHours) * 60) : null;
     try {
       if (editId == null) {
         const nuevo = await rrhhGateway.crearEmpleado({
@@ -106,6 +108,7 @@ export function PersonasPage() {
           managerId: managerId ?? undefined,
           centerId: centerId ?? undefined,
           departmentId: departmentId ?? undefined,
+          weeklyMinutes,
         });
         setNotice(`${nuevo.fullName} dado de alta y enlazado a ${nuevo.email}.`);
       } else {
@@ -116,6 +119,7 @@ export function PersonasPage() {
           managerId,
           centerId,
           departmentId,
+          weeklyMinutes,
         });
         setNotice(`Ficha de ${upd.fullName} actualizada.`);
       }
@@ -313,9 +317,14 @@ export function PersonasPage() {
                   ))}
                 </Form.Select>
               </div>
-              <div className="col-12">
+              <div className="col-8">
                 <Form.Label className="small" htmlFor="e-pos">Puesto (opcional)</Form.Label>
                 <Form.Control id="e-pos" value={form.position} onChange={(ev) => setForm({ ...form, position: ev.target.value })} placeholder="Dependienta" />
+              </div>
+              <div className="col-4">
+                <Form.Label className="small" htmlFor="e-hrs">Jornada (h/sem)</Form.Label>
+                <Form.Control id="e-hrs" type="number" min={0} step={0.5} value={form.weeklyHours}
+                  onChange={(ev) => setForm({ ...form, weeklyHours: ev.target.value })} placeholder="40" />
               </div>
               <div className="col-12 col-sm-4">
                 <Form.Label className="small" htmlFor="e-mgr">Responsable</Form.Label>

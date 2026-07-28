@@ -3,6 +3,21 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-27] REQ-008 · RRHH Fase 2 (Slice 2c) — horario teórico + horas extra
+
+Cierra la Fase 2: detección de horas extra sobre el horario teórico.
+
+### Añadido
+- **Jornada teórica semanal** en la ficha del empleado (`weekly_minutes`; se edita en horas/semana). La teórica
+  diaria se deriva repartiéndola entre los 5 días laborables.
+- **Horas extra** por día en el histórico (lo trabajado por encima de la teórica diaria) + total del periodo,
+  y una columna extra en el CSV. Sin horario definido, no se computan (0).
+
+### Verificado
+- typecheck + **273 tests API** + web + build. `minutosExtra` verificado **rompiéndolo a propósito**.
+- **En vivo:** una jornada de 10 h con teórica de 8 h marca **2 h extra**. *La migración de columna se aplica
+  sola en el deploy.*
+
 ## [2026-07-27] REQ-008 · RRHH Fase 2 (Slice 2b) — corrección de fichajes con traza
 
 La parte sensible: RRHH corrige fichajes **sin borrar nada** y con traza completa.
