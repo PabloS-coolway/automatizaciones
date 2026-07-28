@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
+import { NotificacionesBell } from './NotificacionesBell';
 import { useTheme } from '../useTheme';
 import { RrhhProvider } from '../rrhh/RrhhContext';
 
@@ -11,6 +12,7 @@ export function AppShell() {
       <div className="shell">
         <Sidebar theme={theme} setTheme={setTheme} />
         <main className="content">
+          <NotificacionesBell />
           <Outlet />
         </main>
       </div>

@@ -326,7 +326,7 @@ button, a, [role='button'], .form-control, .form-select { touch-action: manipula
   display: flex;
   align-items: center;
 }
-.sidebar-nav { padding: 8px; display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.sidebar-nav { padding: 8px; display: flex; flex-direction: column; gap: 2px; flex: 1; overflow-y: auto; min-height: 0; }
 /* MEJ-003 · Grupos de navegación por módulo. */
 .nav-group { display: flex; flex-direction: column; gap: 2px; }
 .nav-group + .nav-group { margin-top: 12px; }
@@ -468,3 +468,22 @@ button, a, [role='button'], .form-control, .form-select { touch-action: manipula
 .cal-num { font-size: .8rem; color: var(--bs-secondary-color, #888); }
 .cal-chip { font-size: .68rem; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 640px) { .cal-cell { min-height: 60px; } }
+
+/* Campana de avisos */
+.notif-bell { position: fixed; top: 14px; right: 20px; z-index: 1030; }
+.notif-bell-btn { background: var(--surface); border: 1px solid var(--border); color: var(--ink); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; box-shadow: 0 2px 8px rgba(28,24,48,.08); }
+.notif-bell-btn::after { display: none; } /* quita la flecha del dropdown */
+.notif-bell-btn:hover { border-color: var(--brand-2); }
+.notif-bell-badge { position: absolute; top: -4px; right: -4px; background: #dc3545; color: #fff; font-size: .62rem; font-weight: 700; min-width: 16px; height: 16px; border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 0 3px; }
+.notif-bell-menu { min-width: 320px; max-width: 92vw; padding: 0; max-height: 70vh; overflow-y: auto; background: var(--surface); border: 1px solid var(--border); }
+.notif-item { display: block; width: 100%; text-align: left; background: none; border: none; border-bottom: 1px solid var(--border); padding: 8px 14px; cursor: pointer; color: var(--ink); }
+.notif-item:hover { background: var(--kpi-bg); }
+.notif-time { font-size: .7rem; color: var(--muted); }
+.notif-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--brand-2); margin-right: 6px; }
+@media (max-width: 720px) { .notif-bell { top: 8px; right: 10px; } }
+
+/* Punto de estado de jornada (home) */
+.estado-punto { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+.estado-punto.trabajando { background: #16a34a; box-shadow: 0 0 0 0 rgba(22,163,74,.5); animation: pulso 2s infinite; }
+.estado-punto.pausa { background: #d97706; }
+@keyframes pulso { 0% { box-shadow: 0 0 0 0 rgba(22,163,74,.45);} 70% { box-shadow: 0 0 0 8px rgba(22,163,74,0);} 100% { box-shadow: 0 0 0 0 rgba(22,163,74,0);} }
