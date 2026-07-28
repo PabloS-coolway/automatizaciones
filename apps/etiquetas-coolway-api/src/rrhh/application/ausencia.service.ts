@@ -182,11 +182,41 @@ export class AusenciaService {
         { actorEmail: actor.email, action: 'CREATE', entity: 'AUSENCIA', entityId: String(creada.id), after: creada, summary: `Solicitó ${tipo.name} (${diasSolicitados({ start, end }, !!dto.halfDay)} día/s) del ${dto.startDate} al ${dto.endDate}` },
         tx,
       );
-      // Aviso in-app al responsable si la solicitud queda pendiente de aprobación.
-      if (status === 'PENDING' && solicitante?.managerId) {
-        await this.notif.create({ employeeId: solicitante.managerId, message: `${solicitante.fullName} ha solicitado ${tipo.name} del ${dto.startDate} al ${dto.endDate}.`, link: '/ausencias' }, tx);
+      // Aviso in-app a quien debe aprobar: el responsable si lo tiene; si NO, a RRHH/ADMIN (para que no
+      // se queden solicitudes sin nadie a quien avise el sistema).
+      if (status === 'PENDING') {
+        const mensaje = `${solicitante?.fullName ?? 'Un empleado'} ha solicitado ${tipo.name} del ${dto.startDate} al ${dto.endDate}.`;
+        const destinatarios = solicitante?.managerId
+          ? [solicitante.managerId]
+          : (await this.empleados.findAll()).filter((e) => e.active && (e.rrhhRole === 'RRHH' || e.rrhhRole === 'ADMIN') && e.id !== employeeId).map((e) => e.id);
+        for (const destino of destinatarios) {
+          await this.notif.create({ employeeId: destino, message: mensaje, link: '/ausencias' }, tx);
+        }
       }
       return creada;
+    });
+  }
+
+  /**
+   * Cancela (borrado LÓGICO → estado CANCELLED) una solicitud. La autorización (quién puede y en qué estado) la
+   * hace el controller; aquí se aplica el cambio, se audita y —si la cancela otro (un admin), no el propio
+   * empleado— se le avisa. Deja de contar para saldo, calendario y solapes (esos sólo miran PENDING/APPROVED).
+   */
+  async anular(id: number, actor: RrhhActor, avisarEmpleado: boolean): Promise<AbsenceRow> {
+    const actual = await this.repo.findById(id);
+    if (!actual) throw new RrhhError(`No existe la solicitud #${id}.`);
+    if (actual.status === 'CANCELLED' || actual.status === 'REJECTED') throw new RrhhError('Esa solicitud ya no está activa.');
+    return this.prisma.$transaction(async (tx) => {
+      const anulada = await this.repo.decidir(id, { status: 'CANCELLED', decidedByEmail: actor.email, decidedAt: new Date() }, tx);
+      await this.actividad.record(
+        { actorEmail: actor.email, action: 'DELETE', entity: 'AUSENCIA', entityId: String(id), before: actual, after: anulada, summary: `Canceló la ausencia de ${actual.employeeName} (${actual.typeName})` },
+        tx,
+      );
+      if (avisarEmpleado) {
+        const iso = (d: Date) => d.toISOString().slice(0, 10);
+        await this.notif.create({ employeeId: actual.employeeId, message: `Tu ausencia de ${actual.typeName} del ${iso(actual.startDate)} al ${iso(actual.endDate)} ha sido CANCELADA.`, link: '/ausencias' }, tx);
+      }
+      return anulada;
     });
   }
 

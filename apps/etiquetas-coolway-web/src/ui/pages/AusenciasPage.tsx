@@ -13,7 +13,7 @@ import { useRrhh } from '../rrhh/RrhhContext';
 import { TiposAusenciaManager } from './personas/TiposAusenciaManager';
 import { CalendarioAusencias } from './personas/CalendarioAusencias';
 
-const VARIANTE: Record<EstadoAusencia, string> = { PENDING: 'warning', APPROVED: 'success', REJECTED: 'danger' };
+const VARIANTE: Record<EstadoAusencia, string> = { PENDING: 'warning', APPROVED: 'success', REJECTED: 'danger', CANCELLED: 'secondary' };
 type Vista = 'mias' | 'aprobaciones' | 'calendario' | 'tipos';
 
 /**
@@ -89,6 +89,19 @@ export function AusenciasPage() {
     }
   }
 
+  async function cancelar(a: AbsenceDto) {
+    if (!confirm(`¿Cancelar la ausencia de ${a.typeName} (${a.startDate}→${a.endDate})?`)) return;
+    setError('');
+    setNotice('');
+    try {
+      await rrhhGateway.anularAusencia(a.id);
+      setNotice('Ausencia cancelada.');
+      reload();
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }
+
   async function decidir(a: AbsenceDto, aprobar: boolean) {
     setError('');
     setNotice('');
@@ -143,7 +156,8 @@ export function AusenciasPage() {
           <div className="col-12 col-lg-5">
             <Card>
               <Card.Body>
-                <Card.Title className="h6 mb-3">Solicitar ausencia</Card.Title>
+                <Card.Title className="h6 mb-1">Solicitar ausencia</Card.Title>
+                <p className="text-secondary small mb-3">Las vacaciones se cuentan en <strong>días naturales</strong> (incluyen fines de semana y festivos). El cupo habitual es de <strong>30 días naturales al año</strong>.</p>
                 <Form onSubmit={solicitar}>
                   <Form.Group className="mb-2">
                     <Form.Label className="small">Tipo</Form.Label>
@@ -194,7 +208,7 @@ export function AusenciasPage() {
             <Card>
               <Card.Body>
                 <Card.Title className="h6 mb-3">Mis solicitudes ({mias.length})</Card.Title>
-                <ListaAusencias ausencias={mias} conNombre={false} />
+                <ListaAusencias ausencias={mias} conNombre={false} onCancelar={cancelar} puedeGestionar={puedeGestionar} />
               </Card.Body>
             </Card>
           </div>
@@ -232,15 +246,17 @@ export function AusenciasPage() {
         </Card>
       )}
 
-      {vista === 'calendario' && puedeAprobar && <CalendarioAusencias />}
+      {vista === 'calendario' && puedeAprobar && <CalendarioAusencias puedeGestionar={puedeGestionar} />}
 
       {vista === 'tipos' && puedeGestionar && <TiposAusenciaManager tipos={tipos} onChange={reload} />}
     </div>
   );
 }
 
-function ListaAusencias({ ausencias, conNombre }: { ausencias: AbsenceDto[]; conNombre: boolean }) {
+function ListaAusencias({ ausencias, conNombre, onCancelar, puedeGestionar }: { ausencias: AbsenceDto[]; conNombre: boolean; onCancelar?: (a: AbsenceDto) => void; puedeGestionar?: boolean }) {
   if (ausencias.length === 0) return <p className="text-secondary small mb-0">Sin solicitudes.</p>;
+  // Se puede cancelar una PENDIENTE (el dueño) o una APROBADA sólo si gestiona (admin/RRHH).
+  const cancelable = (a: AbsenceDto) => a.status === 'PENDING' || (a.status === 'APPROVED' && !!puedeGestionar);
   return (
     <ul className="list-unstyled mb-0">
       {ausencias.map((a) => (
@@ -255,7 +271,12 @@ function ListaAusencias({ ausencias, conNombre }: { ausencias: AbsenceDto[]; con
               </Button>
             )}
           </span>
-          <Badge bg={`${VARIANTE[a.status]}-subtle`} text={VARIANTE[a.status]}>{ESTADO_AUSENCIA_LABELS[a.status]}</Badge>
+          <span className="d-flex align-items-center gap-2">
+            <Badge bg={`${VARIANTE[a.status]}-subtle`} text={VARIANTE[a.status]}>{ESTADO_AUSENCIA_LABELS[a.status]}</Badge>
+            {onCancelar && cancelable(a) && (
+              <Button size="sm" variant="outline-danger" onClick={() => onCancelar(a)}>Cancelar</Button>
+            )}
+          </span>
         </li>
       ))}
     </ul>
