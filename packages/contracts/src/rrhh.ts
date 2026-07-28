@@ -288,6 +288,43 @@ export interface CalendarioAusenciasDto {
   ausencias: AbsenceDto[];
 }
 
+// ---- REQ-008 · Panel de actividad RRHH (auditoría, solo lectura) ----
+
+export const RRHH_ACTIVITY_ENTITIES = ['EMPLEADO', 'CENTRO', 'DEPARTAMENTO', 'FICHAJE', 'AUSENCIA', 'TIPO_AUSENCIA'] as const;
+export type RrhhActivityEntity = (typeof RRHH_ACTIVITY_ENTITIES)[number];
+
+export const RRHH_ACTIVITY_ENTITY_LABELS: Record<RrhhActivityEntity, string> = {
+  EMPLEADO: 'Empleado',
+  CENTRO: 'Centro',
+  DEPARTAMENTO: 'Departamento',
+  FICHAJE: 'Fichaje',
+  AUSENCIA: 'Ausencia',
+  TIPO_AUSENCIA: 'Tipo de ausencia',
+};
+
+export const RRHH_ACTIVITY_ACTION_LABELS: Record<string, string> = {
+  CREATE: 'Alta',
+  UPDATE: 'Cambio',
+  DELETE: 'Baja',
+};
+
+/** Una entrada del log de actividad de RRHH (quién, cuándo, qué). */
+export interface RrhhActivityDto {
+  id: number;
+  createdAt: string;
+  actorEmail: string;
+  action: 'CREATE' | 'UPDATE' | 'DELETE';
+  entity: RrhhActivityEntity;
+  entityId: string;
+  summary: string;
+}
+
+/** Página del log de actividad de RRHH. */
+export interface RrhhActivityListDto {
+  entries: RrhhActivityDto[];
+  total: number;
+}
+
 // ---- REQ-008 Fase 4 · Avisos in-app ----
 
 export interface NotificacionDto {

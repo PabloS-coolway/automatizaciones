@@ -18,6 +18,7 @@ import {
   JornadaHoyDto,
   NotificacionDto,
   PanelFichajeDto,
+  RrhhActivityListDto,
   RrhhMeDto,
   SaldoVacacionesDto,
   SolicitarAusenciaDto,
@@ -35,6 +36,7 @@ import { RrhhStructureService } from '../../application/rrhh-structure.service';
 import { DiaDetalle, DiaJornada, FichajeService, Jornada, Panel } from '../../application/fichaje.service';
 import { AusenciaService } from '../../application/ausencia.service';
 import { NotificacionService } from '../../application/notificacion.service';
+import { RrhhActivityQueryService } from '../../application/rrhh-activity-query.service';
 import { AbsenceRow, AbsenceTypeRow, NotificationRow } from '../../application/ports';
 import { diasDeRango, diasSolicitados } from '../../domain/ausencia';
 import { esMarcaje } from '../../domain/fichaje';
@@ -155,6 +157,7 @@ export class RrhhController {
     private readonly fichaje: FichajeService,
     private readonly ausencias: AusenciaService,
     private readonly notificaciones: NotificacionService,
+    private readonly actividad: RrhhActivityQueryService,
   ) {}
 
   @Get('me')
@@ -360,6 +363,21 @@ export class RrhhController {
     const visibles = await this.service.listVisible(actor);
     if (!visibles.some((e) => e.id === solicitud.employeeId)) throw new ForbiddenException('Esa persona no está en tu equipo.');
     return this.ausencias.decidir(id, aprobar, { email: actor.email }, nota).catch(traducir);
+  }
+
+  // ---- Panel de actividad RRHH (auditoría, sólo RRHH/Admin). ----
+
+  @Get('actividad')
+  @UseGuards(RrhhGuard)
+  async actividadRrhh(
+    @RrhhActor() actor: EmployeeRow,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+    @Query('entity') entity?: string,
+    @Query('actor') actorFiltro?: string,
+  ): Promise<RrhhActivityListDto> {
+    exigeGestion(actor);
+    return this.actividad.list(Number(page) || 0, Number(pageSize) || 50, entity, actorFiltro);
   }
 
   // ---- Avisos in-app (cada empleado los suyos). ----
