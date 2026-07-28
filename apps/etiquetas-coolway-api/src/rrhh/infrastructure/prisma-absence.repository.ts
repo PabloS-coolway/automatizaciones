@@ -72,6 +72,7 @@ type AusenciaConRel = {
   startDate: Date;
   endDate: Date;
   halfDay: boolean;
+  halfDayPart: string | null;
   reason: string | null;
   status: string;
   decidedByEmail: string | null;
@@ -95,6 +96,7 @@ const toAusencia = (a: AusenciaConRel): AbsenceRow => ({
   startDate: a.startDate,
   endDate: a.endDate,
   halfDay: a.halfDay,
+  halfDayPart: a.halfDayPart,
   reason: a.reason,
   status: a.status,
   decidedByEmail: a.decidedByEmail,
@@ -123,6 +125,7 @@ export class PrismaAbsenceRepository implements AbsenceRepository {
         startDate: n.startDate,
         endDate: n.endDate,
         halfDay: n.halfDay,
+        halfDayPart: n.halfDayPart ?? null,
         reason: n.reason,
         status: n.status,
       },
