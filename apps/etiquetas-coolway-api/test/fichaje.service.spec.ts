@@ -19,6 +19,9 @@ function repoMem(): TimeEntryRepository & { filas: TimeEntryRow[] } {
         note: e.note ?? null,
         actorEmail: e.actorEmail ?? null,
         correctsId: e.correctsId ?? null,
+        latitude: null,
+        longitude: null,
+        accuracy: null,
       };
       filas.push(fila);
       return fila;
@@ -51,7 +54,7 @@ const actor = { email: 'rrhh@y.com' };
 /** Siembra una fila con hora concreta (para panel/histórico de días pasados). Devuelve su id. */
 function sembrar(repo: ReturnType<typeof repoMem>, employeeId: number, kind: string, at: Date): number {
   const id = repo.filas.length + 1;
-  repo.filas.push({ id, employeeId, kind, at, source: 'WEB', note: null, actorEmail: null, correctsId: null });
+  repo.filas.push({ id, employeeId, kind, at, source: 'WEB', note: null, actorEmail: null, correctsId: null, latitude: null, longitude: null, accuracy: null });
   return id;
 }
 function conDia(offsetDias: number, hhmm: string): Date {

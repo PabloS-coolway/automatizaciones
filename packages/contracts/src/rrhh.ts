@@ -147,10 +147,14 @@ export interface TimeEntryDto {
   note: string | null;
 }
 
-/** Petición de fichaje. La hora la pone el servidor; el cliente sólo dice qué marca y desde dónde. */
+/** Petición de fichaje. La hora la pone el servidor; el cliente dice qué marca, desde dónde y (si lo permite) dónde. */
 export interface FicharDto {
   kind: Marcaje;
   source?: 'WEB' | 'MOBILE';
+  /** Geolocalización opcional (con consentimiento del navegador). `accuracy` = precisión en metros. */
+  latitude?: number;
+  longitude?: number;
+  accuracy?: number;
 }
 
 /** "Mi jornada de hoy": estado actual, marcajes posibles, fichajes del día y minutos trabajados. */
@@ -212,6 +216,10 @@ export interface EntradaFichajeDto {
   actorEmail: string | null;
   /** ¿Anulado por una corrección posterior? (se pinta tachado, pero no se borra). */
   anulado: boolean;
+  /** Geolocalización del fichaje (si el empleado la permitió). `accuracy` = precisión en metros. */
+  latitude: number | null;
+  longitude: number | null;
+  accuracy: number | null;
 }
 
 /** Detalle de un día de un empleado, para que RRHH lo revise y corrija. */
