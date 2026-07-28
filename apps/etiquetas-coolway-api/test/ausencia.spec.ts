@@ -1,4 +1,4 @@
-import { diasSolicitados, esEstadoAusencia, haySolape, rangoValido, solapa } from '../src/rrhh/domain/ausencia';
+import { diasDeRango, diasSolicitados, esEstadoAusencia, haySolape, rangoValido, saldoVacaciones, solapa } from '../src/rrhh/domain/ausencia';
 
 const d = (s: string) => new Date(`${s}T00:00:00Z`);
 const r = (start: string, end: string) => ({ start: d(start), end: d(end) });
@@ -32,5 +32,15 @@ describe('ausencia · reglas de fechas', () => {
   it('esEstadoAusencia valida el estado', () => {
     expect(esEstadoAusencia('APPROVED')).toBe(true);
     expect(esEstadoAusencia('LO_QUE_SEA')).toBe(false);
+  });
+
+  it('diasDeRango enumera cada día YYYY-MM-DD del rango', () => {
+    expect(diasDeRango(r('2026-08-01', '2026-08-03'))).toEqual(['2026-08-01', '2026-08-02', '2026-08-03']);
+    expect(diasDeRango(r('2026-08-05', '2026-08-05'))).toEqual(['2026-08-05']);
+  });
+
+  it('saldoVacaciones: restante = cupo − disfrutados', () => {
+    expect(saldoVacaciones(23, 5, 2)).toEqual({ anual: 23, disfrutados: 5, pendientes: 2, restante: 18 });
+    expect(saldoVacaciones(22, 0.5, 0).restante).toBe(21.5);
   });
 });

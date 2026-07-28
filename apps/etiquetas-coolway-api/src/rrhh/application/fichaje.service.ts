@@ -132,7 +132,7 @@ export class FichajeService {
    * Cuadro de mando acotado a `empleados` (la rama que ve quien pregunta): quién está fichado **ahora** (estado
    * ≠ FUERA hoy) y qué **jornadas de días anteriores quedaron sin cerrar** (últimos 7 días). Una sola consulta.
    */
-  async panel(empleados: EmpleadoBasico[]): Promise<Panel> {
+  async panel(empleados: EmpleadoBasico[], diasConAusencia: Set<string> = new Set()): Promise<Panel> {
     const ahora = new Date();
     const { desde: hoy0, hasta: mañana0 } = rangoDiaDe(ahora);
     const desde7 = new Date(hoy0);
@@ -155,10 +155,13 @@ export class FichajeService {
       if (estado !== 'FUERA') {
         panel.ahora.push({ employeeId: e.id, fullName: e.fullName, estado, minutosTrabajados: minutosTrabajados(hoy, ahora) });
       }
-      // Días anteriores: agrupar los efectivos por día y ver cuáles no cerraron.
+      // Días anteriores: agrupar los efectivos por día y ver cuáles no cerraron. Un día cubierto por una
+      // ausencia APROBADA no es incidencia (coordinación con el fichaje).
       const anteriores = fichajesEfectivos(suyos.filter((c) => c.at < hoy0));
       for (const [fecha, delDia] of agruparPorDia(anteriores)) {
-        if (jornadaSinCerrar(delDia)) panel.incidencias.push({ employeeId: e.id, fullName: e.fullName, fecha });
+        if (jornadaSinCerrar(delDia) && !diasConAusencia.has(`${e.id}:${fecha}`)) {
+          panel.incidencias.push({ employeeId: e.id, fullName: e.fullName, fecha });
+        }
       }
     }
     return panel;

@@ -130,6 +130,18 @@ describe('FichajeService · cuadro de mando', () => {
     const panel = await new FichajeService(repoMem(), recorderSpy().recorder, db).panel([]);
     expect(panel).toEqual({ ahora: [], incidencias: [] });
   });
+
+  it('un día cubierto por una ausencia aprobada NO es incidencia (coordinación con fichaje)', async () => {
+    const repo = repoMem();
+    const { svc } = nuevoServicio(repo);
+    const ayer = conDia(1, '09:00');
+    sembrar(repo, 2, 'IN', ayer); // ayer entró y no salió → sería incidencia…
+    const claveAyer = `${ayer.getFullYear()}-${String(ayer.getMonth() + 1).padStart(2, '0')}-${String(ayer.getDate()).padStart(2, '0')}`;
+    const conAusencia = await svc.panel([{ id: 2, fullName: 'Dos' }], new Set([`2:${claveAyer}`]));
+    expect(conAusencia.incidencias).toHaveLength(0); // …pero está de ausencia aprobada
+    const sinAusencia = await svc.panel([{ id: 2, fullName: 'Dos' }]);
+    expect(sinAusencia.incidencias).toHaveLength(1); // sin la ausencia, sí es incidencia
+  });
 });
 
 describe('FichajeService · histórico', () => {

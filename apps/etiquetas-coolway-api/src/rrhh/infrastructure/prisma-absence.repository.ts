@@ -79,7 +79,7 @@ type AusenciaConRel = {
   decisionNote: string | null;
   createdAt: Date;
   employee: { fullName: string };
-  type: { name: string };
+  type: { name: string; computesBalance: boolean };
 };
 
 const toAusencia = (a: AusenciaConRel): AbsenceRow => ({
@@ -88,6 +88,7 @@ const toAusencia = (a: AusenciaConRel): AbsenceRow => ({
   employeeName: a.employee.fullName,
   typeId: a.typeId,
   typeName: a.type.name,
+  computesBalance: a.type.computesBalance,
   startDate: a.startDate,
   endDate: a.endDate,
   halfDay: a.halfDay,
@@ -99,7 +100,7 @@ const toAusencia = (a: AusenciaConRel): AbsenceRow => ({
   createdAt: a.createdAt,
 });
 
-const INCLUDE = { employee: { select: { fullName: true } }, type: { select: { name: true } } } as const;
+const INCLUDE = { employee: { select: { fullName: true } }, type: { select: { name: true, computesBalance: true } } } as const;
 
 /** Adapter: solicitudes de ausencia (Prisma). */
 @Injectable()
@@ -149,6 +150,17 @@ export class PrismaAbsenceRepository implements AbsenceRepository {
 
   async listApprovedByEmployee(employeeId: number): Promise<AbsenceRow[]> {
     const list = await this.prisma.absence.findMany({ where: { employeeId, status: 'APPROVED' }, include: INCLUDE });
+    return list.map(toAusencia);
+  }
+
+  async listForEmployeesBetween(employeeIds: number[], desde: Date, hasta: Date, statuses: string[]): Promise<AbsenceRow[]> {
+    if (employeeIds.length === 0) return [];
+    const list = await this.prisma.absence.findMany({
+      // Toca el rango si empieza antes del fin Y termina después del inicio.
+      where: { employeeId: { in: employeeIds }, status: { in: statuses }, startDate: { lte: hasta }, endDate: { gte: desde } },
+      include: INCLUDE,
+      orderBy: { startDate: 'asc' },
+    });
     return list.map(toAusencia);
   }
 }

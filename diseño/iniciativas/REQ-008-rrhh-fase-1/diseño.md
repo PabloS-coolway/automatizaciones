@@ -140,8 +140,13 @@ Digitaliza el parte diario que hoy se firma en papel. Se acaban los partes físi
     responsable/RRHH con estados (PENDING→APPROVED/REJECTED) y traza. Regla dura: **no se aprueba ni se solicita
     una ausencia que solape con otra ya aprobada** (`solapa`/`haySolape`, testeado + break-on-purpose). Todo
     auditado. Verificado en vivo (solicitar→aprobar; el empleado no aprueba; solape rechazado).
-  - **Slice 3b · Saldos + calendarios + coordinación con fichaje** — ⏳ pendiente: saldo anual de vacaciones,
-    calendario de equipo, y que un día aprobado como ausencia **no** genere incidencia de "jornada sin cerrar".
+  - **Slice 3b · Saldos + calendario + coordinación con fichaje** — ✅ **hecho.** **Saldo de vacaciones** por año
+    (cupo anual en la ficha − días aprobados que computan saldo; muestra disfrutados/pendientes/restantes).
+    **Calendario de equipo** (próximos 90 días, para ver solapes). **Coordinación con el fichaje**: un día
+    cubierto por una ausencia **aprobada** ya **no** genera incidencia de "jornada sin cerrar" en el cuadro de
+    mando. Dominio testeado (`saldoVacaciones`, `diasDeRango`) + break-on-purpose de la coordinación. Verificado
+    en vivo (saldo 23→disfrutados 5→restan 18; la incidencia desaparece con la ausencia; calendario del equipo).
+    **Con esto la Fase 3 queda cerrada.**
 - **Fase 4 · Refinos** — notificaciones (app+correo), informes/exportación, pulido móvil.
 
 ## Estado de implementación

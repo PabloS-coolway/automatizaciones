@@ -80,6 +80,7 @@ export class RrhhService {
           centerId: dto.centerId ?? undefined,
           departmentId: dto.departmentId ?? undefined,
           weeklyMinutes: dto.weeklyMinutes ?? undefined,
+          annualLeaveDays: dto.annualLeaveDays ?? undefined,
         },
         tx,
       );
@@ -129,6 +130,12 @@ export class RrhhService {
         throw new RrhhError('La jornada teórica semanal debe ser un número de minutos no negativo.');
       }
       data.weeklyMinutes = dto.weeklyMinutes;
+    }
+    if (dto.annualLeaveDays !== undefined) {
+      if (dto.annualLeaveDays !== null && (!Number.isFinite(dto.annualLeaveDays) || dto.annualLeaveDays < 0)) {
+        throw new RrhhError('El cupo anual de vacaciones debe ser un número de días no negativo.');
+      }
+      data.annualLeaveDays = dto.annualLeaveDays;
     }
 
     return this.prisma.$transaction(async (tx) => {
