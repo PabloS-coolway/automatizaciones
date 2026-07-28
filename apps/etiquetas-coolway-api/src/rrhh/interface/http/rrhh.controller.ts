@@ -67,6 +67,7 @@ function toDto(e: EmployeeRow): EmployeeDto {
     weeklyMinutes: e.weeklyMinutes,
     annualLeaveDays: e.annualLeaveDays,
     birthDate: e.birthDate,
+    hideBirthday: e.hideBirthday,
   };
 }
 

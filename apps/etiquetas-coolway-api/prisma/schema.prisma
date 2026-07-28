@@ -157,6 +157,9 @@ model Employee {
   iban         String?
   /// Fecha de nacimiento (para los próximos cumpleaños del equipo). Sólo la fecha, sin hora.
   birthDate    DateTime?   @map("birth_date") @db.Date
+  /// Privacidad: si el empleado no quiere que su cumpleaños se muestre al equipo. No borra la fecha
+  /// (RRHH la necesita), sólo la oculta de los próximos cumpleaños.
+  hideBirthday Boolean     @default(false) @map("hide_birthday")
   active       Boolean     @default(true)
   hiredAt      DateTime?   @map("hired_at")
   terminatedAt DateTime?   @map("terminated_at")
