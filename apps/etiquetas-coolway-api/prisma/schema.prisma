@@ -151,6 +151,8 @@ model Employee {
   /// Jornada teórica semanal en minutos (p.ej. 2400 = 40 h/semana). `null` = sin horario definido → no se
   /// computan horas extra. La diaria teórica se deriva repartiendo entre los días laborables (L–V).
   weeklyMinutes Int?       @map("weekly_minutes")
+  /// Días de vacaciones que devenga al año (para el saldo). `null` = sin cupo definido.
+  annualLeaveDays Int?     @map("annual_leave_days")
   /// Datos bancarios opcionales, preparados para una futura nómina (no se usan en Fase 1).
   iban         String?
   active       Boolean     @default(true)

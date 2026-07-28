@@ -4,6 +4,7 @@ import type {
   CreateDepartmentDto,
   AbsenceDto,
   AbsenceTypeDto,
+  CalendarioAusenciasDto,
   CorreccionFichajeDto,
   CreateAbsenceTypeDto,
   CreateEmployeeDto,
@@ -15,6 +16,7 @@ import type {
   JornadaHoyDto,
   PanelFichajeDto,
   RrhhMeDto,
+  SaldoVacacionesDto,
   SolicitarAusenciaDto,
   UpdateAbsenceTypeDto,
   UpdateCenterDto,
@@ -214,6 +216,18 @@ export class HttpRrhhGateway {
       body: JSON.stringify({ note }),
     });
     if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo decidir la solicitud.'));
+    return res.json();
+  }
+
+  async miSaldo(): Promise<SaldoVacacionesDto> {
+    const res = await apiFetch('/rrhh/ausencias/saldo');
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo cargar tu saldo.'));
+    return res.json();
+  }
+
+  async calendarioAusencias(desde: string, hasta: string): Promise<CalendarioAusenciasDto> {
+    const res = await apiFetch(`/rrhh/ausencias/calendario?desde=${desde}&hasta=${hasta}`);
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo cargar el calendario.'));
     return res.json();
   }
 }
