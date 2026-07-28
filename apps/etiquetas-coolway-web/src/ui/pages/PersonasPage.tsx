@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Alert, Badge, Button, Card, Form, Modal, Nav, Spinner } from 'react-bootstrap';
-import { Diagram3, Download, PencilSquare, PersonDash, PersonCheck, PlusLg, Building, ClockHistory } from 'react-bootstrap-icons';
+import { Diagram3, Download, PencilSquare, PersonDash, PersonCheck, PlusLg, Building, ClockHistory, ListUl } from 'react-bootstrap-icons';
 import {
   RRHH_ROLE_LABELS,
   RRHH_ROLES,
@@ -15,10 +15,11 @@ import { Column, DataTable, useMemoryTable } from '../components/table';
 import { OrganigramaView } from './personas/OrganigramaView';
 import { EstructuraManager } from './personas/EstructuraManager';
 import { PanelFichajes } from './personas/PanelFichajes';
+import { ActividadRrhh } from './personas/ActividadRrhh';
 import { plantillaACsv } from '../../domain/plantilla-csv';
 
 const VACIO = { email: '', fullName: '', rrhhRole: 'EMPLEADO' as RrhhRole, position: '', managerId: '', centerId: '', departmentId: '', weeklyHours: '', annualLeaveDays: '' };
-type Vista = 'plantilla' | 'organigrama' | 'fichajes' | 'estructura';
+type Vista = 'plantilla' | 'organigrama' | 'fichajes' | 'estructura' | 'actividad';
 
 /**
  * REQ-008 · Personas. El empleado ve su ficha y (según su rol RRHH) la plantilla que le corresponde. RRHH/Admin
@@ -270,6 +271,9 @@ export function PersonasPage() {
             {puedeGestionar && (
               <Nav.Item><Nav.Link eventKey="estructura"><Building className="me-1" />Centros y departamentos</Nav.Link></Nav.Item>
             )}
+            {puedeGestionar && (
+              <Nav.Item><Nav.Link eventKey="actividad"><ListUl className="me-1" />Actividad</Nav.Link></Nav.Item>
+            )}
           </Nav>
 
           {vista === 'plantilla' && (
@@ -299,6 +303,8 @@ export function PersonasPage() {
           {vista === 'estructura' && puedeGestionar && (
             <EstructuraManager centros={centros} departamentos={departamentos} onChange={reload} />
           )}
+
+          {vista === 'actividad' && puedeGestionar && <ActividadRrhh />}
         </>
       )}
 

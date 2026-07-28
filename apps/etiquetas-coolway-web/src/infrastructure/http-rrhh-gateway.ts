@@ -16,6 +16,7 @@ import type {
   JornadaHoyDto,
   NotificacionDto,
   PanelFichajeDto,
+  RrhhActivityListDto,
   RrhhMeDto,
   SaldoVacacionesDto,
   SolicitarAusenciaDto,
@@ -229,6 +230,14 @@ export class HttpRrhhGateway {
   async calendarioAusencias(desde: string, hasta: string): Promise<CalendarioAusenciasDto> {
     const res = await apiFetch(`/rrhh/ausencias/calendario?desde=${desde}&hasta=${hasta}`);
     if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo cargar el calendario.'));
+    return res.json();
+  }
+
+  async actividadRrhh(page: number, entity?: string): Promise<RrhhActivityListDto> {
+    const qs = new URLSearchParams({ page: String(page), pageSize: '50' });
+    if (entity) qs.set('entity', entity);
+    const res = await apiFetch(`/rrhh/actividad?${qs}`);
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo cargar la actividad.'));
     return res.json();
   }
 

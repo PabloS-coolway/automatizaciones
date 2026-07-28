@@ -24,6 +24,7 @@ import { RrhhStructureService } from './rrhh/application/rrhh-structure.service'
 import { FichajeService } from './rrhh/application/fichaje.service';
 import { AusenciaService } from './rrhh/application/ausencia.service';
 import { NotificacionService } from './rrhh/application/notificacion.service';
+import { RrhhActivityQueryService } from './rrhh/application/rrhh-activity-query.service';
 import { RrhhGuard } from './rrhh/interface/http/rrhh.guard';
 import { PrismaEmployeeRepository } from './rrhh/infrastructure/prisma-employee.repository';
 import { PrismaStructureRepository } from './rrhh/infrastructure/prisma-structure.repository';
@@ -73,6 +74,7 @@ export const coreProviders: Provider[] = [
   FichajeService,
   AusenciaService,
   NotificacionService,
+  RrhhActivityQueryService,
   RrhhGuard,
   {
     provide: GENERATE_LABELS_USE_CASE,
