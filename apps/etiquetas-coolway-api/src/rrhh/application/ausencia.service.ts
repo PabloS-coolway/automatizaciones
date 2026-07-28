@@ -12,9 +12,23 @@ import {
   NOTIFICATION_REPOSITORY,
   NotificationRepository,
 } from './ports';
+import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../../infrastructure/db/prisma.service';
 import { RRHH_ACTIVITY_RECORDER, RrhhActivityRecorder } from './rrhh-activity.port';
+import { FILE_STORAGE, FileStorage } from './file-storage.port';
 import { RrhhActor, RrhhError } from './rrhh.service';
+
+/** Justificantes: tipos y tamaño permitidos (dato sensible; se acota qué entra). */
+const MIME_PERMITIDOS: Record<string, string> = { 'application/pdf': 'pdf', 'image/jpeg': 'jpg', 'image/png': 'png' };
+const MAX_BYTES = 10 * 1024 * 1024;
+
+/** Un fichero subido (lo mínimo del Multer.File). */
+export interface FicheroSubido {
+  buffer: Buffer;
+  originalname: string;
+  mimetype: string;
+  size: number;
+}
 import { diasSolicitados, haySolape, rangoValido, saldoVacaciones, type Saldo } from '../domain/ausencia';
 
 /** Fecha (sólo día) a partir de 'YYYY-MM-DD'; lanza si no es válida. */
@@ -36,9 +50,35 @@ export class AusenciaService {
     @Inject(ABSENCE_REPOSITORY) private readonly repo: AbsenceRepository,
     @Inject(EMPLOYEE_REPOSITORY) private readonly empleados: EmployeeRepository,
     @Inject(NOTIFICATION_REPOSITORY) private readonly notif: NotificationRepository,
+    @Inject(FILE_STORAGE) private readonly storage: FileStorage,
     @Inject(RRHH_ACTIVITY_RECORDER) private readonly actividad: RrhhActivityRecorder,
     private readonly prisma: PrismaService,
   ) {}
+
+  /** Adjunta (o reemplaza) el justificante de una ausencia. Valida tipo (PDF/JPG/PNG) y tamaño (≤10MB). */
+  async adjuntar(absenceId: number, file: FicheroSubido, actor: RrhhActor): Promise<AbsenceRow> {
+    const ausencia = await this.repo.findById(absenceId);
+    if (!ausencia) throw new RrhhError(`No existe la solicitud #${absenceId}.`);
+    const ext = MIME_PERMITIDOS[file.mimetype];
+    if (!ext) throw new RrhhError('Formato no permitido: sube un PDF o una imagen (JPG/PNG).');
+    if (file.size > MAX_BYTES || file.buffer.length > MAX_BYTES) throw new RrhhError('El justificante no puede superar 10 MB.');
+
+    const nombre = String(file.originalname ?? `justificante.${ext}`).replace(/[^\w.\-]+/g, '_').slice(-120);
+    const key = `justificantes/${absenceId}/${randomUUID()}.${ext}`;
+    await this.storage.put(key, file.buffer, file.mimetype);
+    const actualizada = await this.repo.setAttachment(absenceId, key, nombre);
+    await this.actividad.record({ actorEmail: actor.email, action: 'UPDATE', entity: 'AUSENCIA', entityId: String(absenceId), summary: `Adjuntó el justificante de la ausencia de ${ausencia.employeeName}` });
+    return actualizada;
+  }
+
+  /** Devuelve el justificante (buffer + nombre) para servirlo por la API. El control de acceso lo hace el controller. */
+  async descargarJustificante(absenceId: number): Promise<{ buffer: Buffer; nombre: string }> {
+    const ausencia = await this.repo.findById(absenceId);
+    if (!ausencia) throw new RrhhError(`No existe la solicitud #${absenceId}.`);
+    if (!ausencia.attachmentKey) throw new RrhhError('Esa solicitud no tiene justificante.');
+    const buffer = await this.storage.get(ausencia.attachmentKey);
+    return { buffer, nombre: ausencia.attachmentName ?? 'justificante' };
+  }
 
   // ---- Catálogo de tipos ----
 

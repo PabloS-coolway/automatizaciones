@@ -130,6 +130,8 @@ export interface AbsenceRow {
   decidedByEmail: string | null;
   decidedAt: Date | null;
   decisionNote: string | null;
+  attachmentKey: string | null;
+  attachmentName: string | null;
   createdAt: Date;
 }
 
@@ -164,6 +166,8 @@ export interface AbsenceRepository {
   listApprovedByEmployee(employeeId: number): Promise<AbsenceRow[]>;
   /** Ausencias de varios empleados que tocan `[desde, hasta]`, en los estados dados (calendario/coordinación). */
   listForEmployeesBetween(employeeIds: number[], desde: Date, hasta: Date, statuses: string[]): Promise<AbsenceRow[]>;
+  /** Guarda la referencia del justificante (clave de almacenamiento + nombre original). */
+  setAttachment(id: number, key: string, name: string): Promise<AbsenceRow>;
 }
 
 export const NOTIFICATION_REPOSITORY = Symbol('NOTIFICATION_REPOSITORY');
