@@ -7,13 +7,14 @@ import {
   ClockHistory,
   Database,
   GeoAlt,
+  Gift,
   PersonCircle,
   People,
   Scissors,
   ShieldLock,
   Tags,
 } from 'react-bootstrap-icons';
-import { ESTADO_JORNADA_LABELS, type Feature, type JornadaHoyDto } from '@yorga/contracts';
+import { ESTADO_AUSENCIA_LABELS, ESTADO_JORNADA_LABELS, type AbsenceDto, type CumpleDto, type Feature, type JornadaHoyDto } from '@yorga/contracts';
 import { rrhhGateway } from '../composition';
 import { useAuth } from '../auth/AuthContext';
 import { useRrhh } from '../rrhh/RrhhContext';
@@ -40,6 +41,15 @@ const ACCESOS: Acceso[] = [
   { to: '/usuarios', label: 'Usuarios', desc: 'Da de alta y gestiona el acceso.', icon: <People />, feature: 'usuarios.gestionar' },
   { to: '/roles', label: 'Roles', desc: 'Qué puede hacer cada rol.', icon: <ShieldLock />, feature: 'roles.gestionar' },
 ];
+
+const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+/** "hoy 🎉", "mañana", o "el 1 ago (en 4 días)". */
+function cumpleTexto(c: CumpleDto): string {
+  if (c.diasHasta === 0) return '¡hoy! 🎉';
+  if (c.diasHasta === 1) return 'mañana';
+  const [m, d] = c.fecha.split('-');
+  return `${Number(d)} ${MESES_CORTOS[Number(m) - 1]} · en ${c.diasHasta} días`;
+}
 
 function Kpi({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
@@ -71,10 +81,18 @@ export function InicioPage() {
   const [incidencias, setIncidencias] = useState<number | null>(null);
   const [pendientes, setPendientes] = useState<number | null>(null);
   const [jornada, setJornada] = useState<JornadaHoyDto | null>(null);
+  const [cumples, setCumples] = useState<CumpleDto[]>([]);
+  const [proximaAusencia, setProximaAusencia] = useState<AbsenceDto | null>(null);
 
   useEffect(() => {
     if (!esEmpleado) return;
     rrhhGateway.jornadaHoy().then(setJornada).catch(() => setJornada(null));
+    rrhhGateway.cumpleanos().then(setCumples).catch(() => setCumples([]));
+    const hoy = new Date().toISOString().slice(0, 10);
+    rrhhGateway
+      .misAusencias()
+      .then((as) => setProximaAusencia(as.filter((a) => a.status !== 'REJECTED' && a.status !== 'CANCELLED' && a.endDate >= hoy).sort((a, b) => a.startDate.localeCompare(b.startDate))[0] ?? null))
+      .catch(() => setProximaAusencia(null));
   }, [esEmpleado]);
 
   useEffect(() => {
@@ -122,6 +140,40 @@ export function InicioPage() {
             </div>
           </Card.Body>
         </Card>
+      )}
+
+      {/* Empleado: cumpleaños del equipo + su próxima ausencia. */}
+      {esEmpleado && (cumples.length > 0 || proximaAusencia) && (
+        <Row className="g-3 mb-4">
+          {cumples.length > 0 && (
+            <Col xs={12} md={proximaAusencia ? 7 : 12}>
+              <Card className="h-100">
+                <Card.Body className="p-4">
+                  <div className="d-flex align-items-center gap-2 mb-2"><Gift className="text-brand" /> <span className="fw-semibold">Próximos cumpleaños</span></div>
+                  <ul className="list-unstyled mb-0">
+                    {cumples.slice(0, 5).map((c) => (
+                      <li key={c.id} className="d-flex justify-content-between py-1 border-bottom">
+                        <span>🎂 {c.fullName} <span className="text-secondary small">({c.edad})</span></span>
+                        <span className="text-secondary small">{cumpleTexto(c)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </Card.Body>
+              </Card>
+            </Col>
+          )}
+          {proximaAusencia && (
+            <Col xs={12} md={cumples.length > 0 ? 5 : 12}>
+              <Card className="h-100">
+                <Card.Body className="p-4">
+                  <div className="d-flex align-items-center gap-2 mb-2"><CalendarCheck className="text-brand" /> <span className="fw-semibold">Tu próxima ausencia</span></div>
+                  <div className="mb-1">{proximaAusencia.typeName} · {proximaAusencia.startDate} → {proximaAusencia.endDate}</div>
+                  <div className="text-secondary small">{proximaAusencia.dias} día/s · {ESTADO_AUSENCIA_LABELS[proximaAusencia.status]}</div>
+                </Card.Body>
+              </Card>
+            </Col>
+          )}
+        </Row>
       )}
 
       {/* RRHH / Responsable: KPIs de personal (lo que importa). */}

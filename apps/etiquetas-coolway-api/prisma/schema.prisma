@@ -155,6 +155,8 @@ model Employee {
   annualLeaveDays Int?     @map("annual_leave_days")
   /// Datos bancarios opcionales, preparados para una futura nómina (no se usan en Fase 1).
   iban         String?
+  /// Fecha de nacimiento (para los próximos cumpleaños del equipo). Sólo la fecha, sin hora.
+  birthDate    DateTime?   @map("birth_date") @db.Date
   active       Boolean     @default(true)
   hiredAt      DateTime?   @map("hired_at")
   terminatedAt DateTime?   @map("terminated_at")
