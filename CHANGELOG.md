@@ -3,6 +3,23 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-28] BUG-008 · Surtidos: expandir al catálogo en vez de filtrar (corrección de REQ-011)
+
+Silvia probó la poda de COOLWAY USA 4000: sociedad, materiales y anulación de colores **perfectos**. Pero el
+fichero de surtidos salía solo con los códigos que **venían** en el export (00I/0KR en chica, 00Z en chico), no
+con todos los del catálogo.
+
+### Corregido
+- **De filtrar → expandir.** El fichero de surtidos ahora emite, por cada producto **comprado**, **todos** los
+  SURTD del catálogo de su grupo (76/86), estén o no en el export de SAP. Cada línea nueva **clona una línea
+  real** del producto cambiando solo el SURTD — **no se inventa nada**. Se sigue quitando lo que no está en el
+  catálogo y avisando de lo comprado que no aparece. El informe muestra "N generados por catálogo".
+
+### Verificado
+- typecheck + **301 tests** + build. La expansión verificada **rompiéndola a propósito** (los tests caen).
+- **En vivo con el fichero real** (`validaciones/28-07-2026`): cada ref de chica sale con los **22** surtidos y
+  cada ref de chico con los **20**; sociedad reescrita a 4000.
+
 ## [2026-07-28] REQ-008 · RRHH Fase 4 — avisos in-app + export de plantilla
 
 Cierra el módulo RRHH (Fase 1): los refinos que rematan la experiencia.
