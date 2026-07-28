@@ -287,3 +287,13 @@ export interface CalendarioAusenciasDto {
   hasta: string;
   ausencias: AbsenceDto[];
 }
+
+// ---- REQ-008 Fase 4 · Avisos in-app ----
+
+export interface NotificacionDto {
+  id: number;
+  message: string;
+  link: string | null;
+  read: boolean;
+  createdAt: string;
+}

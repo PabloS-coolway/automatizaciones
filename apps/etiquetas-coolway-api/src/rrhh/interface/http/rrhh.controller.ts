@@ -16,6 +16,7 @@ import {
   FicharDto,
   HistoricoFichajeDto,
   JornadaHoyDto,
+  NotificacionDto,
   PanelFichajeDto,
   RrhhMeDto,
   SaldoVacacionesDto,
@@ -33,7 +34,8 @@ import { RrhhError, RrhhService } from '../../application/rrhh.service';
 import { RrhhStructureService } from '../../application/rrhh-structure.service';
 import { DiaDetalle, DiaJornada, FichajeService, Jornada, Panel } from '../../application/fichaje.service';
 import { AusenciaService } from '../../application/ausencia.service';
-import { AbsenceRow, AbsenceTypeRow } from '../../application/ports';
+import { NotificacionService } from '../../application/notificacion.service';
+import { AbsenceRow, AbsenceTypeRow, NotificationRow } from '../../application/ports';
 import { diasDeRango, diasSolicitados } from '../../domain/ausencia';
 import { esMarcaje } from '../../domain/fichaje';
 import { gestionaPlantilla } from '../../domain/rrhh-org';
@@ -152,6 +154,7 @@ export class RrhhController {
     private readonly estructura: RrhhStructureService,
     private readonly fichaje: FichajeService,
     private readonly ausencias: AusenciaService,
+    private readonly notificaciones: NotificacionService,
   ) {}
 
   @Get('me')
@@ -357,6 +360,34 @@ export class RrhhController {
     const visibles = await this.service.listVisible(actor);
     if (!visibles.some((e) => e.id === solicitud.employeeId)) throw new ForbiddenException('Esa persona no está en tu equipo.');
     return this.ausencias.decidir(id, aprobar, { email: actor.email }, nota).catch(traducir);
+  }
+
+  // ---- Avisos in-app (cada empleado los suyos). ----
+
+  @Get('notificaciones')
+  @UseGuards(RrhhGuard)
+  async notificaciones_(@RrhhActor() actor: EmployeeRow): Promise<NotificacionDto[]> {
+    return (await this.notificaciones.listar(actor.id)).map((n: NotificationRow) => ({ id: n.id, message: n.message, link: n.link, read: n.read, createdAt: n.createdAt.toISOString() }));
+  }
+
+  @Get('notificaciones/no-leidas')
+  @UseGuards(RrhhGuard)
+  async noLeidas(@RrhhActor() actor: EmployeeRow): Promise<{ count: number }> {
+    return { count: await this.notificaciones.noLeidas(actor.id) };
+  }
+
+  @Post('notificaciones/:id/leer')
+  @HttpCode(204)
+  @UseGuards(RrhhGuard)
+  async leerNotificacion(@RrhhActor() actor: EmployeeRow, @Param('id') id: string): Promise<void> {
+    await this.notificaciones.marcarLeida(Number(id), actor.id);
+  }
+
+  @Post('notificaciones/leer-todas')
+  @HttpCode(204)
+  @UseGuards(RrhhGuard)
+  async leerTodas(@RrhhActor() actor: EmployeeRow): Promise<void> {
+    await this.notificaciones.marcarTodas(actor.id);
   }
 
   /** Exige que `objetivo` esté en la rama visible del actor (si no, 403). Devuelve la ficha visible. */

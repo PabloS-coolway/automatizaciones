@@ -12,6 +12,7 @@ import { SurtidosPage } from './pages/SurtidosPage';
 import { PersonasPage } from './pages/PersonasPage';
 import { FicharPage } from './pages/FicharPage';
 import { AusenciasPage } from './pages/AusenciasPage';
+import { AvisosPage } from './pages/AvisosPage';
 import { ActividadPage } from './pages/ActividadPage';
 import { DestinosPage } from './pages/DestinosPage';
 import { AuthProvider } from './auth/AuthContext';
@@ -32,6 +33,7 @@ export function App() {
               <Route path="/personas" element={<PersonasPage />} />
               <Route path="/fichar" element={<FicharPage />} />
               <Route path="/ausencias" element={<AusenciasPage />} />
+              <Route path="/avisos" element={<AvisosPage />} />
               <Route path="/plantillas" element={<ComingSoonPage title="Plantillas de ventas" />} />
               <Route element={<RequireFeature feature="usuarios.gestionar" />}>
                 <Route path="/usuarios" element={<UsuariosPage />} />

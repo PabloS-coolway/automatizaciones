@@ -147,7 +147,13 @@ Digitaliza el parte diario que hoy se firma en papel. Se acaban los partes físi
     mando. Dominio testeado (`saldoVacaciones`, `diasDeRango`) + break-on-purpose de la coordinación. Verificado
     en vivo (saldo 23→disfrutados 5→restan 18; la incidencia desaparece con la ausencia; calendario del equipo).
     **Con esto la Fase 3 queda cerrada.**
-- **Fase 4 · Refinos** — notificaciones (app+correo), informes/exportación, pulido móvil.
+- **Fase 4 · Refinos** — ✅ **hecho (in-app).** **Avisos in-app**: al solicitar una ausencia se avisa al
+  responsable; al decidirla, al empleado. Badge de no leídos en el menú + página de avisos (marcar leída/todas).
+  Generados en la misma transacción que el evento. **Informes/exportación**: la plantilla se descarga en CSV
+  (además del CSV de fichajes ya existente). Dominio testeado (`plantillaACsv`). Verificado en vivo (solicitar→
+  aviso al jefe; aprobar→aviso al empleado; marcar leídas→0).
+  - **Correo (SMTP): diferido.** El modelo de avisos deja el enganche listo; el envío por email se activará
+    cuando haya servidor SMTP/credenciales (coordinar con Tomás). No se construye un envío falso.
 
 ## Estado de implementación
 
