@@ -162,9 +162,25 @@ model Employee {
   updatedAt    DateTime    @updatedAt @map("updated_at")
   timeEntries  TimeEntry[]
   absences     Absence[]
+  notifications HrNotification[]
 
   @@index([managerId])
   @@map("hr_employee")
+}
+
+/// REQ-008 Fase 4 · Aviso in-app para un empleado (nueva solicitud a aprobar, decisión de su ausencia…). El
+/// envío por correo se engancha aquí cuando haya SMTP; de momento es sólo dentro de la app. `readAt` = leído.
+model HrNotification {
+  id         Int       @id @default(autoincrement())
+  employeeId Int       @map("employee_id")
+  employee   Employee  @relation(fields: [employeeId], references: [id])
+  message    String
+  link       String?
+  readAt     DateTime? @map("read_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  @@index([employeeId, readAt])
+  @@map("hr_notification")
 }
 
 /// REQ-008 Fase 3 · Tipo de ausencia configurable (vacaciones, baja médica, permiso, asuntos propios…). Cada

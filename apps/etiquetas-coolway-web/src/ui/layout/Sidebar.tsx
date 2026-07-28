@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import {
+  Bell,
   BoxArrowRight,
   BoxSeamFill,
   CalendarCheck,
@@ -31,6 +32,8 @@ interface NavItem {
   feature?: Feature;
   /** REQ-008 · Si es true, la entrada sólo se ve si el usuario tiene ficha de empleado (módulo RRHH). */
   soloEmpleados?: boolean;
+  /** REQ-008 Fase 4 · Si es true, muestra el badge de avisos sin leer. */
+  badgeAvisos?: boolean;
 }
 
 /** MEJ-003 · La navegación se agrupa por módulos (antes era plana). Un grupo sin título va suelto. */
@@ -56,6 +59,7 @@ const NAV: NavGroup[] = [
     items: [
       { to: '/fichar', label: 'Fichar', icon: <ClockHistory />, ready: true, soloEmpleados: true },
       { to: '/ausencias', label: 'Ausencias', icon: <CalendarCheck />, ready: true, soloEmpleados: true },
+      { to: '/avisos', label: 'Avisos', icon: <Bell />, ready: true, soloEmpleados: true, badgeAvisos: true },
       { to: '/personas', label: 'Personas', icon: <PersonCircle />, ready: true, soloEmpleados: true },
     ],
   },
@@ -75,7 +79,7 @@ const NAV: NavGroup[] = [
 
 export function Sidebar({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) => void }) {
   const { user, logout, hasFeature } = useAuth();
-  const { esEmpleado } = useRrhh();
+  const { esEmpleado, avisosNoLeidos } = useRrhh();
   const visibles = (items: NavItem[]) =>
     items.filter((n) => (!n.feature || hasFeature(n.feature)) && (!n.soloEmpleados || esEmpleado));
 
@@ -98,6 +102,7 @@ export function Sidebar({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme
                 <NavLink key={n.to} to={n.to} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
                   <span className="nav-ico">{n.icon}</span>
                   <span className="nav-label">{n.label}</span>
+                  {n.badgeAvisos && avisosNoLeidos > 0 && <span className="badge bg-danger rounded-pill ms-auto">{avisosNoLeidos}</span>}
                   {!n.ready && <span className="soon-tag">pronto</span>}
                 </NavLink>
               ))}
