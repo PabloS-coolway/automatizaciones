@@ -165,6 +165,26 @@ export interface AbsenceRepository {
   listForEmployeesBetween(employeeIds: number[], desde: Date, hasta: Date, statuses: string[]): Promise<AbsenceRow[]>;
 }
 
+export const NOTIFICATION_REPOSITORY = Symbol('NOTIFICATION_REPOSITORY');
+
+export interface NotificationRow {
+  id: number;
+  employeeId: number;
+  message: string;
+  link: string | null;
+  read: boolean;
+  createdAt: Date;
+}
+
+/** Puerto: avisos in-app. `create` acepta tx para nacer junto al evento que lo dispara. */
+export interface NotificationRepository {
+  create(data: { employeeId: number; message: string; link?: string }, tx?: Prisma.TransactionClient): Promise<NotificationRow>;
+  listForEmployee(employeeId: number, limit: number): Promise<NotificationRow[]>;
+  countUnread(employeeId: number): Promise<number>;
+  markRead(id: number, employeeId: number): Promise<void>;
+  markAllRead(employeeId: number): Promise<void>;
+}
+
 export const RRHH_STRUCTURE_REPOSITORY = Symbol('RRHH_STRUCTURE_REPOSITORY');
 
 /** Un centro/tienda con la cuenta de empleados asignados (para avisar antes de borrar). */

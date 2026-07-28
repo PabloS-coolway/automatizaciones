@@ -7,6 +7,10 @@ import {
   AbsenceRow,
   AbsenceTypeRepository,
   AbsenceTypeRow,
+  EMPLOYEE_REPOSITORY,
+  EmployeeRepository,
+  NOTIFICATION_REPOSITORY,
+  NotificationRepository,
 } from './ports';
 import { PrismaService } from '../../infrastructure/db/prisma.service';
 import { RRHH_ACTIVITY_RECORDER, RrhhActivityRecorder } from './rrhh-activity.port';
@@ -30,6 +34,8 @@ export class AusenciaService {
   constructor(
     @Inject(ABSENCE_TYPE_REPOSITORY) private readonly tipos: AbsenceTypeRepository,
     @Inject(ABSENCE_REPOSITORY) private readonly repo: AbsenceRepository,
+    @Inject(EMPLOYEE_REPOSITORY) private readonly empleados: EmployeeRepository,
+    @Inject(NOTIFICATION_REPOSITORY) private readonly notif: NotificationRepository,
     @Inject(RRHH_ACTIVITY_RECORDER) private readonly actividad: RrhhActivityRecorder,
     private readonly prisma: PrismaService,
   ) {}
@@ -129,12 +135,17 @@ export class AusenciaService {
     }
 
     const status = tipo.requiresApproval ? 'PENDING' : 'APPROVED';
+    const solicitante = await this.empleados.findById(employeeId);
     return this.prisma.$transaction(async (tx) => {
       const creada = await this.repo.create({ employeeId, typeId: tipo.id, startDate: start, endDate: end, halfDay: !!dto.halfDay, reason: dto.reason?.trim() || undefined, status }, tx);
       await this.actividad.record(
         { actorEmail: actor.email, action: 'CREATE', entity: 'AUSENCIA', entityId: String(creada.id), after: creada, summary: `Solicitó ${tipo.name} (${diasSolicitados({ start, end }, !!dto.halfDay)} día/s) del ${dto.startDate} al ${dto.endDate}` },
         tx,
       );
+      // Aviso in-app al responsable si la solicitud queda pendiente de aprobación.
+      if (status === 'PENDING' && solicitante?.managerId) {
+        await this.notif.create({ employeeId: solicitante.managerId, message: `${solicitante.fullName} ha solicitado ${tipo.name} del ${dto.startDate} al ${dto.endDate}.`, link: '/ausencias' }, tx);
+      }
       return creada;
     });
   }
@@ -159,6 +170,8 @@ export class AusenciaService {
         { actorEmail: actor.email, action: 'UPDATE', entity: 'AUSENCIA', entityId: String(id), before: actual, after: decidida, summary: `${aprobar ? 'Aprobó' : 'Rechazó'} la ausencia de ${actual.employeeName} (${actual.typeName})` },
         tx,
       );
+      // Aviso in-app al empleado con la decisión.
+      await this.notif.create({ employeeId: actual.employeeId, message: `Tu solicitud de ${actual.typeName} (${diasSolicitados({ start: actual.startDate, end: actual.endDate }, actual.halfDay)} día/s) ha sido ${aprobar ? 'APROBADA' : 'RECHAZADA'}.`, link: '/ausencias' }, tx);
       return decidida;
     });
   }

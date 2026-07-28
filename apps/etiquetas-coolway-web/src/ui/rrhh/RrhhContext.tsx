@@ -11,6 +11,9 @@ interface RrhhState {
   esEmpleado: boolean;
   /** ¿Puede gestionar la plantilla (RRHH/Admin)? */
   puedeGestionar: boolean;
+  /** Avisos in-app sin leer (para el badge del menú). */
+  avisosNoLeidos: number;
+  refrescarAvisos: () => void;
   refetch: () => void;
 }
 
@@ -25,6 +28,7 @@ export function RrhhProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [employee, setEmployee] = useState<EmployeeDto | null>(null);
   const [loading, setLoading] = useState(true);
+  const [avisosNoLeidos, setAvisosNoLeidos] = useState(0);
 
   const refetch = useCallback(() => {
     if (!user) {
@@ -40,13 +44,22 @@ export function RrhhProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, [user]);
 
+  const refrescarAvisos = useCallback(() => {
+    if (!user) return;
+    rrhhGateway.avisosNoLeidos().then(setAvisosNoLeidos).catch(() => setAvisosNoLeidos(0));
+  }, [user]);
+
   useEffect(() => refetch(), [refetch]);
+  useEffect(() => {
+    if (!employee) return;
+    refrescarAvisos();
+  }, [employee, refrescarAvisos]);
 
   const esEmpleado = employee != null;
   const puedeGestionar = employee?.rrhhRole === 'RRHH' || employee?.rrhhRole === 'ADMIN';
 
   return (
-    <RrhhContext.Provider value={{ employee, loading, esEmpleado, puedeGestionar, refetch }}>{children}</RrhhContext.Provider>
+    <RrhhContext.Provider value={{ employee, loading, esEmpleado, puedeGestionar, avisosNoLeidos, refrescarAvisos, refetch }}>{children}</RrhhContext.Provider>
   );
 }
 
