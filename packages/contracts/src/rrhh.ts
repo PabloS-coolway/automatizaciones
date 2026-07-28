@@ -30,6 +30,8 @@ export interface EmployeeDto {
   weeklyMinutes: number | null;
   /** Días de vacaciones que devenga al año (para el saldo); `null` = sin cupo. */
   annualLeaveDays: number | null;
+  /** Fecha de nacimiento (YYYY-MM-DD) para cumpleaños; `null` si no consta. */
+  birthDate: string | null;
 }
 
 /**
@@ -46,6 +48,7 @@ export interface CreateEmployeeDto {
   departmentId?: number;
   weeklyMinutes?: number | null;
   annualLeaveDays?: number | null;
+  birthDate?: string | null;
 }
 
 /** Edición de una ficha (Fase 1). Todo opcional; sólo lo presente se cambia. El correo/usuario no se cambia. */
@@ -58,6 +61,7 @@ export interface UpdateEmployeeDto {
   departmentId?: number | null;
   weeklyMinutes?: number | null;
   annualLeaveDays?: number | null;
+  birthDate?: string | null;
 }
 
 /** Un centro/tienda del grupo. La `brand` (enseña) es la que **segmenta el organigrama** (multimarca). */
@@ -99,6 +103,15 @@ export interface UsuarioSinFichaDto {
   id: number;
   email: string;
   name: string;
+}
+
+/** Un cumpleaños próximo (para la home). `fecha` es MM-DD; `diasHasta` 0 = hoy. */
+export interface CumpleDto {
+  id: number;
+  fullName: string;
+  fecha: string;
+  diasHasta: number;
+  edad: number;
 }
 
 /**

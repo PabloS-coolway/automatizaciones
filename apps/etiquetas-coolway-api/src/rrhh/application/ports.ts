@@ -22,6 +22,8 @@ export interface EmployeeRow {
   weeklyMinutes: number | null;
   /** Días de vacaciones que devenga al año (para el saldo); `null` = sin cupo definido. */
   annualLeaveDays: number | null;
+  /** Fecha de nacimiento (YYYY-MM-DD) para cumpleaños; `null` si no consta. */
+  birthDate: string | null;
 }
 
 export interface NuevoEmpleado {
@@ -34,6 +36,7 @@ export interface NuevoEmpleado {
   departmentId?: number;
   weeklyMinutes?: number | null;
   annualLeaveDays?: number | null;
+  birthDate?: string | null;
 }
 
 /** Cambios sobre una ficha (edición / baja / reactivación). Sólo los campos presentes se tocan. */
@@ -46,6 +49,7 @@ export interface EmpleadoUpdate {
   departmentId?: number | null;
   weeklyMinutes?: number | null;
   annualLeaveDays?: number | null;
+  birthDate?: string | null;
   active?: boolean;
 }
 

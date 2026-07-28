@@ -19,7 +19,7 @@ import { PanelFichajes } from './personas/PanelFichajes';
 import { ActividadRrhh } from './personas/ActividadRrhh';
 import { plantillaACsv } from '../../domain/plantilla-csv';
 
-const VACIO = { email: '', fullName: '', rrhhRole: 'EMPLEADO' as RrhhRole, position: '', managerId: '', centerId: '', departmentId: '', weeklyHours: '', annualLeaveDays: '' };
+const VACIO = { email: '', fullName: '', rrhhRole: 'EMPLEADO' as RrhhRole, position: '', managerId: '', centerId: '', departmentId: '', weeklyHours: '', annualLeaveDays: '', birthDate: '' };
 type Vista = 'plantilla' | 'organigrama' | 'fichajes' | 'estructura' | 'actividad';
 
 /**
@@ -91,6 +91,7 @@ export function PersonasPage() {
       departmentId: e.departmentId != null ? String(e.departmentId) : '',
       weeklyHours: e.weeklyMinutes != null ? String(e.weeklyMinutes / 60) : '',
       annualLeaveDays: e.annualLeaveDays != null ? String(e.annualLeaveDays) : '',
+      birthDate: e.birthDate ?? '',
     });
     setFormError('');
     setAbierto(true);
@@ -106,6 +107,7 @@ export function PersonasPage() {
     const departmentId = form.departmentId ? Number(form.departmentId) : null;
     const weeklyMinutes = form.weeklyHours.trim() ? Math.round(Number(form.weeklyHours) * 60) : null;
     const annualLeaveDays = form.annualLeaveDays.trim() ? Math.round(Number(form.annualLeaveDays)) : null;
+    const birthDate = form.birthDate.trim() || null;
     try {
       if (editId == null) {
         const nuevo = await rrhhGateway.crearEmpleado({
@@ -118,6 +120,7 @@ export function PersonasPage() {
           departmentId: departmentId ?? undefined,
           weeklyMinutes,
           annualLeaveDays,
+          birthDate,
         });
         setNotice(`${nuevo.fullName} dado de alta y enlazado a ${nuevo.email}.`);
       } else {
@@ -130,6 +133,7 @@ export function PersonasPage() {
           departmentId,
           weeklyMinutes,
           annualLeaveDays,
+          birthDate,
         });
         setNotice(`Ficha de ${upd.fullName} actualizada.`);
       }
@@ -350,6 +354,10 @@ export function PersonasPage() {
               <div className="col-6">
                 <Form.Label className="small" htmlFor="e-pos">Puesto (opcional)</Form.Label>
                 <Form.Control id="e-pos" value={form.position} onChange={(ev) => setForm({ ...form, position: ev.target.value })} placeholder="Dependienta" />
+              </div>
+              <div className="col-6">
+                <Form.Label className="small" htmlFor="e-birth">Nacimiento (opcional)</Form.Label>
+                <Form.Control id="e-birth" type="date" value={form.birthDate} onChange={(ev) => setForm({ ...form, birthDate: ev.target.value })} />
               </div>
               <div className="col-3">
                 <Form.Label className="small" htmlFor="e-hrs">Jornada (h/sem)</Form.Label>
