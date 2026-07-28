@@ -12,6 +12,9 @@ type Fila = {
   note: string | null;
   actorEmail: string | null;
   correctsId: number | null;
+  latitude: number | null;
+  longitude: number | null;
+  accuracy: number | null;
 };
 
 const toRow = (e: Fila): TimeEntryRow => ({
@@ -23,6 +26,9 @@ const toRow = (e: Fila): TimeEntryRow => ({
   note: e.note,
   actorEmail: e.actorEmail,
   correctsId: e.correctsId,
+  latitude: e.latitude,
+  longitude: e.longitude,
+  accuracy: e.accuracy,
 });
 
 /** Adapter: fichajes sobre Postgres (Prisma). Solo-añadir: sólo `create` y lecturas. */
@@ -39,6 +45,9 @@ export class PrismaTimeEntryRepository implements TimeEntryRepository {
         note: entry.note,
         actorEmail: entry.actorEmail,
         correctsId: entry.correctsId,
+        latitude: entry.latitude,
+        longitude: entry.longitude,
+        accuracy: entry.accuracy,
         ...(entry.at ? { at: entry.at } : {}),
       },
     });

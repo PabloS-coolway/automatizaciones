@@ -248,6 +248,11 @@ model TimeEntry {
   /// Si este asiento ANULA otro (kind=VOID) o lo sustituye, apunta al fichaje corregido. Append-only: no se
   /// edita ni se borra el original; se añade este asiento que lo referencia.
   correctsId Int?     @map("corrects_id")
+  /// Geolocalización del fichaje (opcional, con consentimiento del navegador). `accuracy` = radio de precisión
+  /// en metros que da el GPS. Sólo se guarda; no se valida contra ningún radio.
+  latitude   Float?
+  longitude  Float?
+  accuracy   Float?
   createdAt  DateTime @default(now()) @map("created_at")
 
   @@index([employeeId, at])
