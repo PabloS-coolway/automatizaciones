@@ -3,18 +3,22 @@ import { Alert, Badge, Button, Card, Form, Nav, Spinner } from 'react-bootstrap'
 import { Paperclip } from 'react-bootstrap-icons';
 import {
   ESTADO_AUSENCIA_LABELS,
+  MITAD_DIA_LABELS,
   type AbsenceDto,
   type AbsenceTypeDto,
   type EstadoAusencia,
+  type MitadDia,
   type SaldoVacacionesDto,
 } from '@yorga/contracts';
 import { rrhhGateway } from '../composition';
 import { useRrhh } from '../rrhh/RrhhContext';
 import { TiposAusenciaManager } from './personas/TiposAusenciaManager';
 import { CalendarioAusencias } from './personas/CalendarioAusencias';
+import { MiCalendarioAnual } from './personas/MiCalendarioAnual';
+import { diasSolicitados as calcDias, esUnSoloDia } from '../../domain/ausencia-dias';
 
 const VARIANTE: Record<EstadoAusencia, string> = { PENDING: 'warning', APPROVED: 'success', REJECTED: 'danger', CANCELLED: 'secondary' };
-type Vista = 'mias' | 'aprobaciones' | 'calendario' | 'tipos';
+type Vista = 'mias' | 'miaño' | 'aprobaciones' | 'calendario' | 'tipos';
 
 /**
  * REQ-008 Fase 3 · Ausencias. El empleado solicita y ve sus solicitudes; el responsable/RRHH aprueba las de su
@@ -34,7 +38,7 @@ export function AusenciasPage() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
-  const [form, setForm] = useState({ typeId: '', startDate: '', endDate: '', halfDay: false, reason: '' });
+  const [form, setForm] = useState({ typeId: '', startDate: '', endDate: '', halfDay: false, halfDayPart: 'FIRST' as MitadDia, reason: '' });
   const [justificante, setJustificante] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -63,6 +67,9 @@ export function AusenciasPage() {
   useEffect(() => reload(), [reload]);
 
   const tiposActivos = useMemo(() => tipos.filter((t) => t.active), [tipos]);
+  const tipoSel = useMemo(() => tiposActivos.find((t) => String(t.id) === form.typeId) ?? null, [tiposActivos, form.typeId]);
+  const unSoloDia = esUnSoloDia(form.startDate, form.endDate);
+  const diasResumen = calcDias(form.startDate, form.endDate, form.halfDay && unSoloDia);
 
   async function solicitar(e: FormEvent) {
     e.preventDefault();
@@ -70,16 +77,18 @@ export function AusenciasPage() {
     setNotice('');
     setSaving(true);
     try {
+      const esMedio = form.halfDay && esUnSoloDia(form.startDate, form.endDate);
       const creada = await rrhhGateway.solicitarAusencia({
         typeId: Number(form.typeId),
         startDate: form.startDate,
         endDate: form.endDate,
-        halfDay: form.halfDay,
+        halfDay: esMedio,
+        halfDayPart: esMedio ? form.halfDayPart : undefined,
         reason: form.reason || undefined,
       });
       if (justificante) await rrhhGateway.subirJustificante(creada.id, justificante);
       setNotice('Solicitud enviada.');
-      setForm({ typeId: '', startDate: '', endDate: '', halfDay: false, reason: '' });
+      setForm({ typeId: '', startDate: '', endDate: '', halfDay: false, halfDayPart: 'FIRST', reason: '' });
       setJustificante(null);
       reload();
     } catch (err) {
@@ -144,6 +153,7 @@ export function AusenciasPage() {
 
       <Nav variant="tabs" activeKey={vista} onSelect={(k) => setVista((k as Vista) ?? 'mias')} className="mb-3">
         <Nav.Item><Nav.Link eventKey="mias">Mis ausencias</Nav.Link></Nav.Item>
+        <Nav.Item><Nav.Link eventKey="miaño">Mi calendario</Nav.Link></Nav.Item>
         {puedeAprobar && (
           <Nav.Item><Nav.Link eventKey="aprobaciones">Aprobaciones {pendientes.length > 0 && <Badge bg="warning" text="dark">{pendientes.length}</Badge>}</Nav.Link></Nav.Item>
         )}
@@ -167,6 +177,7 @@ export function AusenciasPage() {
                         <option key={t.id} value={t.id}>{t.name}{t.requiresApproval ? '' : ' (sin aprobación)'}</option>
                       ))}
                     </Form.Select>
+                    {tipoSel && <ReglasTipo tipo={tipoSel} />}
                   </Form.Group>
                   <div className="row g-2 mb-2">
                     <div className="col">
@@ -178,7 +189,25 @@ export function AusenciasPage() {
                       <Form.Control type="date" value={form.endDate} required onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
                     </div>
                   </div>
-                  <Form.Check className="mb-2" type="checkbox" label="Medio día" checked={form.halfDay} onChange={(e) => setForm({ ...form, halfDay: e.target.checked })} />
+                  <Form.Check
+                    className="mb-2"
+                    type="checkbox"
+                    id="medio-dia"
+                    label="Medio día"
+                    checked={form.halfDay && unSoloDia}
+                    disabled={!unSoloDia}
+                    onChange={(e) => setForm({ ...form, halfDay: e.target.checked })}
+                  />
+                  {!unSoloDia && form.startDate && <div className="text-secondary small mb-2">El medio día sólo aplica a un único día.</div>}
+                  {form.halfDay && unSoloDia && (
+                    <Form.Group className="mb-2">
+                      <Form.Label className="small">¿Qué mitad?</Form.Label>
+                      <Form.Select value={form.halfDayPart} onChange={(e) => setForm({ ...form, halfDayPart: e.target.value as MitadDia })}>
+                        <option value="FIRST">{MITAD_DIA_LABELS.FIRST}</option>
+                        <option value="SECOND">{MITAD_DIA_LABELS.SECOND}</option>
+                      </Form.Select>
+                    </Form.Group>
+                  )}
                   <Form.Group className="mb-3">
                     <Form.Label className="small">Motivo (opcional)</Form.Label>
                     <Form.Control as="textarea" rows={2} value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} />
@@ -187,6 +216,22 @@ export function AusenciasPage() {
                     <Form.Label className="small">Justificante (opcional · PDF/JPG/PNG)</Form.Label>
                     <Form.Control type="file" accept="application/pdf,image/jpeg,image/png" onChange={(e) => setJustificante((e.target as HTMLInputElement).files?.[0] ?? null)} />
                   </Form.Group>
+                  {tipoSel && diasResumen != null && (
+                    <div className="resumen-ausencia mb-3">
+                      <div className="text-secondary small mb-1">Resumen</div>
+                      <div className="d-flex justify-content-between align-items-center">
+                        <span>
+                          <strong>{tipoSel.name}</strong>
+                          {form.halfDay && unSoloDia ? ` · ${MITAD_DIA_LABELS[form.halfDayPart]}` : ''}
+                        </span>
+                        <Badge bg="light" text="dark" className="border">{diasResumen} día{diasResumen === 1 ? '' : 's'}</Badge>
+                      </div>
+                      <div className="text-secondary small mt-1">
+                        {form.startDate === form.endDate ? form.startDate : `${form.startDate} → ${form.endDate}`}
+                        {tipoSel.computesBalance ? ' · descuenta de tu saldo' : ' · no descuenta saldo'}
+                      </div>
+                    </div>
+                  )}
                   <Button type="submit" className="btn-brand w-100" disabled={saving}>
                     {saving ? <Spinner as="span" size="sm" animation="border" /> : 'Enviar solicitud'}
                   </Button>
@@ -195,16 +240,7 @@ export function AusenciasPage() {
             </Card>
           </div>
           <div className="col-12 col-lg-7">
-            {saldo && saldo.anual > 0 && (
-              <Card className="mb-3">
-                <Card.Body className="d-flex justify-content-around text-center">
-                  <div><div className="h4 mb-0">{saldo.anual}</div><div className="text-secondary small">cupo {saldo.year}</div></div>
-                  <div><div className="h4 mb-0">{saldo.disfrutados}</div><div className="text-secondary small">disfrutados</div></div>
-                  <div><div className="h4 mb-0 text-warning">{saldo.pendientes}</div><div className="text-secondary small">pendientes</div></div>
-                  <div><div className="h4 mb-0 text-success">{saldo.restante}</div><div className="text-secondary small">restantes</div></div>
-                </Card.Body>
-              </Card>
-            )}
+            {saldo && saldo.anual > 0 && <SaldoCard saldo={saldo} />}
             <Card>
               <Card.Body>
                 <Card.Title className="h6 mb-3">Mis solicitudes ({mias.length})</Card.Title>
@@ -214,6 +250,8 @@ export function AusenciasPage() {
           </div>
         </div>
       )}
+
+      {vista === 'miaño' && <MiCalendarioAnual ausencias={mias} />}
 
       {vista === 'aprobaciones' && puedeAprobar && (
         <Card>
@@ -227,7 +265,7 @@ export function AusenciasPage() {
                   <li key={a.id} className="d-flex justify-content-between align-items-center py-2 border-bottom">
                     <span>
                       <strong>{a.employeeName}</strong> · {a.typeName} · {a.startDate}→{a.endDate}
-                      <span className="text-secondary small"> ({a.dias} día/s){a.reason ? ` · ${a.reason}` : ''}</span>
+                      <span className="text-secondary small"> ({duracionLabel(a)}){a.reason ? ` · ${a.reason}` : ''}</span>
                       {a.attachmentName && (
                         <Button variant="link" size="sm" className="p-0 ms-2 align-baseline" onClick={() => rrhhGateway.descargarJustificante(a.id, a.attachmentName!)}>
                           <Paperclip /> justificante
@@ -253,6 +291,68 @@ export function AusenciasPage() {
   );
 }
 
+/**
+ * #6 (MAQUETA) · Saldo estilo Factorial: Devengado / Disponible / Disfrutado. **Disponible** y **Disfrutado**
+ * son reales (del backend); **Devengado** es una ESTIMACIÓN provisional (prorrateo lineal del cupo por lo que
+ * va de año) — se marca como borrador porque la política real de devengo aún no está configurada. No es un
+ * número en el que basar decisiones: el cálculo definitivo queda pendiente.
+ */
+function SaldoCard({ saldo }: { saldo: SaldoVacacionesDto }) {
+  // Prorrateo lineal transparente: cupo anual × (días transcurridos del año / días del año).
+  const hoy = new Date();
+  const inicioAnio = new Date(saldo.year, 0, 1);
+  const finAnio = new Date(saldo.year + 1, 0, 1);
+  const fraccion = Math.min(1, Math.max(0, (hoy.getTime() - inicioAnio.getTime()) / (finAnio.getTime() - inicioAnio.getTime())));
+  const devengadoEstimado = Math.round(saldo.anual * fraccion * 10) / 10;
+  return (
+    <Card className="mb-3">
+      <Card.Body>
+        <div className="d-flex justify-content-around text-center">
+          <div>
+            <div className="h4 mb-0 text-secondary">{devengadoEstimado}</div>
+            <div className="text-secondary small">Devengado <Badge bg="warning-subtle" text="dark" className="border">borrador</Badge></div>
+          </div>
+          <div>
+            <div className="h4 mb-0 text-success">{saldo.restante}</div>
+            <div className="text-secondary small">Disponible</div>
+          </div>
+          <div>
+            <div className="h4 mb-0">{saldo.disfrutados}</div>
+            <div className="text-secondary small">Disfrutado</div>
+          </div>
+        </div>
+        <div className="text-secondary small mt-2 pt-2 border-top">
+          Cupo {saldo.year}: <strong>{saldo.anual}</strong> días · pendientes de aprobar: <strong>{saldo.pendientes}</strong>.
+          <br />
+          <em>Devengado es una estimación provisional (prorrateo por lo que va de año); el cálculo real está pendiente de configurar.</em>
+        </div>
+      </Card.Body>
+    </Card>
+  );
+}
+
+/** #2 · Reglas del tipo elegido, para que el empleado sepa qué implica antes de solicitar (estilo Factorial). */
+function ReglasTipo({ tipo }: { tipo: AbsenceTypeDto }) {
+  const reglas: { txt: string; bg: string }[] = [
+    tipo.requiresApproval ? { txt: 'Requiere aprobación', bg: 'warning-subtle' } : { txt: 'Sin aprobación (automática)', bg: 'success-subtle' },
+    tipo.computesBalance ? { txt: 'Descuenta saldo', bg: 'secondary-subtle' } : { txt: 'No descuenta saldo', bg: 'secondary-subtle' },
+    ...(tipo.requiresAttachment ? [{ txt: 'Justificante obligatorio', bg: 'danger-subtle' }] : []),
+  ];
+  return (
+    <div className="d-flex flex-wrap gap-1 mt-2">
+      {reglas.map((r) => (
+        <Badge key={r.txt} bg={r.bg} text="dark" className="fw-normal border">{r.txt}</Badge>
+      ))}
+    </div>
+  );
+}
+
+/** Etiqueta de duración de una ausencia: "medio día (2ª mitad)" o "N día/s". */
+function duracionLabel(a: AbsenceDto): string {
+  if (a.halfDay) return `medio día${a.halfDayPart ? ` (${a.halfDayPart === 'FIRST' ? '1ª mitad' : '2ª mitad'})` : ''}`;
+  return `${a.dias} día${a.dias === 1 ? '' : 's'}`;
+}
+
 function ListaAusencias({ ausencias, conNombre, onCancelar, puedeGestionar }: { ausencias: AbsenceDto[]; conNombre: boolean; onCancelar?: (a: AbsenceDto) => void; puedeGestionar?: boolean }) {
   if (ausencias.length === 0) return <p className="text-secondary small mb-0">Sin solicitudes.</p>;
   // Se puede cancelar una PENDIENTE (el dueño) o una APROBADA sólo si gestiona (admin/RRHH).
@@ -264,7 +364,7 @@ function ListaAusencias({ ausencias, conNombre, onCancelar, puedeGestionar }: { 
           <span>
             {conNombre && <strong>{a.employeeName} · </strong>}
             {a.typeName} · {a.startDate}→{a.endDate}
-            <span className="text-secondary small"> ({a.dias} día/s)</span>
+            <span className="text-secondary small"> ({duracionLabel(a)})</span>
             {a.attachmentName && (
               <Button variant="link" size="sm" className="p-0 ms-2 align-baseline" onClick={() => rrhhGateway.descargarJustificante(a.id, a.attachmentName!)}>
                 <Paperclip /> justificante

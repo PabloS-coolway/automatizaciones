@@ -270,6 +270,15 @@ export const ESTADO_AUSENCIA_LABELS: Record<EstadoAusencia, string> = {
   CANCELLED: 'Cancelada',
 };
 
+/** En qué mitad cae un medio día. Sólo aplica cuando `halfDay` y un único día. */
+export const MITADES_DIA = ['FIRST', 'SECOND'] as const;
+export type MitadDia = (typeof MITADES_DIA)[number];
+
+export const MITAD_DIA_LABELS: Record<MitadDia, string> = {
+  FIRST: 'Primera mitad (mañana)',
+  SECOND: 'Segunda mitad (tarde)',
+};
+
 /** Un tipo de ausencia del catálogo (configurable por RRHH). */
 export interface AbsenceTypeDto {
   id: number;
@@ -302,6 +311,8 @@ export interface AbsenceDto {
   startDate: string;
   endDate: string;
   halfDay: boolean;
+  /** Si es medio día, en qué mitad (FIRST/SECOND); `null` en día completo. */
+  halfDayPart: MitadDia | null;
   dias: number;
   reason: string | null;
   status: EstadoAusencia;
@@ -318,6 +329,8 @@ export interface SolicitarAusenciaDto {
   startDate: string;
   endDate: string;
   halfDay?: boolean;
+  /** En qué mitad del día, si `halfDay`. Se ignora en día completo o rango de varios días. */
+  halfDayPart?: MitadDia;
   reason?: string;
 }
 
