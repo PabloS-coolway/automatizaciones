@@ -28,8 +28,12 @@ export function App() {
             <Route element={<AppShell />}>
               <Route index element={<Navigate to="/inicio" replace />} />
               <Route path="/inicio" element={<InicioPage />} />
-              <Route path="/etiquetas" element={<EtiquetasPage />} />
-              <Route path="/maestro" element={<BaseDatosPage />} />
+              <Route element={<RequireFeature feature="etiquetas.ver" />}>
+                <Route path="/etiquetas" element={<EtiquetasPage />} />
+              </Route>
+              <Route element={<RequireFeature feature="maestro.ver" />}>
+                <Route path="/maestro" element={<BaseDatosPage />} />
+              </Route>
               <Route path="/personas" element={<PersonasPage />} />
               <Route path="/fichar" element={<FicharPage />} />
               <Route path="/ausencias" element={<AusenciasPage />} />
