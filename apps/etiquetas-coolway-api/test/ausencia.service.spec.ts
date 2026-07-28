@@ -58,7 +58,7 @@ function ausRepo(): AbsenceRepository & { filas: AbsenceRow[] } {
 
 /** Empleados de mentira: por defecto sin responsable (no dispara notificación al jefe). */
 function empFake(managerId: number | null = null): EmployeeRepository {
-  const base = { id: 1, userId: 1, fullName: 'Ana', email: 'ana@y.com', position: null, rrhhRole: 'EMPLEADO' as const, managerId, active: true, department: null, departmentId: null, center: null, centerId: null, brand: null, weeklyMinutes: null, annualLeaveDays: null };
+  const base = { id: 1, userId: 1, fullName: 'Ana', email: 'ana@y.com', position: null, rrhhRole: 'EMPLEADO' as const, managerId, active: true, department: null, departmentId: null, center: null, centerId: null, brand: null, weeklyMinutes: null, annualLeaveDays: null, birthDate: null };
   return {
     findByUserId: async () => null,
     findById: async () => base,
@@ -225,8 +225,8 @@ describe('AusenciaService · aviso sin responsable', () => {
     // empFake sin managerId (null) + findAll con un ADMIN (id 5)
     const emp: EmployeeRepository = {
       findByUserId: async () => null,
-      findById: async () => ({ id: 1, userId: 1, fullName: 'Ana', email: 'ana@y.com', position: null, rrhhRole: 'EMPLEADO', managerId: null, active: true, department: null, departmentId: null, center: null, centerId: null, brand: null, weeklyMinutes: null, annualLeaveDays: null }),
-      findAll: async () => [{ id: 5, userId: 5, fullName: 'Jefa RRHH', email: 'r@y.com', position: null, rrhhRole: 'ADMIN', managerId: null, active: true, department: null, departmentId: null, center: null, centerId: null, brand: null, weeklyMinutes: null, annualLeaveDays: null }],
+      findById: async () => ({ id: 1, userId: 1, fullName: 'Ana', email: 'ana@y.com', position: null, rrhhRole: 'EMPLEADO', managerId: null, active: true, department: null, departmentId: null, center: null, centerId: null, brand: null, weeklyMinutes: null, annualLeaveDays: null, birthDate: null }),
+      findAll: async () => [{ id: 5, userId: 5, fullName: 'Jefa RRHH', email: 'r@y.com', position: null, rrhhRole: 'ADMIN', managerId: null, active: true, department: null, departmentId: null, center: null, centerId: null, brand: null, weeklyMinutes: null, annualLeaveDays: null, birthDate: null }],
       findUserIdByEmail: async () => null,
       create: async () => ({ id: 1 } as never),
       update: async () => ({ id: 1 } as never),

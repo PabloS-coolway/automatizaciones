@@ -22,6 +22,7 @@ type ConRelaciones = {
   centerId: number | null;
   weeklyMinutes: number | null;
   annualLeaveDays: number | null;
+  birthDate: Date | null;
   user: { email: string };
   department: { name: string } | null;
   center: { name: string; brand: string } | null;
@@ -44,6 +45,7 @@ function toRow(e: ConRelaciones): EmployeeRow {
     brand: e.center?.brand ?? null,
     weeklyMinutes: e.weeklyMinutes,
     annualLeaveDays: e.annualLeaveDays,
+    birthDate: e.birthDate ? e.birthDate.toISOString().slice(0, 10) : null,
   };
 }
 
@@ -84,6 +86,7 @@ export class PrismaEmployeeRepository implements EmployeeRepository {
         departmentId: nuevo.departmentId,
         weeklyMinutes: nuevo.weeklyMinutes ?? undefined,
         annualLeaveDays: nuevo.annualLeaveDays ?? undefined,
+        birthDate: nuevo.birthDate ? new Date(`${nuevo.birthDate}T00:00:00Z`) : undefined,
       },
       include: INCLUDE,
     });
@@ -102,6 +105,7 @@ export class PrismaEmployeeRepository implements EmployeeRepository {
         ...(data.departmentId !== undefined ? { departmentId: data.departmentId } : {}),
         ...(data.weeklyMinutes !== undefined ? { weeklyMinutes: data.weeklyMinutes } : {}),
         ...(data.annualLeaveDays !== undefined ? { annualLeaveDays: data.annualLeaveDays } : {}),
+        ...(data.birthDate !== undefined ? { birthDate: data.birthDate ? new Date(`${data.birthDate}T00:00:00Z`) : null } : {}),
         ...(data.active !== undefined ? { active: data.active, terminatedAt: data.active ? null : new Date() } : {}),
       },
       include: INCLUDE,

@@ -487,3 +487,4 @@ button, a, [role='button'], .form-control, .form-select { touch-action: manipula
 .estado-punto.trabajando { background: #16a34a; box-shadow: 0 0 0 0 rgba(22,163,74,.5); animation: pulso 2s infinite; }
 .estado-punto.pausa { background: #d97706; }
 @keyframes pulso { 0% { box-shadow: 0 0 0 0 rgba(22,163,74,.45);} 70% { box-shadow: 0 0 0 8px rgba(22,163,74,0);} 100% { box-shadow: 0 0 0 0 rgba(22,163,74,0);} }
+.text-brand { color: var(--brand-2) !important; }
