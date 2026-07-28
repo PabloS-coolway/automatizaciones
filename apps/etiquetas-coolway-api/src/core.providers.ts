@@ -25,6 +25,9 @@ import { FichajeService } from './rrhh/application/fichaje.service';
 import { AusenciaService } from './rrhh/application/ausencia.service';
 import { NotificacionService } from './rrhh/application/notificacion.service';
 import { RrhhActivityQueryService } from './rrhh/application/rrhh-activity-query.service';
+import { FILE_STORAGE } from './rrhh/application/file-storage.port';
+import { SpacesFileStorage, spacesConfigFromEnv } from './rrhh/infrastructure/spaces-file-storage';
+import { DisabledFileStorage, LocalFileStorage } from './rrhh/infrastructure/local-file-storage';
 import { RrhhGuard } from './rrhh/interface/http/rrhh.guard';
 import { PrismaEmployeeRepository } from './rrhh/infrastructure/prisma-employee.repository';
 import { PrismaStructureRepository } from './rrhh/infrastructure/prisma-structure.repository';
@@ -65,6 +68,23 @@ export const coreProviders: Provider[] = [
   { provide: ABSENCE_TYPE_REPOSITORY, useExisting: PrismaAbsenceTypeRepository },
   PrismaAbsenceRepository,
   { provide: ABSENCE_REPOSITORY, useExisting: PrismaAbsenceRepository },
+  {
+    // Justificantes: Spaces (S3) si está configurado; disco local en desarrollo; deshabilitado en prod sin config.
+    provide: FILE_STORAGE,
+    useFactory: () => {
+      const cfg = spacesConfigFromEnv();
+      if (cfg) {
+        console.log(`[storage] justificantes → DigitalOcean Spaces (bucket ${cfg.bucket})`);
+        return new SpacesFileStorage(cfg);
+      }
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('[storage] SPACES_* sin configurar → disco local (solo desarrollo)');
+        return LocalFileStorage.enDirectorio();
+      }
+      console.warn('[storage] SPACES_* sin configurar en producción → subida de justificantes DESHABILITADA');
+      return new DisabledFileStorage();
+    },
+  },
   PrismaNotificationRepository,
   { provide: NOTIFICATION_REPOSITORY, useExisting: PrismaNotificationRepository },
   PrismaRrhhActivityRecorder,

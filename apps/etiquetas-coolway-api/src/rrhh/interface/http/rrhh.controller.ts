@@ -1,4 +1,7 @@
-import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get, HttpCode, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get, HttpCode, Param, Patch, Post, Query, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
+import type { Response } from 'express';
 import {
   CenterDto,
   CreateCenterDto,
@@ -122,6 +125,7 @@ const toAusenciaDto = (a: AbsenceRow): AbsenceDto => ({
   decidedByEmail: a.decidedByEmail,
   decidedAt: a.decidedAt ? a.decidedAt.toISOString() : null,
   decisionNote: a.decisionNote,
+  attachmentName: a.attachmentName,
   createdAt: a.createdAt.toISOString(),
 });
 
@@ -378,6 +382,35 @@ export class RrhhController {
   @UseGuards(RrhhGuard)
   async rechazarAusencia(@RrhhActor() actor: EmployeeRow, @Param('id') id: string, @Body() dto: DecidirAusenciaDto): Promise<AbsenceDto> {
     return toAusenciaDto(await this.decidirAusencia(actor, Number(id), false, dto.note));
+  }
+
+  @Post('ausencias/:id/justificante')
+  @UseGuards(RrhhGuard)
+  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: 11 * 1024 * 1024 } }))
+  async subirJustificante(@RrhhActor() actor: EmployeeRow, @Param('id') id: string, @UploadedFile() file?: Express.Multer.File): Promise<AbsenceDto> {
+    if (!file) throw new BadRequestException('Falta el fichero (campo "file").');
+    await this.exigeAccesoAusencia(actor, Number(id));
+    const subida = { buffer: file.buffer, originalname: file.originalname, mimetype: file.mimetype, size: file.size };
+    return toAusenciaDto(await this.ausencias.adjuntar(Number(id), subida, { email: actor.email }).catch(traducir));
+  }
+
+  @Get('ausencias/:id/justificante')
+  @UseGuards(RrhhGuard)
+  async bajarJustificante(@RrhhActor() actor: EmployeeRow, @Param('id') id: string, @Res() res: Response): Promise<void> {
+    await this.exigeAccesoAusencia(actor, Number(id));
+    const { buffer, nombre } = await this.ausencias.descargarJustificante(Number(id)).catch(traducir);
+    res.setHeader('Content-Disposition', `attachment; filename="${nombre}"`);
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.send(buffer);
+  }
+
+  /** Acceso a una ausencia (y su justificante): el propio empleado, o quien la vea (responsable/RRHH). */
+  private async exigeAccesoAusencia(actor: EmployeeRow, id: number): Promise<void> {
+    const ausencia = await this.ausencias.buscar(id);
+    if (!ausencia) throw new BadRequestException(`No existe la solicitud #${id}.`);
+    if (ausencia.employeeId === actor.id) return; // el dueño siempre
+    const visibles = await this.service.listVisible(actor);
+    if (!visibles.some((e) => e.id === ausencia.employeeId)) throw new ForbiddenException('No puedes acceder a esa solicitud.');
   }
 
   /** Decide una ausencia validando que el actor puede aprobar a ese empleado (responsable/RRHH, no a sí mismo). */

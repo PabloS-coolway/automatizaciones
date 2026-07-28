@@ -77,6 +77,8 @@ type AusenciaConRel = {
   decidedByEmail: string | null;
   decidedAt: Date | null;
   decisionNote: string | null;
+  attachmentKey: string | null;
+  attachmentName: string | null;
   createdAt: Date;
   employee: { fullName: string; department: { name: string } | null };
   type: { name: string; computesBalance: boolean };
@@ -98,6 +100,8 @@ const toAusencia = (a: AusenciaConRel): AbsenceRow => ({
   decidedByEmail: a.decidedByEmail,
   decidedAt: a.decidedAt,
   decisionNote: a.decisionNote,
+  attachmentKey: a.attachmentKey,
+  attachmentName: a.attachmentName,
   createdAt: a.createdAt,
 });
 
@@ -166,5 +170,10 @@ export class PrismaAbsenceRepository implements AbsenceRepository {
       orderBy: { startDate: 'asc' },
     });
     return list.map(toAusencia);
+  }
+
+  async setAttachment(id: number, key: string, name: string): Promise<AbsenceRow> {
+    const a = await this.prisma.absence.update({ where: { id }, data: { attachmentKey: key, attachmentName: name }, include: INCLUDE });
+    return toAusencia(a);
   }
 }

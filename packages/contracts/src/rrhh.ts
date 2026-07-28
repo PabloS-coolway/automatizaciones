@@ -282,6 +282,8 @@ export interface AbsenceDto {
   decidedByEmail: string | null;
   decidedAt: string | null;
   decisionNote: string | null;
+  /** Nombre del justificante adjunto, o `null` si no hay. Se descarga por la API (dato sensible). */
+  attachmentName: string | null;
   createdAt: string;
 }
 
