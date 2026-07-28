@@ -117,6 +117,7 @@ export interface AbsenceRow {
   id: number;
   employeeId: number;
   employeeName: string;
+  department: string | null;
   typeId: number;
   typeName: string;
   /** ¿El tipo descuenta del saldo de vacaciones? (viene resuelto para no re-consultar). */

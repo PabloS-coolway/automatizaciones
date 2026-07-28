@@ -78,7 +78,7 @@ type AusenciaConRel = {
   decidedAt: Date | null;
   decisionNote: string | null;
   createdAt: Date;
-  employee: { fullName: string };
+  employee: { fullName: string; department: { name: string } | null };
   type: { name: string; computesBalance: boolean };
 };
 
@@ -86,6 +86,7 @@ const toAusencia = (a: AusenciaConRel): AbsenceRow => ({
   id: a.id,
   employeeId: a.employeeId,
   employeeName: a.employee.fullName,
+  department: a.employee.department?.name ?? null,
   typeId: a.typeId,
   typeName: a.type.name,
   computesBalance: a.type.computesBalance,
@@ -100,7 +101,10 @@ const toAusencia = (a: AusenciaConRel): AbsenceRow => ({
   createdAt: a.createdAt,
 });
 
-const INCLUDE = { employee: { select: { fullName: true } }, type: { select: { name: true, computesBalance: true } } } as const;
+const INCLUDE = {
+  employee: { select: { fullName: true, department: { select: { name: true } } } },
+  type: { select: { name: true, computesBalance: true } },
+} as const;
 
 /** Adapter: solicitudes de ausencia (Prisma). */
 @Injectable()

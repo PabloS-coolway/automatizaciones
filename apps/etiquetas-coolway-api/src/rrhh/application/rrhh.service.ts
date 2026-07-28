@@ -49,6 +49,15 @@ export class RrhhService {
     return (await this.repo.findAll()).filter((e) => e.active);
   }
 
+  /** Usuarios del login ACTIVOS que aún no tienen ficha de empleado (candidatos a dar de alta en RRHH). */
+  async usuariosSinFicha(): Promise<{ id: number; email: string; name: string }[]> {
+    return this.prisma.user.findMany({
+      where: { active: true, employee: null },
+      select: { id: true, email: true, name: true },
+      orderBy: { name: 'asc' },
+    });
+  }
+
   async listVisible(actor: EmployeeRow): Promise<EmployeeRow[]> {
     const all = await this.repo.findAll();
     const visibles = empleadosVisibles(
