@@ -10,18 +10,10 @@ import {
 import { rrhhGateway } from '../composition';
 import { useRrhh } from '../rrhh/RrhhContext';
 import { TiposAusenciaManager } from './personas/TiposAusenciaManager';
+import { CalendarioAusencias } from './personas/CalendarioAusencias';
 
 const VARIANTE: Record<EstadoAusencia, string> = { PENDING: 'warning', APPROVED: 'success', REJECTED: 'danger' };
 type Vista = 'mias' | 'aprobaciones' | 'calendario' | 'tipos';
-
-/** Hoy y +90 días en YYYY-MM-DD, para el calendario de equipo. */
-function rango90(): { desde: string; hasta: string } {
-  const hoy = new Date();
-  const fin = new Date(hoy);
-  fin.setDate(fin.getDate() + 90);
-  const iso = (d: Date) => d.toISOString().slice(0, 10);
-  return { desde: iso(hoy), hasta: iso(fin) };
-}
 
 /**
  * REQ-008 Fase 3 · Ausencias. El empleado solicita y ve sus solicitudes; el responsable/RRHH aprueba las de su
@@ -37,7 +29,6 @@ export function AusenciasPage() {
   const [pendientes, setPendientes] = useState<AbsenceDto[]>([]);
   const [tipos, setTipos] = useState<AbsenceTypeDto[]>([]);
   const [saldo, setSaldo] = useState<SaldoVacacionesDto | null>(null);
-  const [calendario, setCalendario] = useState<AbsenceDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -68,14 +59,6 @@ export function AusenciasPage() {
   }, [employee, puedeAprobar]);
 
   useEffect(() => reload(), [reload]);
-
-  // El calendario de equipo se carga al abrir su pestaña.
-  useEffect(() => {
-    if (vista === 'calendario' && puedeAprobar) {
-      const { desde, hasta } = rango90();
-      rrhhGateway.calendarioAusencias(desde, hasta).then((c) => setCalendario(c.ausencias)).catch((e) => setError((e as Error).message));
-    }
-  }, [vista, puedeAprobar]);
 
   const tiposActivos = useMemo(() => tipos.filter((t) => t.active), [tipos]);
 
@@ -236,18 +219,7 @@ export function AusenciasPage() {
         </Card>
       )}
 
-      {vista === 'calendario' && puedeAprobar && (
-        <Card>
-          <Card.Body>
-            <Card.Title className="h6 mb-3">Calendario del equipo · próximos 90 días</Card.Title>
-            {calendario.length === 0 ? (
-              <p className="text-secondary small mb-0">Nadie de tu equipo tiene ausencias próximas.</p>
-            ) : (
-              <ListaAusencias ausencias={calendario} conNombre />
-            )}
-          </Card.Body>
-        </Card>
-      )}
+      {vista === 'calendario' && puedeAprobar && <CalendarioAusencias />}
 
       {vista === 'tipos' && puedeGestionar && <TiposAusenciaManager tipos={tipos} onChange={reload} />}
     </div>

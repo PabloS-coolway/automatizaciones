@@ -22,6 +22,7 @@ import {
   RrhhActivityListDto,
   RrhhMeDto,
   SaldoVacacionesDto,
+  UsuarioSinFichaDto,
   SolicitarAusenciaDto,
   TimeEntryDto,
   UpdateAbsenceTypeDto,
@@ -109,6 +110,7 @@ const toAusenciaDto = (a: AbsenceRow): AbsenceDto => ({
   id: a.id,
   employeeId: a.employeeId,
   employeeName: a.employeeName,
+  department: a.department,
   typeId: a.typeId,
   typeName: a.typeName,
   startDate: diaISO(a.startDate),
@@ -171,6 +173,13 @@ export class RrhhController {
   @UseGuards(RrhhGuard)
   async empleados(@RrhhActor() actor: EmployeeRow): Promise<EmployeeDto[]> {
     return (await this.service.listVisible(actor)).map(toDto);
+  }
+
+  @Get('usuarios-sin-ficha')
+  @UseGuards(RrhhGuard)
+  async usuariosSinFicha(@RrhhActor() actor: EmployeeRow): Promise<UsuarioSinFichaDto[]> {
+    exigeGestion(actor);
+    return this.service.usuariosSinFicha();
   }
 
   @Get('organigrama')

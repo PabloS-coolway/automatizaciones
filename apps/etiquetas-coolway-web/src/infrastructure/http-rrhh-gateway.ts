@@ -13,6 +13,7 @@ import type {
   EmployeeDto,
   FicharDto,
   OrgEmployeeDto,
+  UsuarioSinFichaDto,
   HistoricoFichajeDto,
   JornadaHoyDto,
   NotificacionDto,
@@ -48,6 +49,13 @@ export class HttpRrhhGateway {
   async organigrama(): Promise<OrgEmployeeDto[]> {
     const res = await apiFetch('/rrhh/organigrama');
     if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo cargar el organigrama.'));
+    return res.json();
+  }
+
+  /** Usuarios del login sin ficha de empleado (candidatos a dar de alta). */
+  async usuariosSinFicha(): Promise<UsuarioSinFichaDto[]> {
+    const res = await apiFetch('/rrhh/usuarios-sin-ficha');
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudieron cargar los usuarios sin ficha.'));
     return res.json();
   }
 

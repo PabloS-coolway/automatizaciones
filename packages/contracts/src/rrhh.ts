@@ -94,6 +94,13 @@ export interface RrhhMeDto {
   employee: EmployeeDto | null;
 }
 
+/** Un usuario del login que aún NO tiene ficha de empleado (candidato a dar de alta en RRHH). */
+export interface UsuarioSinFichaDto {
+  id: number;
+  email: string;
+  name: string;
+}
+
 /**
  * Un empleado en el **organigrama público**: lo visible para toda la plantilla (nombre, puesto, rol, centro,
  * marca y su responsable). SIN datos sensibles (correo, jornada, saldo, fichajes). Es un subconjunto de
@@ -262,6 +269,8 @@ export interface AbsenceDto {
   id: number;
   employeeId: number;
   employeeName: string;
+  /** Departamento del empleado (para filtrar el calendario). `null` si no tiene. */
+  department: string | null;
   typeId: number;
   typeName: string;
   startDate: string;
