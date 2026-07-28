@@ -16,6 +16,8 @@ import {
   USER_REPOSITORY,
   UserRepository,
 } from '../../auth/application/ports';
+import { bootstrapRrhh } from '../../rrhh/bootstrap-rrhh';
+import { EMPLOYEE_REPOSITORY, EmployeeRepository } from '../../rrhh/application/ports';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(HttpModule);
@@ -50,6 +52,19 @@ async function bootstrap(): Promise<void> {
     console.log(`[bootstrap] ${msg}`);
   } catch (e) {
     console.warn(`[bootstrap] no se pudo comprobar el admin de arranque: ${(e as Error).message}`);
+  }
+
+  // Primer empleado de RRHH (rol ADMIN) por entorno: resuelve el arranque en frío del módulo. Idempotente.
+  try {
+    const empleados = app.get<EmployeeRepository>(EMPLOYEE_REPOSITORY, { strict: false });
+    const msg = await bootstrapRrhh({
+      findUserIdByEmail: (e) => empleados.findUserIdByEmail(e),
+      findEmployeeByUserId: (id) => empleados.findByUserId(id),
+      createEmployee: (nuevo) => empleados.create(nuevo),
+    });
+    console.log(`[bootstrap] ${msg}`);
+  } catch (e) {
+    console.warn(`[bootstrap] no se pudo comprobar el empleado de arranque: ${(e as Error).message}`);
   }
 }
 
