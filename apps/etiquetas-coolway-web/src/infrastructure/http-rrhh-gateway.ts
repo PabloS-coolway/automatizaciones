@@ -227,6 +227,27 @@ export class HttpRrhhGateway {
     return res.json();
   }
 
+  async subirJustificante(id: number, file: File): Promise<AbsenceDto> {
+    const fd = new FormData();
+    fd.append('file', file);
+    const res = await apiFetch(`/rrhh/ausencias/${id}/justificante`, { method: 'POST', body: fd });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo subir el justificante.'));
+    return res.json();
+  }
+
+  /** Descarga el justificante (dato sensible: pasa por la API con auth) y lo abre como fichero. */
+  async descargarJustificante(id: number, nombre: string): Promise<void> {
+    const res = await apiFetch(`/rrhh/ausencias/${id}/justificante`);
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo descargar el justificante.'));
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = nombre;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   async decidirAusencia(id: number, aprobar: boolean, note?: string): Promise<AbsenceDto> {
     const res = await apiFetch(`/rrhh/ausencias/${id}/${aprobar ? 'aprobar' : 'rechazar'}`, {
       method: 'POST',

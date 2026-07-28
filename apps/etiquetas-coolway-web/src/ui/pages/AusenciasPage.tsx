@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Alert, Badge, Button, Card, Form, Nav, Spinner } from 'react-bootstrap';
+import { Paperclip } from 'react-bootstrap-icons';
 import {
   ESTADO_AUSENCIA_LABELS,
   type AbsenceDto,
@@ -34,6 +35,7 @@ export function AusenciasPage() {
   const [notice, setNotice] = useState('');
 
   const [form, setForm] = useState({ typeId: '', startDate: '', endDate: '', halfDay: false, reason: '' });
+  const [justificante, setJustificante] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
 
   const reload = useCallback(() => {
@@ -68,15 +70,17 @@ export function AusenciasPage() {
     setNotice('');
     setSaving(true);
     try {
-      await rrhhGateway.solicitarAusencia({
+      const creada = await rrhhGateway.solicitarAusencia({
         typeId: Number(form.typeId),
         startDate: form.startDate,
         endDate: form.endDate,
         halfDay: form.halfDay,
         reason: form.reason || undefined,
       });
+      if (justificante) await rrhhGateway.subirJustificante(creada.id, justificante);
       setNotice('Solicitud enviada.');
       setForm({ typeId: '', startDate: '', endDate: '', halfDay: false, reason: '' });
+      setJustificante(null);
       reload();
     } catch (err) {
       setError((err as Error).message);
@@ -165,6 +169,10 @@ export function AusenciasPage() {
                     <Form.Label className="small">Motivo (opcional)</Form.Label>
                     <Form.Control as="textarea" rows={2} value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} />
                   </Form.Group>
+                  <Form.Group className="mb-3">
+                    <Form.Label className="small">Justificante (opcional · PDF/JPG/PNG)</Form.Label>
+                    <Form.Control type="file" accept="application/pdf,image/jpeg,image/png" onChange={(e) => setJustificante((e.target as HTMLInputElement).files?.[0] ?? null)} />
+                  </Form.Group>
                   <Button type="submit" className="btn-brand w-100" disabled={saving}>
                     {saving ? <Spinner as="span" size="sm" animation="border" /> : 'Enviar solicitud'}
                   </Button>
@@ -206,6 +214,11 @@ export function AusenciasPage() {
                     <span>
                       <strong>{a.employeeName}</strong> · {a.typeName} · {a.startDate}→{a.endDate}
                       <span className="text-secondary small"> ({a.dias} día/s){a.reason ? ` · ${a.reason}` : ''}</span>
+                      {a.attachmentName && (
+                        <Button variant="link" size="sm" className="p-0 ms-2 align-baseline" onClick={() => rrhhGateway.descargarJustificante(a.id, a.attachmentName!)}>
+                          <Paperclip /> justificante
+                        </Button>
+                      )}
                     </span>
                     <span className="d-flex gap-2">
                       <Button size="sm" variant="success" onClick={() => decidir(a, true)}>Aprobar</Button>
@@ -236,6 +249,11 @@ function ListaAusencias({ ausencias, conNombre }: { ausencias: AbsenceDto[]; con
             {conNombre && <strong>{a.employeeName} · </strong>}
             {a.typeName} · {a.startDate}→{a.endDate}
             <span className="text-secondary small"> ({a.dias} día/s)</span>
+            {a.attachmentName && (
+              <Button variant="link" size="sm" className="p-0 ms-2 align-baseline" onClick={() => rrhhGateway.descargarJustificante(a.id, a.attachmentName!)}>
+                <Paperclip /> justificante
+              </Button>
+            )}
           </span>
           <Badge bg={`${VARIANTE[a.status]}-subtle`} text={VARIANTE[a.status]}>{ESTADO_AUSENCIA_LABELS[a.status]}</Badge>
         </li>
