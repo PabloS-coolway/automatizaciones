@@ -5,6 +5,7 @@ import {
   CreateDepartmentDto,
   AbsenceDto,
   AbsenceTypeDto,
+  CalendarioAusenciasDto,
   CorreccionFichajeDto,
   CreateAbsenceTypeDto,
   CreateEmployeeDto,
@@ -17,6 +18,7 @@ import {
   JornadaHoyDto,
   PanelFichajeDto,
   RrhhMeDto,
+  SaldoVacacionesDto,
   SolicitarAusenciaDto,
   TimeEntryDto,
   UpdateAbsenceTypeDto,
@@ -32,7 +34,7 @@ import { RrhhStructureService } from '../../application/rrhh-structure.service';
 import { DiaDetalle, DiaJornada, FichajeService, Jornada, Panel } from '../../application/fichaje.service';
 import { AusenciaService } from '../../application/ausencia.service';
 import { AbsenceRow, AbsenceTypeRow } from '../../application/ports';
-import { diasSolicitados } from '../../domain/ausencia';
+import { diasDeRango, diasSolicitados } from '../../domain/ausencia';
 import { esMarcaje } from '../../domain/fichaje';
 import { gestionaPlantilla } from '../../domain/rrhh-org';
 import { RrhhActor, RrhhGuard } from './rrhh.guard';
@@ -52,6 +54,7 @@ function toDto(e: EmployeeRow): EmployeeDto {
     centerId: e.centerId,
     brand: e.brand,
     weeklyMinutes: e.weeklyMinutes,
+    annualLeaveDays: e.annualLeaveDays,
   };
 }
 
@@ -218,7 +221,14 @@ export class RrhhController {
   @UseGuards(RrhhGuard)
   async panel(@RrhhActor() actor: EmployeeRow): Promise<PanelFichajeDto> {
     const visibles = await this.service.listVisible(actor);
-    return toPanelDto(await this.fichaje.panel(visibles.map((e) => ({ id: e.id, fullName: e.fullName }))));
+    const ids = visibles.map((e) => e.id);
+    // Coordinación con ausencias: un día cubierto por una ausencia aprobada no es incidencia.
+    const desde = new Date();
+    desde.setDate(desde.getDate() - 8);
+    const aprobadas = await this.ausencias.diasConAusenciaAprobada(ids, desde, new Date());
+    const diasConAusencia = new Set<string>();
+    for (const a of aprobadas) for (const d of diasDeRango({ start: a.startDate, end: a.endDate })) diasConAusencia.add(`${a.employeeId}:${d}`);
+    return toPanelDto(await this.fichaje.panel(visibles.map((e) => ({ id: e.id, fullName: e.fullName })), diasConAusencia));
   }
 
   @Get('empleados/:id/fichajes')
@@ -292,6 +302,24 @@ export class RrhhController {
   @UseGuards(RrhhGuard)
   async misAusencias(@RrhhActor() actor: EmployeeRow): Promise<AbsenceDto[]> {
     return (await this.ausencias.misAusencias(actor.id)).map(toAusenciaDto);
+  }
+
+  @Get('ausencias/saldo')
+  @UseGuards(RrhhGuard)
+  async miSaldo(@RrhhActor() actor: EmployeeRow, @Query('year') year?: string): Promise<SaldoVacacionesDto> {
+    const y = year ? Number(year) : new Date().getFullYear();
+    if (!Number.isInteger(y)) throw new BadRequestException('Año inválido.');
+    const s = await this.ausencias.saldo(actor.id, actor.annualLeaveDays, y);
+    return { year: y, ...s };
+  }
+
+  @Get('ausencias/calendario')
+  @UseGuards(RrhhGuard)
+  async calendario(@RrhhActor() actor: EmployeeRow, @Query('desde') desde?: string, @Query('hasta') hasta?: string): Promise<CalendarioAusenciasDto> {
+    const r = rangoDesdeQuery(desde, hasta);
+    const ids = (await this.service.listVisible(actor)).map((e) => e.id);
+    const aus = await this.ausencias.calendario(ids, r.desde, r.hasta);
+    return { desde: r.desde.toISOString().slice(0, 10), hasta: r.hasta.toISOString().slice(0, 10), ausencias: aus.map(toAusenciaDto) };
   }
 
   @Post('ausencias')

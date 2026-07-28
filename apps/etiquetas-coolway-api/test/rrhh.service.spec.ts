@@ -18,6 +18,7 @@ const fila = (p: Partial<EmployeeRow>): EmployeeRow => ({
   centerId: null,
   brand: null,
   weeklyMinutes: null,
+  annualLeaveDays: null,
   ...p,
 });
 

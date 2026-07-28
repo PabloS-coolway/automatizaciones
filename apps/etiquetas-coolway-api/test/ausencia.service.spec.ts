@@ -34,7 +34,7 @@ function ausRepo(): AbsenceRepository & { filas: AbsenceRow[] } {
     filas,
     create: async (n: NuevaAusencia) => {
       const fila: AbsenceRow = {
-        id: seq++, employeeId: n.employeeId, employeeName: 'Ana', typeId: n.typeId, typeName: 'Vacaciones',
+        id: seq++, employeeId: n.employeeId, employeeName: 'Ana', typeId: n.typeId, typeName: 'Vacaciones', computesBalance: true,
         startDate: n.startDate, endDate: n.endDate, halfDay: n.halfDay, reason: n.reason ?? null, status: n.status,
         decidedByEmail: null, decidedAt: null, decisionNote: null, createdAt: new Date(),
       };
@@ -50,6 +50,7 @@ function ausRepo(): AbsenceRepository & { filas: AbsenceRow[] } {
     listByEmployee: async (eid) => filas.filter((f) => f.employeeId === eid),
     listByStatusForEmployees: async (ids, status) => filas.filter((f) => ids.includes(f.employeeId) && f.status === status),
     listApprovedByEmployee: async (eid) => filas.filter((f) => f.employeeId === eid && f.status === 'APPROVED'),
+    listForEmployeesBetween: async (ids, desde, hasta, statuses) => filas.filter((f) => ids.includes(f.employeeId) && statuses.includes(f.status) && f.startDate <= hasta && f.endDate >= desde),
   };
 }
 
@@ -78,7 +79,7 @@ describe('AusenciaService · solicitar', () => {
 
   it('NO deja solicitar si solapa con una ausencia ya aprobada', async () => {
     const repo = ausRepo();
-    repo.filas.push({ id: 1, employeeId: 1, employeeName: 'Ana', typeId: 1, typeName: 'Vacaciones', startDate: new Date(`${dd}10T00:00:00Z`), endDate: new Date(`${dd}15T00:00:00Z`), halfDay: false, reason: null, status: 'APPROVED', decidedByEmail: null, decidedAt: null, decisionNote: null, createdAt: new Date() });
+    repo.filas.push({ id: 1, employeeId: 1, employeeName: 'Ana', typeId: 1, typeName: 'Vacaciones', computesBalance: true, startDate: new Date(`${dd}10T00:00:00Z`), endDate: new Date(`${dd}15T00:00:00Z`), halfDay: false, reason: null, status: 'APPROVED', decidedByEmail: null, decidedAt: null, decisionNote: null, createdAt: new Date() });
     const svc = new AusenciaService(tiposRepo(tipo()), repo, recorderSpy().recorder, db);
     await expect(svc.solicitar(1, { typeId: 1, startDate: `${dd}12`, endDate: `${dd}18` }, actor)).rejects.toBeInstanceOf(RrhhError);
   });
@@ -102,7 +103,7 @@ describe('AusenciaService · decidir', () => {
     await svc.solicitar(1, { typeId: 1, startDate: `${dd}10`, endDate: `${dd}15` }, actor);
     await svc.decidir(1, true, actor, undefined);
     // La segunda no puede ni solicitarse por solape; la insertamos como PENDING directamente para probar decidir.
-    repo.filas.push({ id: 99, employeeId: 1, employeeName: 'Ana', typeId: 1, typeName: 'Vacaciones', startDate: new Date(`${dd}12T00:00:00Z`), endDate: new Date(`${dd}18T00:00:00Z`), halfDay: false, reason: null, status: 'PENDING', decidedByEmail: null, decidedAt: null, decisionNote: null, createdAt: new Date() });
+    repo.filas.push({ id: 99, employeeId: 1, employeeName: 'Ana', typeId: 1, typeName: 'Vacaciones', computesBalance: true, startDate: new Date(`${dd}12T00:00:00Z`), endDate: new Date(`${dd}18T00:00:00Z`), halfDay: false, reason: null, status: 'PENDING', decidedByEmail: null, decidedAt: null, decisionNote: null, createdAt: new Date() });
     await expect(svc.decidir(99, true, actor, undefined)).rejects.toBeInstanceOf(RrhhError);
   });
 
@@ -112,6 +113,21 @@ describe('AusenciaService · decidir', () => {
     await svc.solicitar(1, { typeId: 1, startDate: `${dd}01`, endDate: `${dd}03` }, actor);
     await svc.decidir(1, false, actor, undefined);
     await expect(svc.decidir(1, true, actor, undefined)).rejects.toBeInstanceOf(RrhhError);
+  });
+});
+
+describe('AusenciaService · saldo', () => {
+  it('resta del cupo anual los días aprobados que computan saldo', async () => {
+    const repo = ausRepo();
+    const svc = new AusenciaService(tiposRepo(tipo()), repo, recorderSpy().recorder, db);
+    await svc.solicitar(1, { typeId: 1, startDate: `${dd}03`, endDate: `${dd}07` }, actor); // 5 días
+    await svc.decidir(1, true, actor, undefined); // aprobada
+    await svc.solicitar(1, { typeId: 1, startDate: `${dd}20`, endDate: `${dd}21` }, actor); // 2 días, pendiente
+    const s = await svc.saldo(1, 23, 2026);
+    expect(s.anual).toBe(23);
+    expect(s.disfrutados).toBe(5);
+    expect(s.pendientes).toBe(2);
+    expect(s.restante).toBe(18); // 23 - 5
   });
 });
 

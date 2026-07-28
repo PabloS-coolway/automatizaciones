@@ -11,7 +11,7 @@ import {
 import { PrismaService } from '../../infrastructure/db/prisma.service';
 import { RRHH_ACTIVITY_RECORDER, RrhhActivityRecorder } from './rrhh-activity.port';
 import { RrhhActor, RrhhError } from './rrhh.service';
-import { diasSolicitados, haySolape, rangoValido } from '../domain/ausencia';
+import { diasSolicitados, haySolape, rangoValido, saldoVacaciones, type Saldo } from '../domain/ausencia';
 
 /** Fecha (sólo día) a partir de 'YYYY-MM-DD'; lanza si no es válida. */
 function parseDia(s: string, campo: string): Date {
@@ -91,6 +91,27 @@ export class AusenciaService {
 
   buscar(id: number): Promise<AbsenceRow | null> {
     return this.repo.findById(id);
+  }
+
+  /** Saldo de vacaciones del año: cupo anual − días de ausencias que computan saldo (aprobadas). */
+  async saldo(employeeId: number, annualLeaveDays: number | null, year: number): Promise<Saldo> {
+    const inicio = new Date(Date.UTC(year, 0, 1));
+    const fin = new Date(Date.UTC(year, 11, 31));
+    const abs = (await this.repo.listForEmployeesBetween([employeeId], inicio, fin, ['APPROVED', 'PENDING'])).filter((a) => a.computesBalance);
+    const dias = (a: AbsenceRow) => diasSolicitados({ start: a.startDate, end: a.endDate }, a.halfDay);
+    const disfrutados = abs.filter((a) => a.status === 'APPROVED').reduce((s, a) => s + dias(a), 0);
+    const pendientes = abs.filter((a) => a.status === 'PENDING').reduce((s, a) => s + dias(a), 0);
+    return saldoVacaciones(annualLeaveDays ?? 0, disfrutados, pendientes);
+  }
+
+  /** Calendario de equipo: ausencias aprobadas y pendientes de `employeeIds` que tocan `[desde, hasta]`. */
+  calendario(employeeIds: number[], desde: Date, hasta: Date): Promise<AbsenceRow[]> {
+    return this.repo.listForEmployeesBetween(employeeIds, desde, hasta, ['APPROVED', 'PENDING']);
+  }
+
+  /** Días (por empleado) cubiertos por una ausencia APROBADA en `[desde, hasta]`, para coordinar con el fichaje. */
+  async diasConAusenciaAprobada(employeeIds: number[], desde: Date, hasta: Date): Promise<AbsenceRow[]> {
+    return this.repo.listForEmployeesBetween(employeeIds, desde, hasta, ['APPROVED']);
   }
 
   /** El empleado `employeeId` solicita una ausencia. Si el tipo no requiere aprobación, queda aprobada. */
