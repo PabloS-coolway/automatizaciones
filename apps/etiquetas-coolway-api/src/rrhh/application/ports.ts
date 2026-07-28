@@ -140,6 +140,7 @@ export interface AbsenceRow {
   startDate: Date;
   endDate: Date;
   halfDay: boolean;
+  halfDayPart: string | null;
   reason: string | null;
   status: string;
   decidedByEmail: string | null;
@@ -156,6 +157,7 @@ export interface NuevaAusencia {
   startDate: Date;
   endDate: Date;
   halfDay: boolean;
+  halfDayPart?: string | null;
   reason?: string;
   status: string;
 }

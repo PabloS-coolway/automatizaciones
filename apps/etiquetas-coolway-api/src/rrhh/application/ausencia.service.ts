@@ -174,12 +174,18 @@ export class AusenciaService {
       throw new RrhhError('Ya tienes una ausencia aprobada que solapa con esas fechas.');
     }
 
+    // Medio día sólo tiene sentido en UN único día; en ese caso, en qué mitad (por defecto la primera).
+    // Fuera de eso (día completo o rango de varios días) no se guarda mitad.
+    const unSoloDia = diasSolicitados({ start, end }, false) === 1;
+    const esMedioDia = !!dto.halfDay && unSoloDia;
+    const halfDayPart = esMedioDia ? (dto.halfDayPart === 'SECOND' ? 'SECOND' : 'FIRST') : null;
+
     const status = tipo.requiresApproval ? 'PENDING' : 'APPROVED';
     const solicitante = await this.empleados.findById(employeeId);
     return this.prisma.$transaction(async (tx) => {
-      const creada = await this.repo.create({ employeeId, typeId: tipo.id, startDate: start, endDate: end, halfDay: !!dto.halfDay, reason: dto.reason?.trim() || undefined, status }, tx);
+      const creada = await this.repo.create({ employeeId, typeId: tipo.id, startDate: start, endDate: end, halfDay: esMedioDia, halfDayPart, reason: dto.reason?.trim() || undefined, status }, tx);
       await this.actividad.record(
-        { actorEmail: actor.email, action: 'CREATE', entity: 'AUSENCIA', entityId: String(creada.id), after: creada, summary: `Solicitó ${tipo.name} (${diasSolicitados({ start, end }, !!dto.halfDay)} día/s) del ${dto.startDate} al ${dto.endDate}` },
+        { actorEmail: actor.email, action: 'CREATE', entity: 'AUSENCIA', entityId: String(creada.id), after: creada, summary: `Solicitó ${tipo.name} (${diasSolicitados({ start, end }, esMedioDia)} día/s) del ${dto.startDate} al ${dto.endDate}` },
         tx,
       );
       // Aviso in-app a quien debe aprobar: el responsable si lo tiene; si NO, a RRHH/ADMIN (para que no
