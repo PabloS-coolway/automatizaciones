@@ -2,7 +2,10 @@ import type {
   CenterDto,
   CreateCenterDto,
   CreateDepartmentDto,
+  AbsenceDto,
+  AbsenceTypeDto,
   CorreccionFichajeDto,
+  CreateAbsenceTypeDto,
   CreateEmployeeDto,
   DepartmentDto,
   DiaDetalleFichajeDto,
@@ -12,6 +15,8 @@ import type {
   JornadaHoyDto,
   PanelFichajeDto,
   RrhhMeDto,
+  SolicitarAusenciaDto,
+  UpdateAbsenceTypeDto,
   UpdateCenterDto,
   UpdateDepartmentDto,
   UpdateEmployeeDto,
@@ -156,6 +161,59 @@ export class HttpRrhhGateway {
       body: JSON.stringify(input),
     });
     if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo aplicar la corrección.'));
+    return res.json();
+  }
+
+  // ---- Ausencias ----
+
+  async listTiposAusencia(): Promise<AbsenceTypeDto[]> {
+    const res = await apiFetch('/rrhh/ausencias/tipos');
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudieron cargar los tipos de ausencia.'));
+    return res.json();
+  }
+
+  async crearTipoAusencia(input: CreateAbsenceTypeDto): Promise<AbsenceTypeDto> {
+    const res = await apiFetch('/rrhh/ausencias/tipos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo crear el tipo.'));
+    return res.json();
+  }
+
+  async editarTipoAusencia(id: number, input: UpdateAbsenceTypeDto): Promise<AbsenceTypeDto> {
+    const res = await apiFetch(`/rrhh/ausencias/tipos/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo guardar el tipo.'));
+    return res.json();
+  }
+
+  async borrarTipoAusencia(id: number): Promise<void> {
+    const res = await apiFetch(`/rrhh/ausencias/tipos/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo borrar el tipo.'));
+  }
+
+  async misAusencias(): Promise<AbsenceDto[]> {
+    const res = await apiFetch('/rrhh/ausencias/mias');
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudieron cargar tus ausencias.'));
+    return res.json();
+  }
+
+  async solicitarAusencia(input: SolicitarAusenciaDto): Promise<AbsenceDto> {
+    const res = await apiFetch('/rrhh/ausencias', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo solicitar la ausencia.'));
+    return res.json();
+  }
+
+  async ausenciasPendientes(): Promise<AbsenceDto[]> {
+    const res = await apiFetch('/rrhh/ausencias/pendientes');
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudieron cargar las solicitudes pendientes.'));
+    return res.json();
+  }
+
+  async decidirAusencia(id: number, aprobar: boolean, note?: string): Promise<AbsenceDto> {
+    const res = await apiFetch(`/rrhh/ausencias/${id}/${aprobar ? 'aprobar' : 'rechazar'}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ note }),
+    });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo decidir la solicitud.'));
     return res.json();
   }
 }

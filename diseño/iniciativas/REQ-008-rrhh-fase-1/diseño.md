@@ -135,6 +135,13 @@ Digitaliza el parte diario que hoy se firma en papel. Se acaban los partes físi
   corrección con traza, cuadro de mando, cómputo de horas/extra. Append-only.
 - **Fase 3 · Ausencias y vacaciones** — catálogo de tipos, solicitudes → aprobación, saldos, calendarios,
   coordinación con fichaje.
+  - **Slice 3a · Tipos + solicitudes + aprobación** — ✅ **hecho.** Catálogo de tipos configurable (computa
+    saldo / requiere aprobación / justificante), solicitud del empleado, **flujo de aprobación** del
+    responsable/RRHH con estados (PENDING→APPROVED/REJECTED) y traza. Regla dura: **no se aprueba ni se solicita
+    una ausencia que solape con otra ya aprobada** (`solapa`/`haySolape`, testeado + break-on-purpose). Todo
+    auditado. Verificado en vivo (solicitar→aprobar; el empleado no aprueba; solape rechazado).
+  - **Slice 3b · Saldos + calendarios + coordinación con fichaje** — ⏳ pendiente: saldo anual de vacaciones,
+    calendario de equipo, y que un día aprobado como ausencia **no** genere incidencia de "jornada sin cerrar".
 - **Fase 4 · Refinos** — notificaciones (app+correo), informes/exportación, pulido móvil.
 
 ## Estado de implementación

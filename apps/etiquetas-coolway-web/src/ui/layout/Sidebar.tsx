@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom';
 import {
   BoxArrowRight,
   BoxSeamFill,
+  CalendarCheck,
   ClockHistory,
   Database,
   FileEarmarkText,
@@ -54,6 +55,7 @@ const NAV: NavGroup[] = [
     title: 'Personas',
     items: [
       { to: '/fichar', label: 'Fichar', icon: <ClockHistory />, ready: true, soloEmpleados: true },
+      { to: '/ausencias', label: 'Ausencias', icon: <CalendarCheck />, ready: true, soloEmpleados: true },
       { to: '/personas', label: 'Personas', icon: <PersonCircle />, ready: true, soloEmpleados: true },
     ],
   },
