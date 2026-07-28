@@ -32,6 +32,8 @@ export interface EmployeeDto {
   annualLeaveDays: number | null;
   /** Fecha de nacimiento (YYYY-MM-DD) para cumpleaños; `null` si no consta. */
   birthDate: string | null;
+  /** Privacidad: el empleado no quiere que su cumpleaños se muestre al equipo (no borra la fecha). */
+  hideBirthday: boolean;
 }
 
 /**
@@ -49,6 +51,7 @@ export interface CreateEmployeeDto {
   weeklyMinutes?: number | null;
   annualLeaveDays?: number | null;
   birthDate?: string | null;
+  hideBirthday?: boolean;
 }
 
 /** Edición de una ficha (Fase 1). Todo opcional; sólo lo presente se cambia. El correo/usuario no se cambia. */
@@ -62,6 +65,7 @@ export interface UpdateEmployeeDto {
   weeklyMinutes?: number | null;
   annualLeaveDays?: number | null;
   birthDate?: string | null;
+  hideBirthday?: boolean;
 }
 
 /** Un centro/tienda del grupo. La `brand` (enseña) es la que **segmenta el organigrama** (multimarca). */

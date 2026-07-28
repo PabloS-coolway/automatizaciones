@@ -20,6 +20,7 @@ const fila = (p: Partial<EmployeeRow>): EmployeeRow => ({
   weeklyMinutes: null,
   annualLeaveDays: null,
   birthDate: null,
+  hideBirthday: false,
   ...p,
 });
 
@@ -168,5 +169,26 @@ describe('RrhhService · listVisible respeta la jerarquía', () => {
 
   it('un MANAGER ve sólo su rama', async () => {
     expect((await svc.listVisible(fila({ id: 2, rrhhRole: 'MANAGER' }))).map((e) => e.id).sort()).toEqual([2, 3]);
+  });
+});
+
+describe('RrhhService · plantillaParaCumples respeta la privacidad', () => {
+  const plantilla: EmployeeRow[] = [
+    fila({ id: 1, fullName: 'Ana', birthDate: '1990-05-10', hideBirthday: false }),
+    fila({ id: 2, fullName: 'Bea', birthDate: '1985-03-02', hideBirthday: true }), // ha ocultado su cumpleaños
+    fila({ id: 3, fullName: 'Cé', birthDate: '1992-08-20', hideBirthday: false, active: false }), // dada de baja
+    fila({ id: 4, fullName: 'Dan', birthDate: null, hideBirthday: false }), // sin fecha
+  ];
+  const svc = new RrhhService(repo({ findAll: async () => plantilla }), estructura(), recorderSpy().recorder, db);
+
+  it('excluye a quien oculta su cumpleaños y a los inactivos, y mantiene al resto', async () => {
+    const ids = (await svc.plantillaParaCumples()).map((e) => e.id).sort();
+    // Bea oculta (id 2) e inactivo (id 3) NO entran; Ana (1) y Dan (4, sin fecha pero sí visible) sí.
+    expect(ids).toEqual([1, 4]);
+  });
+
+  it('quien oculta el cumpleaños nunca aparece en la lista', async () => {
+    const nombres = (await svc.plantillaParaCumples()).map((e) => e.fullName);
+    expect(nombres).not.toContain('Bea');
   });
 });
