@@ -71,6 +71,7 @@ export class PodaController {
           retiradas: p.retiradas,
           compradoQueFalta: p.compradoQueFalta,
           sociedadSospechosa: p.sociedadSospechosa,
+          surtidosGenerados: p.surtidosGenerados,
           podadoBase64: Buffer.from(p.podado, 'latin1').toString('base64'),
         })),
       };

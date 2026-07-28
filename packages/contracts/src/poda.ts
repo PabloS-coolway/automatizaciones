@@ -31,6 +31,12 @@ export interface FicheroPodadoDto {
    * sociedad). > 0 = revisar. Nunca se corrompe una columna: se avisa. `0`/ausente si no se eligió sociedad.
    */
   sociedadSospechosa: number;
+  /**
+   * REQ-011 · Líneas de surtido **generadas** por expansión del catálogo (cada producto comprado sale con todos
+   * los SURTD de su grupo). `0` en el resto de ficheros. El fichero crece a propósito: se informa para no
+   * confundir con un error.
+   */
+  surtidosGenerados: number;
   podadoBase64: string;
 }
 

@@ -180,6 +180,7 @@ export function PodaPage() {
                       </div>
                       <div className="small text-secondary">
                         Quedan <strong>{f.conservadas}</strong> · se anulan {f.retiradas}
+                        {f.surtidosGenerados > 0 && <> · {f.surtidosGenerados} generados por catálogo</>}
                       </div>
                       {f.compradoQueFalta.length > 0 && (
                         <div className="small text-danger mt-1">

@@ -2,16 +2,18 @@ import {
   Compra,
   comprasDelBorrador,
   comprasSinColor,
-  FilaSap,
   LineaBorrador,
   podar,
+  podarSurtidos,
   reescribirSociedadLinea,
   SociedadCodigo,
 } from '../domain/poda';
 import {
   leerFicheroSap,
+  reescribirSurtidoEnLinea,
   serializarFicheroSap,
   sociedadColsDe,
+  surtdColDe,
   tipoPorNombre,
   TipoFicheroSap,
 } from '../infrastructure/sap-file-reader';
@@ -38,6 +40,8 @@ export interface FicheroPodado {
    * para este fichero). Nunca se pisa una columna que no sea la sociedad: se avisa en vez de corromper.
    */
   sociedadSospechosa: number;
+  /** REQ-011 · Líneas de surtido GENERADAS por expansión del catálogo (0 en el resto de ficheros). */
+  surtidosGenerados: number;
 }
 
 export interface ResultadoPodaFicheros {
@@ -65,25 +69,15 @@ export interface SurtidoDeGrupo {
   codigo: string;
 }
 
-/**
- * REQ-011 · predicado para el fichero de surtidos: una fila comprada se conserva sólo si su `SURTD` está en el
- * catálogo del **prefijo de su familia** (76/86…). El prefijo está en la propia familia del fichero, así que
- * no hace falta cruzar con el borrador. Un prefijo sin catálogo no se filtra (opt-in por grupo).
- */
-function construirSurtidoOk(catalogo: SurtidoDeGrupo[]): (fila: FilaSap) => boolean {
-  if (catalogo.length === 0) return () => true;
-  const porGrupo = new Map<string, Set<string>>();
+/** REQ-011 · Catálogo de surtidos indexado por grupo (prefijo), en orden de alta, para expandir cada producto. */
+function catalogoPorGrupoDe(catalogo: SurtidoDeGrupo[]): Map<string, string[]> {
+  const porGrupo = new Map<string, string[]>();
   for (const s of catalogo) {
-    const set = porGrupo.get(s.grupo) ?? new Set<string>();
-    set.add(s.codigo);
-    porGrupo.set(s.grupo, set);
+    const arr = porGrupo.get(s.grupo) ?? [];
+    if (!arr.includes(s.codigo)) arr.push(s.codigo);
+    porGrupo.set(s.grupo, arr);
   }
-  return (fila) => {
-    if (fila.familia === undefined || fila.surtido === undefined) return true;
-    const permitidos = porGrupo.get(fila.familia.slice(0, 2));
-    if (!permitidos) return true; // prefijo sin catálogo → no se filtra
-    return permitidos.has(fila.surtido);
-  };
+  return porGrupo;
 }
 
 export function podarFicheros(
@@ -95,7 +89,7 @@ export function podarFicheros(
   const compras = comprasDelBorrador(borrador);
   const ficheros: FicheroPodado[] = [];
   const sinReconocer: string[] = [];
-  const surtidoOk = construirSurtidoOk(surtidos ?? []);
+  const catalogoSurtidos = catalogoPorGrupoDe(surtidos ?? []);
 
   for (const e of entradas) {
     const tipo = tipoPorNombre(e.nombre);
@@ -118,16 +112,27 @@ export function podarFicheros(
           })
         : filas;
 
-    // El filtro de surtido (Fase 2) sólo aplica al fichero de surtidos.
-    const r = podar(filasFinal, compras, tipo === 'surtidos' ? surtidoOk : undefined);
+    // REQ-011 (corrección) · el fichero de surtidos se EXPANDE al catálogo (cada producto comprado sale con
+    // todos los SURTD de su grupo); el resto de ficheros se poda normal. Sin catálogo, se poda normal también.
+    const surtdCol = surtdColDe(tipo);
+    let surtidosGenerados = 0;
+    let r;
+    if (tipo === 'surtidos' && catalogoSurtidos.size > 0 && surtdCol !== undefined) {
+      const rs = podarSurtidos(filasFinal, compras, catalogoSurtidos, (cruda, cod) => reescribirSurtidoEnLinea(cruda, surtdCol, cod));
+      surtidosGenerados = rs.generadas;
+      r = rs;
+    } else {
+      r = podar(filasFinal, compras);
+    }
     ficheros.push({
       nombre: e.nombre,
       tipo,
       podado: serializarFicheroSap(r.conservadas, eol, finalConSalto),
-      conservadas: r.conservadasDato, // las referencias que quedan (sin contar cabeceras)
+      conservadas: r.conservadasDato, // las referencias/líneas que quedan (sin contar cabeceras)
       retiradas: r.retiradas,
       compradoQueFalta: r.compradoQueFalta,
       sociedadSospechosa,
+      surtidosGenerados,
     });
   }
 
