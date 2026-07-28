@@ -12,6 +12,7 @@ import type {
   DiaDetalleFichajeDto,
   EmployeeDto,
   FicharDto,
+  OrgEmployeeDto,
   HistoricoFichajeDto,
   JornadaHoyDto,
   NotificacionDto,
@@ -40,6 +41,13 @@ export class HttpRrhhGateway {
   async listEmpleados(): Promise<EmployeeDto[]> {
     const res = await apiFetch('/rrhh/empleados');
     if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo cargar la plantilla.'));
+    return res.json();
+  }
+
+  /** Organigrama público: toda la plantilla activa (para que cualquiera vea la estructura). */
+  async organigrama(): Promise<OrgEmployeeDto[]> {
+    const res = await apiFetch('/rrhh/organigrama');
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo cargar el organigrama.'));
     return res.json();
   }
 
