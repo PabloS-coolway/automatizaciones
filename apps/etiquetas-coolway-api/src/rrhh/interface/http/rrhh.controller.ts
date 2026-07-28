@@ -12,6 +12,7 @@ import {
   CorreccionFichajeDto,
   CreateAbsenceTypeDto,
   CreateEmployeeDto,
+  CumpleDto,
   DecidirAusenciaDto,
   DepartmentDto,
   DiaDetalleFichajeDto,
@@ -43,6 +44,7 @@ import { AusenciaService } from '../../application/ausencia.service';
 import { NotificacionService } from '../../application/notificacion.service';
 import { RrhhActivityQueryService } from '../../application/rrhh-activity-query.service';
 import { AbsenceRow, AbsenceTypeRow, NotificationRow } from '../../application/ports';
+import { proximosCumpleanos } from '../../domain/cumpleanos';
 import { diasDeRango, diasSolicitados } from '../../domain/ausencia';
 import { esMarcaje } from '../../domain/fichaje';
 import { gestionaPlantilla } from '../../domain/rrhh-org';
@@ -64,6 +66,7 @@ function toDto(e: EmployeeRow): EmployeeDto {
     brand: e.brand,
     weeklyMinutes: e.weeklyMinutes,
     annualLeaveDays: e.annualLeaveDays,
+    birthDate: e.birthDate,
   };
 }
 
@@ -184,6 +187,14 @@ export class RrhhController {
   async usuariosSinFicha(@RrhhActor() actor: EmployeeRow): Promise<UsuarioSinFichaDto[]> {
     exigeGestion(actor);
     return this.service.usuariosSinFicha();
+  }
+
+  @Get('cumpleanos')
+  @UseGuards(RrhhGuard)
+  async cumpleanos(@Query('dias') dias?: string): Promise<CumpleDto[]> {
+    const ventana = Math.min(Math.max(Number(dias) || 30, 1), 366);
+    const plantilla = await this.service.plantillaParaCumples();
+    return proximosCumpleanos(plantilla, new Date(), ventana);
   }
 
   @Get('organigrama')

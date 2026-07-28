@@ -49,6 +49,13 @@ export class RrhhService {
     return (await this.repo.findAll()).filter((e) => e.active);
   }
 
+  /** Empleados activos con su fecha de nacimiento (para calcular próximos cumpleaños). */
+  async plantillaParaCumples(): Promise<{ id: number; fullName: string; birthDate: Date | null }[]> {
+    return (await this.repo.findAll())
+      .filter((e) => e.active)
+      .map((e) => ({ id: e.id, fullName: e.fullName, birthDate: e.birthDate ? new Date(`${e.birthDate}T00:00:00Z`) : null }));
+  }
+
   /** Usuarios del login ACTIVOS que aún no tienen ficha de empleado (candidatos a dar de alta en RRHH). */
   async usuariosSinFicha(): Promise<{ id: number; email: string; name: string }[]> {
     return this.prisma.user.findMany({
@@ -95,6 +102,7 @@ export class RrhhService {
           departmentId: dto.departmentId ?? undefined,
           weeklyMinutes: dto.weeklyMinutes ?? undefined,
           annualLeaveDays: dto.annualLeaveDays ?? undefined,
+          birthDate: dto.birthDate ?? undefined,
         },
         tx,
       );
@@ -150,6 +158,12 @@ export class RrhhService {
         throw new RrhhError('El cupo anual de vacaciones debe ser un número de días no negativo.');
       }
       data.annualLeaveDays = dto.annualLeaveDays;
+    }
+    if (dto.birthDate !== undefined) {
+      if (dto.birthDate !== null && !/^\d{4}-\d{2}-\d{2}$/.test(dto.birthDate)) {
+        throw new RrhhError('La fecha de nacimiento debe ser YYYY-MM-DD.');
+      }
+      data.birthDate = dto.birthDate;
     }
 
     return this.prisma.$transaction(async (tx) => {

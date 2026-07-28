@@ -12,6 +12,7 @@ import type {
   DiaDetalleFichajeDto,
   EmployeeDto,
   FicharDto,
+  CumpleDto,
   OrgEmployeeDto,
   UsuarioSinFichaDto,
   HistoricoFichajeDto,
@@ -49,6 +50,13 @@ export class HttpRrhhGateway {
   async organigrama(): Promise<OrgEmployeeDto[]> {
     const res = await apiFetch('/rrhh/organigrama');
     if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo cargar el organigrama.'));
+    return res.json();
+  }
+
+  /** Próximos cumpleaños del equipo (para la home). */
+  async cumpleanos(): Promise<CumpleDto[]> {
+    const res = await apiFetch('/rrhh/cumpleanos');
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudieron cargar los cumpleaños.'));
     return res.json();
   }
 
