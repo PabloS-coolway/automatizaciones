@@ -1,8 +1,8 @@
-import type { EmployeeDto } from '@yorga/contracts';
+import type { OrgEmployeeDto } from '@yorga/contracts';
 
 /** Un nodo del organigrama: un empleado y su equipo (directo e indirecto). */
 export interface NodoOrg {
-  empleado: EmployeeDto;
+  empleado: OrgEmployeeDto;
   hijos: NodoOrg[];
 }
 
@@ -22,10 +22,10 @@ const SIN_MARCA = 'Sin marca asignada';
  * - **Segmentado por marca** del centro (la enseña); los que no tienen centro caen en "Sin marca asignada".
  * - Ordenado por nombre en cada nivel. Protegido contra ciclos (no debería haberlos: el backend los impide).
  */
-export function construirOrganigrama(empleados: EmployeeDto[]): RamaMarca[] {
+export function construirOrganigrama(empleados: OrgEmployeeDto[]): RamaMarca[] {
   const porNombre = (a: NodoOrg, b: NodoOrg) => a.empleado.fullName.localeCompare(b.empleado.fullName);
   const ids = new Set(empleados.map((e) => e.id));
-  const hijosDe = new Map<number, EmployeeDto[]>();
+  const hijosDe = new Map<number, OrgEmployeeDto[]>();
   for (const e of empleados) {
     if (e.managerId != null && ids.has(e.managerId)) {
       const arr = hijosDe.get(e.managerId) ?? [];
@@ -34,7 +34,7 @@ export function construirOrganigrama(empleados: EmployeeDto[]): RamaMarca[] {
     }
   }
 
-  const construir = (e: EmployeeDto, visitados: Set<number>): NodoOrg => {
+  const construir = (e: OrgEmployeeDto, visitados: Set<number>): NodoOrg => {
     visitados.add(e.id);
     const hijos = (hijosDe.get(e.id) ?? [])
       .filter((h) => !visitados.has(h.id))

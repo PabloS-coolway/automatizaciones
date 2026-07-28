@@ -1,9 +1,9 @@
 import { Badge } from 'react-bootstrap';
-import { RRHH_ROLE_LABELS, type EmployeeDto } from '@yorga/contracts';
+import { RRHH_ROLE_LABELS, type OrgEmployeeDto } from '@yorga/contracts';
 import { construirOrganigrama, type NodoOrg } from '../../../domain/organigrama';
 
-/** REQ-008 Fase 1 (Slice 2) · Organigrama visual, segmentado por marca. Se construye del lado del dominio. */
-export function OrganigramaView({ empleados }: { empleados: EmployeeDto[] }) {
+/** REQ-008 · Organigrama visual, segmentado por marca. Público (toda la plantilla). Se construye en el dominio. */
+export function OrganigramaView({ empleados }: { empleados: OrgEmployeeDto[] }) {
   const ramas = construirOrganigrama(empleados);
   if (ramas.length === 0) return <p className="text-secondary mb-0">No hay empleados que mostrar.</p>;
 

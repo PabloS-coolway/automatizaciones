@@ -17,6 +17,7 @@ import {
   HistoricoFichajeDto,
   JornadaHoyDto,
   NotificacionDto,
+  OrgEmployeeDto,
   PanelFichajeDto,
   RrhhActivityListDto,
   RrhhMeDto,
@@ -170,6 +171,22 @@ export class RrhhController {
   @UseGuards(RrhhGuard)
   async empleados(@RrhhActor() actor: EmployeeRow): Promise<EmployeeDto[]> {
     return (await this.service.listVisible(actor)).map(toDto);
+  }
+
+  @Get('organigrama')
+  @UseGuards(RrhhGuard)
+  async organigrama(): Promise<OrgEmployeeDto[]> {
+    // Organigrama público: cualquier empleado ve la estructura completa (sin datos sensibles).
+    return (await this.service.organigrama()).map((e) => ({
+      id: e.id,
+      fullName: e.fullName,
+      position: e.position,
+      rrhhRole: e.rrhhRole,
+      managerId: e.managerId,
+      active: e.active,
+      center: e.center,
+      brand: e.brand,
+    }));
   }
 
   @Post('empleados')
