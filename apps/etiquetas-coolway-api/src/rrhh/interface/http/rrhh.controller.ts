@@ -372,6 +372,25 @@ export class RrhhController {
     return (await this.ausencias.pendientesDe(visibles.map((e) => e.id))).map(toAusenciaDto);
   }
 
+  @Post('ausencias/:id/anular')
+  @UseGuards(RrhhGuard)
+  async anularAusencia(@RrhhActor() actor: EmployeeRow, @Param('id') id: string): Promise<AbsenceDto> {
+    const solicitud = await this.ausencias.buscar(Number(id));
+    if (!solicitud) throw new BadRequestException(`No existe la solicitud #${id}.`);
+    const esGestion = gestionaPlantilla(actor.rrhhRole); // RRHH/Admin
+    const esDueno = solicitud.employeeId === actor.id;
+    // Pendiente: la puede cancelar el propio empleado o RRHH/Admin. Aprobada: sólo RRHH/Admin (borrado lógico).
+    if (solicitud.status === 'PENDING') {
+      if (!esDueno && !esGestion) throw new ForbiddenException('No puedes cancelar esa solicitud.');
+    } else if (solicitud.status === 'APPROVED') {
+      if (!esGestion) throw new ForbiddenException('Una ausencia aprobada solo la puede cancelar RRHH/Admin.');
+    } else {
+      throw new BadRequestException('Esa solicitud ya no está activa.');
+    }
+    const avisar = !esDueno; // si la cancela otro (un admin), se avisa al empleado
+    return toAusenciaDto(await this.ausencias.anular(Number(id), { email: actor.email }, avisar).catch(traducir));
+  }
+
   @Post('ausencias/:id/aprobar')
   @UseGuards(RrhhGuard)
   async aprobarAusencia(@RrhhActor() actor: EmployeeRow, @Param('id') id: string, @Body() dto: DecidirAusenciaDto): Promise<AbsenceDto> {

@@ -188,6 +188,55 @@ describe('AusenciaService · saldo', () => {
   });
 });
 
+describe('AusenciaService · cancelar (borrado lógico)', () => {
+  it('cancelar pone estado CANCELLED, audita y deja de contar', async () => {
+    const repo = ausRepo();
+    const { recorder, registros } = recorderSpy();
+    const svc = new AusenciaService(tiposRepo(tipo()), repo, empFake(), notifFake(), storageFake(), recorder, db);
+    await svc.solicitar(1, { typeId: 1, startDate: `${dd}01`, endDate: `${dd}03` }, actor);
+    const r = await svc.anular(1, actor, false);
+    expect(r.status).toBe('CANCELLED');
+    expect(registros.some((x) => x.entity === 'AUSENCIA' && /Cancel/.test(x.summary))).toBe(true);
+    // ya no cuenta como aprobada (solape libre): otra en las mismas fechas se puede pedir
+    await expect(svc.solicitar(1, { typeId: 1, startDate: `${dd}01`, endDate: `${dd}03` }, actor)).resolves.toBeTruthy();
+  });
+
+  it('no se cancela algo ya cancelado o rechazado', async () => {
+    const repo = ausRepo();
+    const svc = new AusenciaService(tiposRepo(tipo()), repo, empFake(), notifFake(), storageFake(), recorderSpy().recorder, db);
+    await svc.solicitar(1, { typeId: 1, startDate: `${dd}01`, endDate: `${dd}03` }, actor);
+    await svc.anular(1, actor, false);
+    await expect(svc.anular(1, actor, false)).rejects.toBeInstanceOf(RrhhError);
+  });
+
+  it('si la cancela un admin (avisarEmpleado=true), notifica al empleado', async () => {
+    const repo = ausRepo();
+    const notif = notifFake();
+    const svc = new AusenciaService(tiposRepo(tipo()), repo, empFake(), notif, storageFake(), recorderSpy().recorder, db);
+    await svc.solicitar(1, { typeId: 1, startDate: `${dd}01`, endDate: `${dd}03` }, actor);
+    await svc.anular(1, actor, true);
+    expect(notif.creadas.some((n) => n.employeeId === 1 && /CANCELADA/.test(n.message))).toBe(true);
+  });
+});
+
+describe('AusenciaService · aviso sin responsable', () => {
+  it('si el solicitante NO tiene responsable, avisa a los RRHH/ADMIN', async () => {
+    const notif = notifFake();
+    // empFake sin managerId (null) + findAll con un ADMIN (id 5)
+    const emp: EmployeeRepository = {
+      findByUserId: async () => null,
+      findById: async () => ({ id: 1, userId: 1, fullName: 'Ana', email: 'ana@y.com', position: null, rrhhRole: 'EMPLEADO', managerId: null, active: true, department: null, departmentId: null, center: null, centerId: null, brand: null, weeklyMinutes: null, annualLeaveDays: null }),
+      findAll: async () => [{ id: 5, userId: 5, fullName: 'Jefa RRHH', email: 'r@y.com', position: null, rrhhRole: 'ADMIN', managerId: null, active: true, department: null, departmentId: null, center: null, centerId: null, brand: null, weeklyMinutes: null, annualLeaveDays: null }],
+      findUserIdByEmail: async () => null,
+      create: async () => ({ id: 1 } as never),
+      update: async () => ({ id: 1 } as never),
+    };
+    const svc = new AusenciaService(tiposRepo(tipo()), ausRepo(), emp, notif, storageFake(), recorderSpy().recorder, db);
+    await svc.solicitar(1, { typeId: 1, startDate: `${dd}01`, endDate: `${dd}03` }, actor);
+    expect(notif.creadas.some((n) => n.employeeId === 5)).toBe(true); // avisó al ADMIN
+  });
+});
+
 describe('AusenciaService · justificantes', () => {
   const pdf = { buffer: Buffer.from('%PDF-1.4'), originalname: 'baja médica.pdf', mimetype: 'application/pdf', size: 8 };
 
