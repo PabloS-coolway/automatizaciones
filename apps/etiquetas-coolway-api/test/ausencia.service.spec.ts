@@ -36,7 +36,7 @@ function ausRepo(): AbsenceRepository & { filas: AbsenceRow[] } {
     create: async (n: NuevaAusencia) => {
       const fila: AbsenceRow = {
         id: seq++, employeeId: n.employeeId, employeeName: 'Ana', department: null, typeId: n.typeId, typeName: 'Vacaciones', computesBalance: true,
-        startDate: n.startDate, endDate: n.endDate, halfDay: n.halfDay, reason: n.reason ?? null, status: n.status,
+        startDate: n.startDate, endDate: n.endDate, halfDay: n.halfDay, halfDayPart: n.halfDayPart ?? null, reason: n.reason ?? null, status: n.status,
         decidedByEmail: null, decidedAt: null, decisionNote: null, attachmentKey: null, attachmentName: null, createdAt: new Date(),
       };
       filas.push(fila);
@@ -118,9 +118,29 @@ describe('AusenciaService · solicitar', () => {
     await expect(svc.solicitar(1, { typeId: 99, startDate: `${dd}01`, endDate: `${dd}05` }, actor)).rejects.toBeInstanceOf(RrhhError);
   });
 
+  it('medio día en UN solo día guarda la mitad (SECOND) y cuenta 0,5', async () => {
+    const svc = new AusenciaService(tiposRepo(tipo()), ausRepo(), empFake(), notifFake(), storageFake(), recorderSpy().recorder, db);
+    const a = await svc.solicitar(1, { typeId: 1, startDate: `${dd}03`, endDate: `${dd}03`, halfDay: true, halfDayPart: 'SECOND' }, actor);
+    expect(a.halfDay).toBe(true);
+    expect(a.halfDayPart).toBe('SECOND');
+  });
+
+  it('medio día sin especificar mitad usa la primera por defecto', async () => {
+    const svc = new AusenciaService(tiposRepo(tipo()), ausRepo(), empFake(), notifFake(), storageFake(), recorderSpy().recorder, db);
+    const a = await svc.solicitar(1, { typeId: 1, startDate: `${dd}03`, endDate: `${dd}03`, halfDay: true }, actor);
+    expect(a.halfDayPart).toBe('FIRST');
+  });
+
+  it('medio día en un RANGO de varios días se ignora (sin mitad, día completo)', async () => {
+    const svc = new AusenciaService(tiposRepo(tipo()), ausRepo(), empFake(), notifFake(), storageFake(), recorderSpy().recorder, db);
+    const a = await svc.solicitar(1, { typeId: 1, startDate: `${dd}03`, endDate: `${dd}05`, halfDay: true, halfDayPart: 'SECOND' }, actor);
+    expect(a.halfDay).toBe(false);
+    expect(a.halfDayPart).toBeNull();
+  });
+
   it('NO deja solicitar si solapa con una ausencia ya aprobada', async () => {
     const repo = ausRepo();
-    repo.filas.push({ id: 1, employeeId: 1, employeeName: 'Ana', department: null, typeId: 1, typeName: 'Vacaciones', computesBalance: true, startDate: new Date(`${dd}10T00:00:00Z`), endDate: new Date(`${dd}15T00:00:00Z`), halfDay: false, reason: null, status: 'APPROVED', decidedByEmail: null, decidedAt: null, decisionNote: null, attachmentKey: null, attachmentName: null, createdAt: new Date() });
+    repo.filas.push({ id: 1, employeeId: 1, employeeName: 'Ana', department: null, typeId: 1, typeName: 'Vacaciones', computesBalance: true, startDate: new Date(`${dd}10T00:00:00Z`), endDate: new Date(`${dd}15T00:00:00Z`), halfDay: false, halfDayPart: null, reason: null, status: 'APPROVED', decidedByEmail: null, decidedAt: null, decisionNote: null, attachmentKey: null, attachmentName: null, createdAt: new Date() });
     const svc = new AusenciaService(tiposRepo(tipo()), repo, empFake(), notifFake(), storageFake(), recorderSpy().recorder, db);
     await expect(svc.solicitar(1, { typeId: 1, startDate: `${dd}12`, endDate: `${dd}18` }, actor)).rejects.toBeInstanceOf(RrhhError);
   });
@@ -144,7 +164,7 @@ describe('AusenciaService · decidir', () => {
     await svc.solicitar(1, { typeId: 1, startDate: `${dd}10`, endDate: `${dd}15` }, actor);
     await svc.decidir(1, true, actor, undefined);
     // La segunda no puede ni solicitarse por solape; la insertamos como PENDING directamente para probar decidir.
-    repo.filas.push({ id: 99, employeeId: 1, employeeName: 'Ana', department: null, typeId: 1, typeName: 'Vacaciones', computesBalance: true, startDate: new Date(`${dd}12T00:00:00Z`), endDate: new Date(`${dd}18T00:00:00Z`), halfDay: false, reason: null, status: 'PENDING', decidedByEmail: null, decidedAt: null, decisionNote: null, attachmentKey: null, attachmentName: null, createdAt: new Date() });
+    repo.filas.push({ id: 99, employeeId: 1, employeeName: 'Ana', department: null, typeId: 1, typeName: 'Vacaciones', computesBalance: true, startDate: new Date(`${dd}12T00:00:00Z`), endDate: new Date(`${dd}18T00:00:00Z`), halfDay: false, halfDayPart: null, reason: null, status: 'PENDING', decidedByEmail: null, decidedAt: null, decisionNote: null, attachmentKey: null, attachmentName: null, createdAt: new Date() });
     await expect(svc.decidir(99, true, actor, undefined)).rejects.toBeInstanceOf(RrhhError);
   });
 

@@ -216,6 +216,9 @@ model Absence {
   startDate     DateTime    @map("start_date") @db.Date
   endDate       DateTime    @map("end_date") @db.Date
   halfDay       Boolean     @default(false) @map("half_day")
+  /// Si es medio día (`halfDay` y un solo día), en qué mitad: FIRST (mañana) | SECOND (tarde). `null` en
+  /// ausencias de día completo. Es informativo para el equipo (a efectos de saldo, medio día = 0,5).
+  halfDayPart   String?     @map("half_day_part")
   reason        String?
   /// PENDING | APPROVED | REJECTED.
   status        String      @default("PENDING")

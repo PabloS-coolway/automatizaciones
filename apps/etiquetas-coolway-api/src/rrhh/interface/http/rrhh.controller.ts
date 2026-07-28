@@ -126,6 +126,7 @@ const toAusenciaDto = (a: AbsenceRow): AbsenceDto => ({
   startDate: diaISO(a.startDate),
   endDate: diaISO(a.endDate),
   halfDay: a.halfDay,
+  halfDayPart: (a.halfDayPart as AbsenceDto['halfDayPart']) ?? null,
   dias: diasSolicitados({ start: a.startDate, end: a.endDate }, a.halfDay),
   reason: a.reason,
   status: a.status as AbsenceDto['status'],

@@ -469,6 +469,20 @@ button, a, [role='button'], .form-control, .form-select { touch-action: manipula
 .cal-chip { font-size: .68rem; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 640px) { .cal-cell { min-height: 60px; } }
 
+/* Resumen de la solicitud de ausencia (#3). */
+.resumen-ausencia { background: var(--kpi-bg, rgba(127,127,127,.08)); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+
+/* "Mi calendario" anual (#5): 12 mini-meses. */
+.miano-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+@media (max-width: 992px) { .miano-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 700px) { .miano-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 420px) { .miano-grid { grid-template-columns: 1fr; } }
+.miano-titulo { font-weight: 600; font-size: .85rem; margin-bottom: 4px; text-align: center; }
+.miano-dias { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.miano-cab { text-align: center; font-size: .6rem; color: var(--bs-secondary-color, #888); }
+.miano-cel { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: .68rem; border-radius: 4px; }
+.miano-hoy { outline: 2px solid var(--brand-2); outline-offset: -2px; font-weight: 700; }
+
 /* Campana de avisos */
 .notif-bell { position: fixed; top: 14px; right: 20px; z-index: 1030; }
 .notif-bell-btn { background: var(--surface); border: 1px solid var(--border); color: var(--ink); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; box-shadow: 0 2px 8px rgba(28,24,48,.08); }
