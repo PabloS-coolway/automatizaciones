@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Alert, Badge, Button, Card, Form, Nav, Spinner } from 'react-bootstrap';
+import { Alert, Badge, Button, ButtonGroup, Card, Form, Nav, Spinner } from 'react-bootstrap';
 import { Paperclip } from 'react-bootstrap-icons';
 import {
   ESTADO_AUSENCIA_LABELS,
@@ -18,7 +18,8 @@ import { MiCalendarioAnual } from './personas/MiCalendarioAnual';
 import { diasSolicitados as calcDias, esUnSoloDia } from '../../domain/ausencia-dias';
 
 const VARIANTE: Record<EstadoAusencia, string> = { PENDING: 'warning', APPROVED: 'success', REJECTED: 'danger', CANCELLED: 'secondary' };
-type Vista = 'mias' | 'miaño' | 'aprobaciones' | 'calendario' | 'tipos';
+type Vista = 'mias' | 'calendario' | 'aprobaciones' | 'tipos';
+type CalModo = 'mio' | 'equipo';
 
 /**
  * REQ-008 Fase 3 · Ausencias. El empleado solicita y ve sus solicitudes; el responsable/RRHH aprueba las de su
@@ -30,6 +31,8 @@ export function AusenciasPage() {
   const puedeGestionar = employee?.rrhhRole === 'RRHH' || employee?.rrhhRole === 'ADMIN';
 
   const [vista, setVista] = useState<Vista>('mias');
+  const [calModo, setCalModo] = useState<CalModo>('mio');
+  const [soloActivas, setSoloActivas] = useState(true);
   const [mias, setMias] = useState<AbsenceDto[]>([]);
   const [pendientes, setPendientes] = useState<AbsenceDto[]>([]);
   const [tipos, setTipos] = useState<AbsenceTypeDto[]>([]);
@@ -70,6 +73,11 @@ export function AusenciasPage() {
   const tipoSel = useMemo(() => tiposActivos.find((t) => String(t.id) === form.typeId) ?? null, [tiposActivos, form.typeId]);
   const unSoloDia = esUnSoloDia(form.startDate, form.endDate);
   const diasResumen = calcDias(form.startDate, form.endDate, form.halfDay && unSoloDia);
+  // Filtro de "Mis solicitudes": por defecto sólo las activas (pendientes/aprobadas); "Todas" añade
+  // canceladas y rechazadas. Así la lista útil no se ensucia con el histórico cancelado.
+  const esActiva = (a: AbsenceDto) => a.status === 'PENDING' || a.status === 'APPROVED';
+  const miasFiltradas = useMemo(() => (soloActivas ? mias.filter(esActiva) : mias), [mias, soloActivas]);
+  const canceladasOcultas = useMemo(() => mias.filter((a) => !esActiva(a)).length, [mias]);
 
   async function solicitar(e: FormEvent) {
     e.preventDefault();
@@ -153,11 +161,10 @@ export function AusenciasPage() {
 
       <Nav variant="tabs" activeKey={vista} onSelect={(k) => setVista((k as Vista) ?? 'mias')} className="mb-3">
         <Nav.Item><Nav.Link eventKey="mias">Mis ausencias</Nav.Link></Nav.Item>
-        <Nav.Item><Nav.Link eventKey="miaño">Mi calendario</Nav.Link></Nav.Item>
+        <Nav.Item><Nav.Link eventKey="calendario">Calendario</Nav.Link></Nav.Item>
         {puedeAprobar && (
           <Nav.Item><Nav.Link eventKey="aprobaciones">Aprobaciones {pendientes.length > 0 && <Badge bg="warning" text="dark">{pendientes.length}</Badge>}</Nav.Link></Nav.Item>
         )}
-        {puedeAprobar && <Nav.Item><Nav.Link eventKey="calendario">Calendario</Nav.Link></Nav.Item>}
         {puedeGestionar && <Nav.Item><Nav.Link eventKey="tipos">Tipos</Nav.Link></Nav.Item>}
       </Nav>
 
@@ -243,15 +250,36 @@ export function AusenciasPage() {
             {saldo && saldo.anual > 0 && <SaldoCard saldo={saldo} />}
             <Card>
               <Card.Body>
-                <Card.Title className="h6 mb-3">Mis solicitudes ({mias.length})</Card.Title>
-                <ListaAusencias ausencias={mias} conNombre={false} onCancelar={cancelar} puedeGestionar={puedeGestionar} />
+                <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                  <Card.Title className="h6 mb-0">Mis solicitudes ({miasFiltradas.length})</Card.Title>
+                  <ButtonGroup size="sm">
+                    <Button variant={soloActivas ? 'brand' : 'outline-secondary'} onClick={() => setSoloActivas(true)}>Activas</Button>
+                    <Button variant={!soloActivas ? 'brand' : 'outline-secondary'} onClick={() => setSoloActivas(false)}>Todas</Button>
+                  </ButtonGroup>
+                </div>
+                <ListaAusencias ausencias={miasFiltradas} conNombre={false} onCancelar={cancelar} puedeGestionar={puedeGestionar} />
+                {soloActivas && canceladasOcultas > 0 && (
+                  <p className="text-secondary small mb-0 mt-2">{canceladasOcultas} solicitud(es) cancelada/rechazada oculta/s. <Button variant="link" size="sm" className="p-0 align-baseline" onClick={() => setSoloActivas(false)}>Ver todas</Button></p>
+                )}
               </Card.Body>
             </Card>
           </div>
         </div>
       )}
 
-      {vista === 'miaño' && <MiCalendarioAnual ausencias={mias} />}
+      {vista === 'calendario' && (
+        <>
+          {puedeAprobar && (
+            <ButtonGroup className="mb-3">
+              <Button variant={calModo === 'mio' ? 'brand' : 'outline-secondary'} onClick={() => setCalModo('mio')}>Mi año</Button>
+              <Button variant={calModo === 'equipo' ? 'brand' : 'outline-secondary'} onClick={() => setCalModo('equipo')}>Equipo</Button>
+            </ButtonGroup>
+          )}
+          {puedeAprobar && calModo === 'equipo'
+            ? <CalendarioAusencias puedeGestionar={puedeGestionar} />
+            : <MiCalendarioAnual ausencias={mias} />}
+        </>
+      )}
 
       {vista === 'aprobaciones' && puedeAprobar && (
         <Card>
@@ -283,8 +311,6 @@ export function AusenciasPage() {
           </Card.Body>
         </Card>
       )}
-
-      {vista === 'calendario' && puedeAprobar && <CalendarioAusencias puedeGestionar={puedeGestionar} />}
 
       {vista === 'tipos' && puedeGestionar && <TiposAusenciaManager tipos={tipos} onChange={reload} />}
     </div>

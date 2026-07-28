@@ -308,4 +308,21 @@ describe('AusenciaService · tipos', () => {
     await svc.crearTipo({ name: 'Mudanza', requiresApproval: true }, actor);
     expect(registros[0]).toMatchObject({ action: 'CREATE', entity: 'TIPO_AUSENCIA' });
   });
+
+  it('por defecto un tipo DESCUENTA saldo (evita el confuso "no descuenta" en Vacaciones)', async () => {
+    let capturado: { computesBalance: boolean } | null = null;
+    const repo: AbsenceTypeRepository = {
+      list: async () => [],
+      findById: async () => null,
+      create: async (d) => { capturado = d; return tipo({ id: 9, ...d }); },
+      update: async (_id, d) => tipo({ ...d }),
+      delete: async () => undefined,
+    };
+    const svc = new AusenciaService(repo, ausRepo(), empFake(), notifFake(), storageFake(), recorderSpy().recorder, db);
+    await svc.crearTipo({ name: 'Vacaciones' }, actor); // sin especificar computesBalance
+    expect(capturado!.computesBalance).toBe(true);
+    // pero si se pide explícitamente false (p.ej. baja médica), se respeta
+    await svc.crearTipo({ name: 'Baja', computesBalance: false }, actor);
+    expect(capturado!.computesBalance).toBe(false);
+  });
 });
