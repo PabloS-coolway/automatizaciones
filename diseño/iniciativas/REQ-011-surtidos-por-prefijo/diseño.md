@@ -59,6 +59,26 @@ sociedad, aviso de color BUG-006) **no se toca**.
 - **"¿Cómo me enteraría si miente?"** El filtro por prefijo debe validar (código de 3 chars, grupo conocido) y
   no inventar. Un prefijo sin catálogo → no se filtra ese grupo (opt-in), no se anula en silencio.
 
+## Corrección (28/07) · de FILTRAR a EXPANDIR al catálogo
+
+**Síntoma (Silvia, 28/07):** al podar surtidos, el fichero salía solo con `00I`/`0KR` en chica y `00Z` en chico
+—los que **venían** en el export de SAP— y no con todos los del catálogo. *"La idea era que añadiera todos los
+que están dados de alta, estuvieran o no en el fichero."*
+
+**Causa raíz:** la poda de surtidos se implementó como **filtro** (conservar la línea si su SURTD está en el
+catálogo). Si el export solo traía un subconjunto, solo eso podía sobrevivir; los demás códigos del catálogo
+nunca aparecían.
+
+**Arreglo:** para el fichero de surtidos se pasa de **filtrar** a **expandir**. Por cada producto **comprado**
+`(familia, color)`, la salida lleva **todos** los SURTD del catálogo de su grupo (76/86), estén o no en el
+export. Cada línea generada es un **clon de una línea real de ese producto** con solo el campo SURTD reescrito
+(no se inventa proveedor/nombre/color). Se sigue quitando lo que no está en el catálogo (la poda que Silvia sí
+quiere) y se sigue avisando de lo comprado que no aparece (no hay plantilla que clonar → no se inventa).
+
+**Test de regresión:** `poda.spec.ts` → "emite TODOS los códigos del catálogo … (rompe la expansión → cae)";
+verificado en rojo rompiendo la expansión. Verificado en vivo con el fichero real de `validaciones/28-07-2026`:
+cada ref de chica sale con los 22 surtidos y cada ref de chico con los 20; sociedad reescrita a 4000.
+
 ## Próximos pasos (implementación)
 
 1. Migración: reemplazar `surtido` por `poda_surtido` + seed.

@@ -201,7 +201,7 @@ describe('REQ-010 · Fase 1 · podarFicheros aplica la sociedad por tipo de fich
   });
 });
 
-describe('REQ-011 · filtrar surtidos por PREFIJO de familia (76/86)', () => {
+describe('REQ-011 (corrección) · EXPANDIR surtidos al catálogo del grupo (76/86)', () => {
   // Borrador compra la ref 7613553 (→ familia 76035530, prefijo 76) en color 500.
   const borrador: LineaBorrador[] = [{ ourRef: '7613553', colorSap: '500', suma: 13 }];
 
@@ -213,29 +213,69 @@ describe('REQ-011 · filtrar surtidos por PREFIJO de familia (76/86)', () => {
     f[8] = surtd;
     return f.join('\t');
   };
-  const surtidos = [surLine('S40'), surLine('U12'), surLine('M40')].join('\n');
 
-  it('con catálogo del grupo 76, deja SÓLO los surtidos de ese grupo (rompe el filtro → este test cae)', () => {
+  it('emite TODOS los códigos del catálogo del grupo, aunque NO estuvieran en el fichero (rompe la expansión → cae)', () => {
+    // El fichero sólo trae 00I; el catálogo del 76 tiene 4 → deben salir los 4.
+    const surtidos = surLine('00I');
     const r = podarFicheros(borrador, [{ nombre: 'ZCAL surtidos.txt', contenido: surtidos }], undefined, [
-      { grupo: '76', codigo: 'S40' },
+      { grupo: '76', codigo: '00I' },
+      { grupo: '76', codigo: '0KR' },
+      { grupo: '76', codigo: '00D' },
       { grupo: '76', codigo: 'M40' },
     ]);
     const f = r.ficheros[0];
     expect(f.tipo).toBe('surtidos');
-    expect(f.conservadas).toBe(2); // S40 y M40, no U12
-    expect(f.retiradas).toBe(1);
+    expect(f.conservadas).toBe(4); // los 4 del catálogo, no sólo el 00I que venía
+    expect(f.surtidosGenerados).toBe(4);
+    const surtdsSalida = f.podado.trim().split('\n').map((l) => l.split('\t')[8]).sort();
+    expect(surtdsSalida).toEqual(['00D', '00I', '0KR', 'M40']);
   });
 
-  it('un prefijo SIN catálogo no se filtra (opt-in por grupo)', () => {
-    // catálogo sólo del grupo 86 → el fichero (familia 76…) no se filtra: se conservan todos
+  it('las líneas generadas CLONAN el producto (familia/color intactos, sólo cambia el SURTD)', () => {
+    const surtidos = surLine('00I');
     const r = podarFicheros(borrador, [{ nombre: 'ZCAL surtidos.txt', contenido: surtidos }], undefined, [
-      { grupo: '86', codigo: 'S40' },
+      { grupo: '76', codigo: '00I' },
+      { grupo: '76', codigo: '0KR' },
     ]);
-    expect(r.ficheros[0].conservadas).toBe(3);
+    for (const l of r.ficheros[0].podado.trim().split('\n')) {
+      const c = l.split('\t');
+      expect(c[4]).toBe('76035530'); // familia intacta
+      expect(c[6]).toBe('500'); // color intacto
+    }
   });
 
-  it('sin activar surtidos, se conservan todos los comprados', () => {
+  it('quita los surtidos que NO están en el catálogo (la poda que Silvia sí quiere)', () => {
+    const surtidos = [surLine('00I'), surLine('U12')].join('\n'); // U12 no está en el catálogo
+    const r = podarFicheros(borrador, [{ nombre: 'ZCAL surtidos.txt', contenido: surtidos }], undefined, [
+      { grupo: '76', codigo: '00I' },
+      { grupo: '76', codigo: '0KR' },
+    ]);
+    const surtdsSalida = r.ficheros[0].podado.trim().split('\n').map((l) => l.split('\t')[8]).sort();
+    expect(surtdsSalida).toEqual(['00I', '0KR']); // U12 fuera; 0KR añadido
+  });
+
+  it('un prefijo SIN catálogo no se toca (opt-in por grupo)', () => {
+    const surtidos = [surLine('S40'), surLine('U12')].join('\n');
+    const r = podarFicheros(borrador, [{ nombre: 'ZCAL surtidos.txt', contenido: surtidos }], undefined, [
+      { grupo: '86', codigo: 'S40' }, // catálogo sólo del 86; el fichero es 76 → no se toca
+    ]);
+    expect(r.ficheros[0].conservadas).toBe(2);
+    expect(r.ficheros[0].surtidosGenerados).toBe(0);
+  });
+
+  it('sin activar surtidos, se conservan todos los comprados (poda normal)', () => {
+    const surtidos = [surLine('S40'), surLine('U12'), surLine('M40')].join('\n');
     const r = podarFicheros(borrador, [{ nombre: 'ZCAL surtidos.txt', contenido: surtidos }]);
     expect(r.ficheros[0].conservadas).toBe(3);
+    expect(r.ficheros[0].surtidosGenerados).toBe(0);
+  });
+
+  it('un producto NO comprado se retira (no se expande)', () => {
+    const noComprado = (() => { const f = Array(9).fill('z'); f[4] = '76099999'; f[6] = '999'; f[8] = '00I'; return f.join('\t'); })();
+    const r = podarFicheros(borrador, [{ nombre: 'ZCAL surtidos.txt', contenido: [surLine('00I'), noComprado].join('\n') }], undefined, [
+      { grupo: '76', codigo: '00I' },
+    ]);
+    expect(r.ficheros[0].retiradas).toBe(1); // el 76099999 fuera
+    expect(r.ficheros[0].conservadas).toBe(1); // sólo el producto comprado, expandido a 1 código
   });
 });

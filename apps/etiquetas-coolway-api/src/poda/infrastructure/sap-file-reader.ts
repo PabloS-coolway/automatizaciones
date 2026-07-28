@@ -23,6 +23,18 @@ export function sociedadColsDe(tipo: TipoFicheroSap): number[] {
   return FORMATOS[tipo].sociedadCols;
 }
 
+/** REQ-011 · Índice de la columna SURTD del fichero de surtidos (para reescribir el surtido al expandir). */
+export function surtdColDe(tipo: TipoFicheroSap): number | undefined {
+  return FORMATOS[tipo].surtdCol;
+}
+
+/** REQ-011 · Reescribe el campo SURTD (idx `col`) de una línea TSV con `codigo`, dejando el resto intacto. */
+export function reescribirSurtidoEnLinea(cruda: string, col: number, codigo: string): string {
+  const campos = cruda.split('\t');
+  campos[col] = codigo;
+  return campos.join('\t');
+}
+
 /** Adivina el tipo por el nombre del fichero (los exports de SAP tienen nombres reconocibles). */
 export function tipoPorNombre(nombre: string): TipoFicheroSap | null {
   if (/zcalvanyor/i.test(nombre)) return 'materiales';

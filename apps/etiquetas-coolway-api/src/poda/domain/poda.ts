@@ -126,12 +126,8 @@ function estaComprada(fila: FilaSap, compras: Compra[]): boolean {
 /**
  * Poda un fichero de SAP dejando **sólo** las filas de dato que corresponden a lo comprado. Las líneas que
  * no son de dato (cabeceras) se conservan intactas. NUNCA compone una línea: sólo deja pasar o quita.
- *
- * REQ-010 · Fase 2 — `surtidoOk` es un filtro EXTRA opcional (sólo se usa en el fichero de surtidos): una
- * fila comprada se conserva sólo si además su surtido es el asignado a esa ref. Sin `surtidoOk`, se comporta
- * igual que antes. Sigue sin componer nada: sólo deja pasar o quita.
  */
-export function podar(filas: FilaSap[], compras: Compra[], surtidoOk?: (fila: FilaSap) => boolean): ResultadoPoda {
+export function podar(filas: FilaSap[], compras: Compra[]): ResultadoPoda {
   const conservadas: string[] = [];
   const familiasEnFichero = new Set<string>();
   const paresEnFichero = new Set<string>();
@@ -145,7 +141,7 @@ export function podar(filas: FilaSap[], compras: Compra[], surtidoOk?: (fila: Fi
     }
     if (!fila.esDato) {
       conservadas.push(fila.cruda);
-    } else if (estaComprada(fila, compras) && (surtidoOk ? surtidoOk(fila) : true)) {
+    } else if (estaComprada(fila, compras)) {
       conservadas.push(fila.cruda);
       conservadasDato++;
     } else {
@@ -165,4 +161,81 @@ export function podar(filas: FilaSap[], compras: Compra[], surtidoOk?: (fila: Fi
   );
 
   return { conservadas, conservadasDato, retiradas, compradoQueFalta };
+}
+
+/** Resultado de la poda de surtidos: como el normal, más cuántas líneas se GENERARON por catálogo. */
+export interface ResultadoPodaSurtidos extends ResultadoPoda {
+  /** Líneas de surtido añadidas por expansión del catálogo (para el informe: el fichero crece a propósito). */
+  generadas: number;
+}
+
+/**
+ * REQ-011 (corrección) · Poda del **fichero de surtidos** por EXPANSIÓN al catálogo, no por filtro.
+ *
+ * Para cada producto **comprado** `(familia, color)`, la salida lleva **todos** los códigos SURTD del catálogo
+ * de su grupo (prefijo 76/86…), estén o no en el fichero de entrada — que era justo lo que faltaba. Cada línea
+ * generada es un **clon de una línea real de ese mismo producto** con el campo SURTD reescrito (vía
+ * `reescribirSurtido`): así el proveedor, nombre, modelo y color salen de datos que ya existían — **no se
+ * inventa nada** (regla del proyecto).
+ *
+ * Salvaguardas ("¿cómo me entero si miente?"):
+ * - Producto comprado que **no aparece** en el fichero → no hay línea que clonar → **no se genera**; se avisa
+ *   en `compradoQueFalta` (nunca se compone de cero).
+ * - Grupo **sin catálogo** → ese producto se deja **tal cual** (opt-in por grupo; no se vacía en silencio).
+ * - Un producto **no comprado** se retira (poda normal).
+ */
+export function podarSurtidos(
+  filas: FilaSap[],
+  compras: Compra[],
+  catalogoPorGrupo: Map<string, string[]>,
+  reescribirSurtido: (cruda: string, codigo: string) => string,
+): ResultadoPodaSurtidos {
+  const conservadas: string[] = [];
+  const paresEnFichero = new Set<string>();
+  let retiradas = 0;
+  let conservadasDato = 0;
+  let generadas = 0;
+  // Estado por producto (familia|color): 'expandido' (ya emitido su set de catálogo) u 'original' (se conserva tal cual).
+  const procesado = new Map<string, 'expandido' | 'original'>();
+
+  for (const fila of filas) {
+    if (!fila.esDato || fila.familia === undefined) {
+      conservadas.push(fila.cruda); // cabeceras y líneas sin familia se conservan intactas
+      continue;
+    }
+    const color = fila.colorSap === undefined ? '' : normalizeColor(fila.colorSap);
+    const clave = `${fila.familia}|${color}`;
+    if (fila.colorSap !== undefined) paresEnFichero.add(clave);
+
+    if (!estaComprada(fila, compras)) {
+      retiradas++;
+      continue;
+    }
+
+    const estado = procesado.get(clave);
+    if (estado === 'expandido') continue; // línea original ya sustituida por la expansión del catálogo
+    if (estado === 'original') {
+      conservadas.push(fila.cruda);
+      conservadasDato++;
+      continue;
+    }
+
+    // Primera línea de este producto comprado: se decide una vez.
+    const codigos = catalogoPorGrupo.get(fila.familia.slice(0, 2));
+    if (codigos && codigos.length > 0) {
+      for (const cod of codigos) {
+        conservadas.push(reescribirSurtido(fila.cruda, cod));
+        conservadasDato++;
+        generadas++;
+      }
+      procesado.set(clave, 'expandido');
+    } else {
+      conservadas.push(fila.cruda);
+      conservadasDato++;
+      procesado.set(clave, 'original');
+    }
+  }
+
+  const compradoQueFalta = compras.filter((c) => c.colorSap !== '' && !paresEnFichero.has(`${c.familia}|${c.colorSap}`));
+  return { conservadas, conservadasDato, retiradas, compradoQueFalta, generadas };
 }
