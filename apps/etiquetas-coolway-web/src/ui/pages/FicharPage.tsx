@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Badge, Button, Card, Spinner } from 'react-bootstrap';
-import { BoxArrowInRight, BoxArrowRight, CupHot, Download, PlayFill } from 'react-bootstrap-icons';
+import { BoxArrowInRight, BoxArrowRight, CupHot, Download, GeoAlt, PlayFill } from 'react-bootstrap-icons';
 import {
   ESTADO_JORNADA_LABELS,
   MARCAJE_LABELS,
@@ -55,6 +55,19 @@ function origen(): 'WEB' | 'MOBILE' {
   return typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches ? 'MOBILE' : 'WEB';
 }
 
+/** Pide la ubicación al navegador (con permiso). Si la deniega, no está disponible o tarda, devuelve undefined
+ * y se ficha igual sin coordenadas. Nunca bloquea el fichaje. */
+function obtenerUbicacion(): Promise<{ latitude: number; longitude: number; accuracy: number } | undefined> {
+  if (typeof navigator === 'undefined' || !navigator.geolocation) return Promise.resolve(undefined);
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude, accuracy: pos.coords.accuracy }),
+      () => resolve(undefined),
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 },
+    );
+  });
+}
+
 /**
  * REQ-008 Fase 2 (Slice 1) · Fichar jornada. Pensada para el **móvil**: pocos botones, grandes. La hora la pone
  * el servidor; aquí sólo se dice qué se marca. El estado y los botones posibles salen de la propia jornada.
@@ -91,7 +104,8 @@ export function FicharPage() {
     setError('');
     setMarcando(kind);
     try {
-      setJornada(await rrhhGateway.fichar({ kind, source: origen() }));
+      const geo = await obtenerUbicacion(); // pide permiso; si lo deniega, ficha igual sin coords
+      setJornada(await rrhhGateway.fichar({ kind, source: origen(), ...geo }));
       cargarHistorico(); // el fichaje puede cerrar el día → refresca el historial
     } catch (e) {
       setError((e as Error).message);
@@ -134,6 +148,7 @@ export function FicharPage() {
       <header className="page-head mb-4">
         <h1 className="h4 mb-1">Fichar</h1>
         <p className="text-secondary mb-0">Tu jornada de hoy. La hora la registra el servidor.</p>
+        <p className="text-secondary small mb-0"><GeoAlt className="me-1" />Al fichar se guarda tu ubicación (si la autorizas). Si no das permiso, se ficha igual sin ella.</p>
       </header>
 
       {error && <Alert variant="danger" onClose={() => setError('')} dismissible>⚠ {error}</Alert>}

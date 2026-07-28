@@ -99,6 +99,9 @@ const toDiaDetalleDto = (d: DiaDetalle): DiaDetalleFichajeDto => ({
     note: row.note,
     actorEmail: row.actorEmail,
     anulado,
+    latitude: row.latitude,
+    longitude: row.longitude,
+    accuracy: row.accuracy,
   })),
 });
 
@@ -254,7 +257,10 @@ export class RrhhController {
   async fichar(@RrhhActor() actor: EmployeeRow, @Body() dto: FicharDto): Promise<JornadaHoyDto> {
     if (!esMarcaje(String(dto.kind))) throw new BadRequestException(`Marcaje no válido: "${dto.kind}".`);
     const source = dto.source === 'MOBILE' ? 'MOBILE' : 'WEB';
-    return toJornadaDto(await this.fichaje.fichar(actor.id, dto.kind, source).catch(traducir));
+    // Geolocalización opcional: sólo números válidos (si el navegador no la dio, se ficha igual sin coords).
+    const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : undefined);
+    const geo = { latitude: num(dto.latitude), longitude: num(dto.longitude), accuracy: num(dto.accuracy) };
+    return toJornadaDto(await this.fichaje.fichar(actor.id, dto.kind, source, geo).catch(traducir));
   }
 
   @Get('fichajes/historico')

@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Alert, Badge, Button, Form, Modal, Spinner } from 'react-bootstrap';
+import { GeoAlt } from 'react-bootstrap-icons';
 import { MARCAJE_LABELS, MARCAJES, type DiaDetalleFichajeDto, type Marcaje } from '@yorga/contracts';
 import { rrhhGateway } from '../../composition';
 import { formatearMinutos } from '../../../domain/fichaje-csv';
@@ -96,6 +97,11 @@ export function CorreccionModal({
                       {esVoid ? <em className="text-secondary">anulación</em> : MARCAJE_LABELS[e.kind as Marcaje]} · {hora(e.at)}
                       {e.actorEmail && <Badge bg="info-subtle" text="info" className="ms-2">corrección</Badge>}
                       {e.anulado && <Badge bg="secondary-subtle" text="secondary" className="ms-2">anulado</Badge>}
+                      {e.latitude != null && e.longitude != null && (
+                        <a className="ms-2 small" href={`https://www.google.com/maps?q=${e.latitude},${e.longitude}`} target="_blank" rel="noreferrer">
+                          <GeoAlt /> ubicación{e.accuracy != null ? ` (±${Math.round(e.accuracy)}m)` : ''}
+                        </a>
+                      )}
                     </span>
                     {!esVoid && !e.anulado && (
                       <Button size="sm" variant="outline-danger" onClick={() => anular(e.id)} disabled={busy}>

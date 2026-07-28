@@ -102,14 +102,14 @@ export class FichajeService {
     private readonly prisma: PrismaService,
   ) {}
 
-  async fichar(employeeId: number, kind: Marcaje, source: 'WEB' | 'MOBILE' = 'WEB'): Promise<Jornada> {
+  async fichar(employeeId: number, kind: Marcaje, source: 'WEB' | 'MOBILE' = 'WEB', geo?: { latitude?: number; longitude?: number; accuracy?: number }): Promise<Jornada> {
     const { desde, hasta } = rangoDiaDe(new Date());
     const hoy = await this.repo.listBetween(employeeId, desde, hasta);
     const estado = estadoActual(fichajesEfectivos(hoy.map(toCrudo)));
     if (!siguienteEstado(estado, kind)) {
       throw new FichajeError(`No puedes «${MARCAJE_LABELS[kind]}» ahora mismo: estás ${ESTADO_HUMANO[estado]}.`);
     }
-    await this.repo.add({ employeeId, kind, source });
+    await this.repo.add({ employeeId, kind, source, latitude: geo?.latitude, longitude: geo?.longitude, accuracy: geo?.accuracy });
     return this.jornadaHoy(employeeId);
   }
 

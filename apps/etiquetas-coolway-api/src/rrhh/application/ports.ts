@@ -79,6 +79,10 @@ export interface TimeEntryRow {
   actorEmail: string | null;
   /** Si anula/corrige otro fichaje, su id. */
   correctsId: number | null;
+  /** Geolocalización del fichaje (si se dio consentimiento). `accuracy` = radio de precisión en metros. */
+  latitude: number | null;
+  longitude: number | null;
+  accuracy: number | null;
 }
 
 /** Alta de un fichaje (propio en vivo o corrección de RRHH). */
@@ -90,6 +94,9 @@ export interface NuevoFichaje {
   at?: Date;
   actorEmail?: string;
   correctsId?: number;
+  latitude?: number;
+  longitude?: number;
+  accuracy?: number;
 }
 
 /** Puerto: fichajes (registro solo-añadir). No hay update ni delete: una corrección es un asiento nuevo. */
