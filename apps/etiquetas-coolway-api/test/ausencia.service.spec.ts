@@ -34,7 +34,7 @@ function ausRepo(): AbsenceRepository & { filas: AbsenceRow[] } {
     filas,
     create: async (n: NuevaAusencia) => {
       const fila: AbsenceRow = {
-        id: seq++, employeeId: n.employeeId, employeeName: 'Ana', typeId: n.typeId, typeName: 'Vacaciones', computesBalance: true,
+        id: seq++, employeeId: n.employeeId, employeeName: 'Ana', department: null, typeId: n.typeId, typeName: 'Vacaciones', computesBalance: true,
         startDate: n.startDate, endDate: n.endDate, halfDay: n.halfDay, reason: n.reason ?? null, status: n.status,
         decidedByEmail: null, decidedAt: null, decisionNote: null, createdAt: new Date(),
       };
@@ -108,7 +108,7 @@ describe('AusenciaService · solicitar', () => {
 
   it('NO deja solicitar si solapa con una ausencia ya aprobada', async () => {
     const repo = ausRepo();
-    repo.filas.push({ id: 1, employeeId: 1, employeeName: 'Ana', typeId: 1, typeName: 'Vacaciones', computesBalance: true, startDate: new Date(`${dd}10T00:00:00Z`), endDate: new Date(`${dd}15T00:00:00Z`), halfDay: false, reason: null, status: 'APPROVED', decidedByEmail: null, decidedAt: null, decisionNote: null, createdAt: new Date() });
+    repo.filas.push({ id: 1, employeeId: 1, employeeName: 'Ana', department: null, typeId: 1, typeName: 'Vacaciones', computesBalance: true, startDate: new Date(`${dd}10T00:00:00Z`), endDate: new Date(`${dd}15T00:00:00Z`), halfDay: false, reason: null, status: 'APPROVED', decidedByEmail: null, decidedAt: null, decisionNote: null, createdAt: new Date() });
     const svc = new AusenciaService(tiposRepo(tipo()), repo, empFake(), notifFake(), recorderSpy().recorder, db);
     await expect(svc.solicitar(1, { typeId: 1, startDate: `${dd}12`, endDate: `${dd}18` }, actor)).rejects.toBeInstanceOf(RrhhError);
   });
@@ -132,7 +132,7 @@ describe('AusenciaService · decidir', () => {
     await svc.solicitar(1, { typeId: 1, startDate: `${dd}10`, endDate: `${dd}15` }, actor);
     await svc.decidir(1, true, actor, undefined);
     // La segunda no puede ni solicitarse por solape; la insertamos como PENDING directamente para probar decidir.
-    repo.filas.push({ id: 99, employeeId: 1, employeeName: 'Ana', typeId: 1, typeName: 'Vacaciones', computesBalance: true, startDate: new Date(`${dd}12T00:00:00Z`), endDate: new Date(`${dd}18T00:00:00Z`), halfDay: false, reason: null, status: 'PENDING', decidedByEmail: null, decidedAt: null, decisionNote: null, createdAt: new Date() });
+    repo.filas.push({ id: 99, employeeId: 1, employeeName: 'Ana', department: null, typeId: 1, typeName: 'Vacaciones', computesBalance: true, startDate: new Date(`${dd}12T00:00:00Z`), endDate: new Date(`${dd}18T00:00:00Z`), halfDay: false, reason: null, status: 'PENDING', decidedByEmail: null, decidedAt: null, decisionNote: null, createdAt: new Date() });
     await expect(svc.decidir(99, true, actor, undefined)).rejects.toBeInstanceOf(RrhhError);
   });
 
