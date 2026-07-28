@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Alert, Badge, Button, Card, Form, Modal, Nav, Spinner } from 'react-bootstrap';
-import { Diagram3, PencilSquare, PersonDash, PersonCheck, PlusLg, Building, ClockHistory } from 'react-bootstrap-icons';
+import { Diagram3, Download, PencilSquare, PersonDash, PersonCheck, PlusLg, Building, ClockHistory } from 'react-bootstrap-icons';
 import {
   RRHH_ROLE_LABELS,
   RRHH_ROLES,
@@ -15,6 +15,7 @@ import { Column, DataTable, useMemoryTable } from '../components/table';
 import { OrganigramaView } from './personas/OrganigramaView';
 import { EstructuraManager } from './personas/EstructuraManager';
 import { PanelFichajes } from './personas/PanelFichajes';
+import { plantillaACsv } from '../../domain/plantilla-csv';
 
 const VACIO = { email: '', fullName: '', rrhhRole: 'EMPLEADO' as RrhhRole, position: '', managerId: '', centerId: '', departmentId: '', weeklyHours: '', annualLeaveDays: '' };
 type Vista = 'plantilla' | 'organigrama' | 'fichajes' | 'estructura';
@@ -217,6 +218,16 @@ export function PersonasPage() {
 
   const posiblesResponsables = useMemo(() => empleados.filter((e) => e.id !== editId), [empleados, editId]);
 
+  function exportarPlantilla() {
+    const blob = new Blob([plantillaACsv(empleados)], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'plantilla.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   if (rrhhLoading || loading) {
     return (
       <div className="page page-wide">
@@ -264,7 +275,12 @@ export function PersonasPage() {
           {vista === 'plantilla' && (
             <Card>
               <Card.Body className="p-4">
-                <Card.Title className="mb-3">Plantilla ({empleados.length})</Card.Title>
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <Card.Title className="mb-0">Plantilla ({empleados.length})</Card.Title>
+                  {puedeGestionar && empleados.length > 0 && (
+                    <Button size="sm" variant="outline-secondary" onClick={exportarPlantilla}><Download className="me-1" /> CSV</Button>
+                  )}
+                </div>
                 <DataTable model={tabla} allRows={empleados} rowKey={(e) => String(e.id)} empty="No hay empleados visibles." />
               </Card.Body>
             </Card>

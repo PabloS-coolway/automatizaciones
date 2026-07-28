@@ -1,6 +1,6 @@
 import { AusenciaService } from '../src/rrhh/application/ausencia.service';
 import { RrhhError } from '../src/rrhh/application/rrhh.service';
-import { AbsenceRepository, AbsenceRow, AbsenceTypeRepository, AbsenceTypeRow, NuevaAusencia } from '../src/rrhh/application/ports';
+import { AbsenceRepository, AbsenceRow, AbsenceTypeRepository, AbsenceTypeRow, EmployeeRepository, NotificationRepository, NuevaAusencia } from '../src/rrhh/application/ports';
 import { RrhhActivityRecord, RrhhActivityRecorder } from '../src/rrhh/application/rrhh-activity.port';
 import { PrismaService } from '../src/infrastructure/db/prisma.service';
 
@@ -54,25 +54,54 @@ function ausRepo(): AbsenceRepository & { filas: AbsenceRow[] } {
   };
 }
 
+/** Empleados de mentira: por defecto sin responsable (no dispara notificación al jefe). */
+function empFake(managerId: number | null = null): EmployeeRepository {
+  const base = { id: 1, userId: 1, fullName: 'Ana', email: 'ana@y.com', position: null, rrhhRole: 'EMPLEADO' as const, managerId, active: true, department: null, departmentId: null, center: null, centerId: null, brand: null, weeklyMinutes: null, annualLeaveDays: null };
+  return {
+    findByUserId: async () => null,
+    findById: async () => base,
+    findAll: async () => [base],
+    findUserIdByEmail: async () => null,
+    create: async () => base,
+    update: async () => base,
+  };
+}
+
+/** Notificaciones de mentira: registra las creadas. */
+function notifFake(): NotificationRepository & { creadas: { employeeId: number; message: string }[] } {
+  const creadas: { employeeId: number; message: string }[] = [];
+  return {
+    creadas,
+    create: async (d) => {
+      creadas.push({ employeeId: d.employeeId, message: d.message });
+      return { id: creadas.length, employeeId: d.employeeId, message: d.message, link: d.link ?? null, read: false, createdAt: new Date() };
+    },
+    listForEmployee: async () => [],
+    countUnread: async () => 0,
+    markRead: async () => undefined,
+    markAllRead: async () => undefined,
+  };
+}
+
 const dd = '2026-08-';
 
 describe('AusenciaService · solicitar', () => {
   it('con tipo que requiere aprobación queda PENDING y audita', async () => {
     const { recorder, registros } = recorderSpy();
-    const svc = new AusenciaService(tiposRepo(tipo()), ausRepo(), recorder, db);
+    const svc = new AusenciaService(tiposRepo(tipo()), ausRepo(), empFake(), notifFake(), recorder, db);
     const a = await svc.solicitar(1, { typeId: 1, startDate: `${dd}01`, endDate: `${dd}05` }, actor);
     expect(a.status).toBe('PENDING');
     expect(registros[0]).toMatchObject({ action: 'CREATE', entity: 'AUSENCIA' });
   });
 
   it('con tipo que NO requiere aprobación queda APPROVED al vuelo', async () => {
-    const svc = new AusenciaService(tiposRepo(tipo({ requiresApproval: false })), ausRepo(), recorderSpy().recorder, db);
+    const svc = new AusenciaService(tiposRepo(tipo({ requiresApproval: false })), ausRepo(), empFake(), notifFake(), recorderSpy().recorder, db);
     const a = await svc.solicitar(1, { typeId: 1, startDate: `${dd}01`, endDate: `${dd}05` }, actor);
     expect(a.status).toBe('APPROVED');
   });
 
   it('rechaza rango inválido y tipo inexistente', async () => {
-    const svc = new AusenciaService(tiposRepo(tipo()), ausRepo(), recorderSpy().recorder, db);
+    const svc = new AusenciaService(tiposRepo(tipo()), ausRepo(), empFake(), notifFake(), recorderSpy().recorder, db);
     await expect(svc.solicitar(1, { typeId: 1, startDate: `${dd}05`, endDate: `${dd}01` }, actor)).rejects.toBeInstanceOf(RrhhError);
     await expect(svc.solicitar(1, { typeId: 99, startDate: `${dd}01`, endDate: `${dd}05` }, actor)).rejects.toBeInstanceOf(RrhhError);
   });
@@ -80,7 +109,7 @@ describe('AusenciaService · solicitar', () => {
   it('NO deja solicitar si solapa con una ausencia ya aprobada', async () => {
     const repo = ausRepo();
     repo.filas.push({ id: 1, employeeId: 1, employeeName: 'Ana', typeId: 1, typeName: 'Vacaciones', computesBalance: true, startDate: new Date(`${dd}10T00:00:00Z`), endDate: new Date(`${dd}15T00:00:00Z`), halfDay: false, reason: null, status: 'APPROVED', decidedByEmail: null, decidedAt: null, decisionNote: null, createdAt: new Date() });
-    const svc = new AusenciaService(tiposRepo(tipo()), repo, recorderSpy().recorder, db);
+    const svc = new AusenciaService(tiposRepo(tipo()), repo, empFake(), notifFake(), recorderSpy().recorder, db);
     await expect(svc.solicitar(1, { typeId: 1, startDate: `${dd}12`, endDate: `${dd}18` }, actor)).rejects.toBeInstanceOf(RrhhError);
   });
 });
@@ -89,7 +118,7 @@ describe('AusenciaService · decidir', () => {
   it('aprobar cambia a APPROVED y audita; rechazar a REJECTED', async () => {
     const repo = ausRepo();
     const { recorder, registros } = recorderSpy();
-    const svc = new AusenciaService(tiposRepo(tipo()), repo, recorder, db);
+    const svc = new AusenciaService(tiposRepo(tipo()), repo, empFake(), notifFake(), recorder, db);
     await svc.solicitar(1, { typeId: 1, startDate: `${dd}01`, endDate: `${dd}03` }, actor);
     const aprobada = await svc.decidir(1, true, actor, 'ok');
     expect(aprobada.status).toBe('APPROVED');
@@ -98,7 +127,7 @@ describe('AusenciaService · decidir', () => {
 
   it('NO aprueba si solapa con otra aprobada del mismo empleado', async () => {
     const repo = ausRepo();
-    const svc = new AusenciaService(tiposRepo(tipo()), repo, recorderSpy().recorder, db);
+    const svc = new AusenciaService(tiposRepo(tipo()), repo, empFake(), notifFake(), recorderSpy().recorder, db);
     // #1 aprobada 10–15; #2 pendiente 12–18 → aprobar #2 debe fallar.
     await svc.solicitar(1, { typeId: 1, startDate: `${dd}10`, endDate: `${dd}15` }, actor);
     await svc.decidir(1, true, actor, undefined);
@@ -107,9 +136,25 @@ describe('AusenciaService · decidir', () => {
     await expect(svc.decidir(99, true, actor, undefined)).rejects.toBeInstanceOf(RrhhError);
   });
 
+  it('al decidir avisa al empleado (notificación in-app)', async () => {
+    const repo = ausRepo();
+    const notif = notifFake();
+    const svc = new AusenciaService(tiposRepo(tipo()), repo, empFake(), notif, recorderSpy().recorder, db);
+    await svc.solicitar(1, { typeId: 1, startDate: `${dd}01`, endDate: `${dd}03` }, actor);
+    await svc.decidir(1, true, actor, undefined);
+    expect(notif.creadas.some((n) => n.employeeId === 1 && /APROBADA/.test(n.message))).toBe(true);
+  });
+
+  it('al solicitar con responsable, avisa al responsable', async () => {
+    const notif = notifFake();
+    const svc = new AusenciaService(tiposRepo(tipo()), ausRepo(), empFake(7), notif, recorderSpy().recorder, db);
+    await svc.solicitar(1, { typeId: 1, startDate: `${dd}01`, endDate: `${dd}03` }, actor);
+    expect(notif.creadas.some((n) => n.employeeId === 7)).toBe(true); // el jefe (id 7)
+  });
+
   it('no se decide dos veces', async () => {
     const repo = ausRepo();
-    const svc = new AusenciaService(tiposRepo(tipo()), repo, recorderSpy().recorder, db);
+    const svc = new AusenciaService(tiposRepo(tipo()), repo, empFake(), notifFake(), recorderSpy().recorder, db);
     await svc.solicitar(1, { typeId: 1, startDate: `${dd}01`, endDate: `${dd}03` }, actor);
     await svc.decidir(1, false, actor, undefined);
     await expect(svc.decidir(1, true, actor, undefined)).rejects.toBeInstanceOf(RrhhError);
@@ -119,7 +164,7 @@ describe('AusenciaService · decidir', () => {
 describe('AusenciaService · saldo', () => {
   it('resta del cupo anual los días aprobados que computan saldo', async () => {
     const repo = ausRepo();
-    const svc = new AusenciaService(tiposRepo(tipo()), repo, recorderSpy().recorder, db);
+    const svc = new AusenciaService(tiposRepo(tipo()), repo, empFake(), notifFake(), recorderSpy().recorder, db);
     await svc.solicitar(1, { typeId: 1, startDate: `${dd}03`, endDate: `${dd}07` }, actor); // 5 días
     await svc.decidir(1, true, actor, undefined); // aprobada
     await svc.solicitar(1, { typeId: 1, startDate: `${dd}20`, endDate: `${dd}21` }, actor); // 2 días, pendiente
@@ -133,13 +178,13 @@ describe('AusenciaService · saldo', () => {
 
 describe('AusenciaService · tipos', () => {
   it('no borra un tipo con usos', async () => {
-    const svc = new AusenciaService(tiposRepo(tipo({ usos: 3 })), ausRepo(), recorderSpy().recorder, db);
+    const svc = new AusenciaService(tiposRepo(tipo({ usos: 3 })), ausRepo(), empFake(), notifFake(), recorderSpy().recorder, db);
     await expect(svc.borrarTipo(1, actor)).rejects.toBeInstanceOf(RrhhError);
   });
 
   it('crea un tipo y audita', async () => {
     const { recorder, registros } = recorderSpy();
-    const svc = new AusenciaService(tiposRepo(tipo()), ausRepo(), recorder, db);
+    const svc = new AusenciaService(tiposRepo(tipo()), ausRepo(), empFake(), notifFake(), recorder, db);
     await svc.crearTipo({ name: 'Mudanza', requiresApproval: true }, actor);
     expect(registros[0]).toMatchObject({ action: 'CREATE', entity: 'TIPO_AUSENCIA' });
   });

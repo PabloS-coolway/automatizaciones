@@ -3,6 +3,25 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-28] REQ-008 · RRHH Fase 4 — avisos in-app + export de plantilla
+
+Cierra el módulo RRHH (Fase 1): los refinos que rematan la experiencia.
+
+### Añadido
+- **Avisos in-app**: al solicitar una ausencia se avisa al **responsable**; al aprobar/rechazar, al **empleado**.
+  Badge de no leídos en el menú + página «Avisos» (marcar leída / todas). Se generan en la **misma transacción**
+  que el evento.
+- **Export de la plantilla a CSV** (informe para RRHH), además del CSV de fichajes ya existente.
+
+### Diferido (a propósito)
+- **Correo (SMTP)**: el modelo de avisos deja el enganche listo, pero el envío por email se activará cuando
+  haya servidor/credenciales (coordinar con Tomás). No se construye un envío falso.
+
+### Verificado
+- typecheck + **293 tests API** + web (`plantillaACsv`) + build.
+- **En vivo:** solicitar → el responsable recibe el aviso; aprobar → el empleado recibe "APROBADA"; marcar
+  todas leídas → 0. *La migración se aplica sola en el deploy.*
+
 ## [2026-07-28] REQ-008 · RRHH Fase 3 (Slice 3b) — saldos, calendario y coordinación con fichaje
 
 Cierra la Fase 3.

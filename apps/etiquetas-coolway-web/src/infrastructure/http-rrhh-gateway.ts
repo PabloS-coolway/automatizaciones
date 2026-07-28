@@ -14,6 +14,7 @@ import type {
   FicharDto,
   HistoricoFichajeDto,
   JornadaHoyDto,
+  NotificacionDto,
   PanelFichajeDto,
   RrhhMeDto,
   SaldoVacacionesDto,
@@ -229,5 +230,27 @@ export class HttpRrhhGateway {
     const res = await apiFetch(`/rrhh/ausencias/calendario?desde=${desde}&hasta=${hasta}`);
     if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo cargar el calendario.'));
     return res.json();
+  }
+
+  // ---- Avisos in-app ----
+
+  async notificaciones(): Promise<NotificacionDto[]> {
+    const res = await apiFetch('/rrhh/notificaciones');
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudieron cargar los avisos.'));
+    return res.json();
+  }
+
+  async avisosNoLeidos(): Promise<number> {
+    const res = await apiFetch('/rrhh/notificaciones/no-leidas');
+    if (!res.ok) return 0;
+    return (await res.json()).count;
+  }
+
+  async leerAviso(id: number): Promise<void> {
+    await apiFetch(`/rrhh/notificaciones/${id}/leer`, { method: 'POST' });
+  }
+
+  async leerTodosAvisos(): Promise<void> {
+    await apiFetch('/rrhh/notificaciones/leer-todas', { method: 'POST' });
   }
 }
