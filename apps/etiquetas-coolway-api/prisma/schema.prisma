@@ -217,6 +217,10 @@ model Absence {
   decidedByEmail String?    @map("decided_by_email")
   decidedAt     DateTime?   @map("decided_at")
   decisionNote  String?     @map("decision_note")
+  /// Justificante (Fase 3): clave del objeto en el almacenamiento (Spaces/local) y nombre original del fichero.
+  /// El fichero se sirve siempre por la API con control de acceso (dato sensible: no hay URL pública).
+  attachmentKey  String?    @map("attachment_key")
+  attachmentName String?    @map("attachment_name")
   createdAt     DateTime    @default(now()) @map("created_at")
 
   @@index([employeeId, startDate])
