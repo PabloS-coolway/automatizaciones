@@ -159,9 +159,50 @@ model Employee {
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
   timeEntries  TimeEntry[]
+  absences     Absence[]
 
   @@index([managerId])
   @@map("hr_employee")
+}
+
+/// REQ-008 Fase 3 · Tipo de ausencia configurable (vacaciones, baja médica, permiso, asuntos propios…). Cada
+/// tipo define sus reglas: si computa saldo de vacaciones, si requiere aprobación y si exige justificante.
+model AbsenceType {
+  id               Int       @id @default(autoincrement())
+  name             String    @unique
+  /// ¿Descuenta del saldo anual de vacaciones? (Fase 3b usa esto para los saldos.)
+  computesBalance  Boolean   @default(false) @map("computes_balance")
+  /// ¿Necesita aprobación del responsable/RRHH, o es sólo un aviso?
+  requiresApproval Boolean   @default(true) @map("requires_approval")
+  /// ¿Exige adjuntar justificante? (informativo en Fase 3a).
+  requiresAttachment Boolean @default(false) @map("requires_attachment")
+  active           Boolean   @default(true)
+  absences         Absence[]
+
+  @@map("hr_absence_type")
+}
+
+/// REQ-008 Fase 3 · Solicitud de ausencia de un empleado. Estado PENDING → APPROVED/REJECTED. La decisión deja
+/// traza (quién, cuándo, nota). Rango de días [startDate, endDate]; `halfDay` = medio día (mismo día).
+model Absence {
+  id            Int         @id @default(autoincrement())
+  employeeId    Int         @map("employee_id")
+  employee      Employee    @relation(fields: [employeeId], references: [id])
+  typeId        Int         @map("type_id")
+  type          AbsenceType @relation(fields: [typeId], references: [id])
+  startDate     DateTime    @map("start_date") @db.Date
+  endDate       DateTime    @map("end_date") @db.Date
+  halfDay       Boolean     @default(false) @map("half_day")
+  reason        String?
+  /// PENDING | APPROVED | REJECTED.
+  status        String      @default("PENDING")
+  decidedByEmail String?    @map("decided_by_email")
+  decidedAt     DateTime?   @map("decided_at")
+  decisionNote  String?     @map("decision_note")
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  @@index([employeeId, startDate])
+  @@map("hr_absence")
 }
 
 /// REQ-008 Fase 2 · Fichaje (marcaje) de jornada. Registro **solo-añadir**: un fichaje no se edita ni se borra;

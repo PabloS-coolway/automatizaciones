@@ -3,8 +3,12 @@ import {
   CenterDto,
   CreateCenterDto,
   CreateDepartmentDto,
+  AbsenceDto,
+  AbsenceTypeDto,
   CorreccionFichajeDto,
+  CreateAbsenceTypeDto,
   CreateEmployeeDto,
+  DecidirAusenciaDto,
   DepartmentDto,
   DiaDetalleFichajeDto,
   EmployeeDto,
@@ -13,7 +17,9 @@ import {
   JornadaHoyDto,
   PanelFichajeDto,
   RrhhMeDto,
+  SolicitarAusenciaDto,
   TimeEntryDto,
+  UpdateAbsenceTypeDto,
   UpdateCenterDto,
   UpdateDepartmentDto,
   UpdateEmployeeDto,
@@ -24,6 +30,9 @@ import { CenterRow, DepartmentRow, EmployeeRow, TimeEntryRow } from '../../appli
 import { RrhhError, RrhhService } from '../../application/rrhh.service';
 import { RrhhStructureService } from '../../application/rrhh-structure.service';
 import { DiaDetalle, DiaJornada, FichajeService, Jornada, Panel } from '../../application/fichaje.service';
+import { AusenciaService } from '../../application/ausencia.service';
+import { AbsenceRow, AbsenceTypeRow } from '../../application/ports';
+import { diasSolicitados } from '../../domain/ausencia';
 import { esMarcaje } from '../../domain/fichaje';
 import { gestionaPlantilla } from '../../domain/rrhh-org';
 import { RrhhActor, RrhhGuard } from './rrhh.guard';
@@ -78,6 +87,34 @@ const toDiaDetalleDto = (d: DiaDetalle): DiaDetalleFichajeDto => ({
   })),
 });
 
+const diaISO = (d: Date): string => d.toISOString().slice(0, 10);
+const toTipoAusenciaDto = (t: AbsenceTypeRow): AbsenceTypeDto => ({
+  id: t.id,
+  name: t.name,
+  computesBalance: t.computesBalance,
+  requiresApproval: t.requiresApproval,
+  requiresAttachment: t.requiresAttachment,
+  active: t.active,
+  usos: t.usos,
+});
+const toAusenciaDto = (a: AbsenceRow): AbsenceDto => ({
+  id: a.id,
+  employeeId: a.employeeId,
+  employeeName: a.employeeName,
+  typeId: a.typeId,
+  typeName: a.typeName,
+  startDate: diaISO(a.startDate),
+  endDate: diaISO(a.endDate),
+  halfDay: a.halfDay,
+  dias: diasSolicitados({ start: a.startDate, end: a.endDate }, a.halfDay),
+  reason: a.reason,
+  status: a.status as AbsenceDto['status'],
+  decidedByEmail: a.decidedByEmail,
+  decidedAt: a.decidedAt ? a.decidedAt.toISOString() : null,
+  decisionNote: a.decisionNote,
+  createdAt: a.createdAt.toISOString(),
+});
+
 /** Rango `[desde, hasta)` a partir de query YYYY-MM-DD; por defecto, los últimos 30 días hasta mañana. */
 function rangoDesdeQuery(desde?: string, hasta?: string): { desde: Date; hasta: Date } {
   const hoy = new Date();
@@ -111,6 +148,7 @@ export class RrhhController {
     private readonly service: RrhhService,
     private readonly estructura: RrhhStructureService,
     private readonly fichaje: FichajeService,
+    private readonly ausencias: AusenciaService,
   ) {}
 
   @Get('me')
@@ -217,6 +255,80 @@ export class RrhhController {
       .corregir(objetivo.id, { action: dto.action, kind: dto.kind, at, targetId: dto.targetId, note: dto.note }, { email: actor.email })
       .catch(traducir);
     return toDiaDetalleDto(detalle);
+  }
+
+  // ---- Ausencias: catálogo de tipos (gestión) + solicitudes (empleado) + aprobación (responsable/RRHH). ----
+
+  @Get('ausencias/tipos')
+  @UseGuards(RrhhGuard)
+  async tiposAusencia(@RrhhActor() actor: EmployeeRow): Promise<AbsenceTypeDto[]> {
+    // El empleado sólo ve los activos (para pedir); quien gestiona ve todos (para administrar).
+    return (await this.ausencias.listTipos(!gestionaPlantilla(actor.rrhhRole))).map(toTipoAusenciaDto);
+  }
+
+  @Post('ausencias/tipos')
+  @UseGuards(RrhhGuard)
+  async crearTipoAusencia(@RrhhActor() actor: EmployeeRow, @Body() dto: CreateAbsenceTypeDto): Promise<AbsenceTypeDto> {
+    exigeGestion(actor);
+    return toTipoAusenciaDto(await this.ausencias.crearTipo(dto, { email: actor.email }).catch(traducir));
+  }
+
+  @Patch('ausencias/tipos/:id')
+  @UseGuards(RrhhGuard)
+  async editarTipoAusencia(@RrhhActor() actor: EmployeeRow, @Param('id') id: string, @Body() dto: UpdateAbsenceTypeDto): Promise<AbsenceTypeDto> {
+    exigeGestion(actor);
+    return toTipoAusenciaDto(await this.ausencias.editarTipo(Number(id), dto, { email: actor.email }).catch(traducir));
+  }
+
+  @Delete('ausencias/tipos/:id')
+  @HttpCode(204)
+  @UseGuards(RrhhGuard)
+  async borrarTipoAusencia(@RrhhActor() actor: EmployeeRow, @Param('id') id: string): Promise<void> {
+    exigeGestion(actor);
+    await this.ausencias.borrarTipo(Number(id), { email: actor.email }).catch(traducir);
+  }
+
+  @Get('ausencias/mias')
+  @UseGuards(RrhhGuard)
+  async misAusencias(@RrhhActor() actor: EmployeeRow): Promise<AbsenceDto[]> {
+    return (await this.ausencias.misAusencias(actor.id)).map(toAusenciaDto);
+  }
+
+  @Post('ausencias')
+  @UseGuards(RrhhGuard)
+  async solicitarAusencia(@RrhhActor() actor: EmployeeRow, @Body() dto: SolicitarAusenciaDto): Promise<AbsenceDto> {
+    return toAusenciaDto(await this.ausencias.solicitar(actor.id, dto, { email: actor.email }).catch(traducir));
+  }
+
+  @Get('ausencias/pendientes')
+  @UseGuards(RrhhGuard)
+  async ausenciasPendientes(@RrhhActor() actor: EmployeeRow): Promise<AbsenceDto[]> {
+    if (actor.rrhhRole === 'EMPLEADO') throw new ForbiddenException('No apruebas ausencias.');
+    const visibles = (await this.service.listVisible(actor)).filter((e) => e.id !== actor.id); // no te apruebas a ti mismo
+    return (await this.ausencias.pendientesDe(visibles.map((e) => e.id))).map(toAusenciaDto);
+  }
+
+  @Post('ausencias/:id/aprobar')
+  @UseGuards(RrhhGuard)
+  async aprobarAusencia(@RrhhActor() actor: EmployeeRow, @Param('id') id: string, @Body() dto: DecidirAusenciaDto): Promise<AbsenceDto> {
+    return toAusenciaDto(await this.decidirAusencia(actor, Number(id), true, dto.note));
+  }
+
+  @Post('ausencias/:id/rechazar')
+  @UseGuards(RrhhGuard)
+  async rechazarAusencia(@RrhhActor() actor: EmployeeRow, @Param('id') id: string, @Body() dto: DecidirAusenciaDto): Promise<AbsenceDto> {
+    return toAusenciaDto(await this.decidirAusencia(actor, Number(id), false, dto.note));
+  }
+
+  /** Decide una ausencia validando que el actor puede aprobar a ese empleado (responsable/RRHH, no a sí mismo). */
+  private async decidirAusencia(actor: EmployeeRow, id: number, aprobar: boolean, nota?: string): Promise<AbsenceRow> {
+    if (actor.rrhhRole === 'EMPLEADO') throw new ForbiddenException('No apruebas ausencias.');
+    const solicitud = await this.ausencias.buscar(id);
+    if (!solicitud) throw new BadRequestException(`No existe la solicitud #${id}.`);
+    if (solicitud.employeeId === actor.id) throw new ForbiddenException('No puedes decidir tu propia ausencia.');
+    const visibles = await this.service.listVisible(actor);
+    if (!visibles.some((e) => e.id === solicitud.employeeId)) throw new ForbiddenException('Esa persona no está en tu equipo.');
+    return this.ausencias.decidir(id, aprobar, { email: actor.email }, nota).catch(traducir);
   }
 
   /** Exige que `objetivo` esté en la rama visible del actor (si no, 403). Devuelve la ficha visible. */
