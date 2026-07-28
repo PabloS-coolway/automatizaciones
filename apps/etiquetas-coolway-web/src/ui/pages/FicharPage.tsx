@@ -26,6 +26,30 @@ function hora(iso: string): string {
   return new Date(iso).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 }
 
+/** "lun 28" a partir de 'YYYY-MM-DD'. */
+function diaLabel(fecha: string): string {
+  const d = new Date(`${fecha}T00:00:00`);
+  return d.toLocaleDateString('es-ES', { weekday: 'short', day: '2-digit' });
+}
+
+/** Agrupa los días del histórico por mes (conserva el orden, más reciente primero) con sus subtotales. */
+function agruparPorMes(dias: { fecha: string; minutosTrabajados: number; minutosExtra: number }[]) {
+  const grupos: { ym: string; label: string; dias: typeof dias; totalMin: number; totalExtra: number }[] = [];
+  for (const d of dias) {
+    const ym = d.fecha.slice(0, 7);
+    let g = grupos.find((x) => x.ym === ym);
+    if (!g) {
+      const label = new Date(`${ym}-01T00:00:00`).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+      g = { ym, label, dias: [], totalMin: 0, totalExtra: 0 };
+      grupos.push(g);
+    }
+    g.dias.push(d);
+    g.totalMin += d.minutosTrabajados;
+    g.totalExtra += d.minutosExtra;
+  }
+  return grupos;
+}
+
 /** Desde móvil (puntero grueso) marcamos el origen como MOBILE; si no, WEB. Es sólo informativo. */
 function origen(): 'WEB' | 'MOBILE' {
   return typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches ? 'MOBILE' : 'WEB';
@@ -169,23 +193,31 @@ export function FicharPage() {
                     <Download className="me-1" /> CSV
                   </Button>
                 </div>
-                <ul className="list-unstyled mb-2">
-                  {historico.dias.map((d) => (
-                    <li key={d.fecha} className="d-flex justify-content-between align-items-center py-1 border-bottom">
-                      <span>{d.fecha}</span>
-                      <span className="d-flex align-items-center gap-2">
-                        {d.minutosExtra > 0 && (
-                          <Badge bg="warning-subtle" text="warning">+{formatearMinutos(d.minutosExtra)} extra</Badge>
-                        )}
-                        <span className="text-secondary">{formatearMinutos(d.minutosTrabajados)}</span>
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-                {historico.totalExtra > 0 && (
-                  <p className="text-secondary small mb-0">
-                    Total del periodo: <strong>{formatearMinutos(historico.totalMinutos)}</strong> · horas extra:{' '}
-                    <strong>{formatearMinutos(historico.totalExtra)}</strong>
+                {agruparPorMes(historico.dias).map((mes) => (
+                  <div key={mes.ym} className="mb-3">
+                    <div className="d-flex justify-content-between align-items-baseline mb-1">
+                      <div className="fw-semibold text-capitalize">{mes.label}</div>
+                      <div className="small text-secondary">{formatearMinutos(mes.totalMin)}{mes.totalExtra > 0 && ` · +${formatearMinutos(mes.totalExtra)} extra`}</div>
+                    </div>
+                    <ul className="list-unstyled mb-0">
+                      {mes.dias.map((d) => (
+                        <li key={d.fecha} className="d-flex justify-content-between align-items-center py-1 border-bottom">
+                          <span className="text-capitalize">{diaLabel(d.fecha)}</span>
+                          <span className="d-flex align-items-center gap-2">
+                            {d.minutosExtra > 0 && (
+                              <Badge bg="warning-subtle" text="warning">+{formatearMinutos(d.minutosExtra)} extra</Badge>
+                            )}
+                            <span className="text-secondary">{formatearMinutos(d.minutosTrabajados)}</span>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+                {historico.dias.length > 0 && (
+                  <p className="text-secondary small mb-0 pt-1 border-top">
+                    Total del periodo: <strong>{formatearMinutos(historico.totalMinutos)}</strong>
+                    {historico.totalExtra > 0 && <> · horas extra: <strong>{formatearMinutos(historico.totalExtra)}</strong></>}
                   </p>
                 )}
               </Card.Body>
