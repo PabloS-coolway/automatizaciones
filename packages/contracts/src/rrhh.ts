@@ -205,3 +205,65 @@ export interface CorreccionFichajeDto {
   targetId?: number;
   note?: string;
 }
+
+// ---- REQ-008 Fase 3 · Ausencias y vacaciones ----
+
+export const ESTADOS_AUSENCIA = ['PENDING', 'APPROVED', 'REJECTED'] as const;
+export type EstadoAusencia = (typeof ESTADOS_AUSENCIA)[number];
+
+export const ESTADO_AUSENCIA_LABELS: Record<EstadoAusencia, string> = {
+  PENDING: 'Pendiente',
+  APPROVED: 'Aprobada',
+  REJECTED: 'Rechazada',
+};
+
+/** Un tipo de ausencia del catálogo (configurable por RRHH). */
+export interface AbsenceTypeDto {
+  id: number;
+  name: string;
+  computesBalance: boolean;
+  requiresApproval: boolean;
+  requiresAttachment: boolean;
+  active: boolean;
+  usos: number;
+}
+
+export interface CreateAbsenceTypeDto {
+  name: string;
+  computesBalance?: boolean;
+  requiresApproval?: boolean;
+  requiresAttachment?: boolean;
+}
+
+export type UpdateAbsenceTypeDto = Partial<CreateAbsenceTypeDto> & { active?: boolean };
+
+/** Una solicitud de ausencia. `startDate`/`endDate` en YYYY-MM-DD. */
+export interface AbsenceDto {
+  id: number;
+  employeeId: number;
+  employeeName: string;
+  typeId: number;
+  typeName: string;
+  startDate: string;
+  endDate: string;
+  halfDay: boolean;
+  dias: number;
+  reason: string | null;
+  status: EstadoAusencia;
+  decidedByEmail: string | null;
+  decidedAt: string | null;
+  decisionNote: string | null;
+  createdAt: string;
+}
+
+export interface SolicitarAusenciaDto {
+  typeId: number;
+  startDate: string;
+  endDate: string;
+  halfDay?: boolean;
+  reason?: string;
+}
+
+export interface DecidirAusenciaDto {
+  note?: string;
+}

@@ -95,6 +95,68 @@ export interface TimeEntryRepository {
   listBetweenMany(employeeIds: number[], desde: Date, hasta: Date): Promise<TimeEntryRow[]>;
 }
 
+export const ABSENCE_TYPE_REPOSITORY = Symbol('ABSENCE_TYPE_REPOSITORY');
+export const ABSENCE_REPOSITORY = Symbol('ABSENCE_REPOSITORY');
+
+export interface AbsenceTypeRow {
+  id: number;
+  name: string;
+  computesBalance: boolean;
+  requiresApproval: boolean;
+  requiresAttachment: boolean;
+  active: boolean;
+  /** Nº de ausencias que usan este tipo (para avisar antes de borrar). */
+  usos: number;
+}
+
+export interface AbsenceRow {
+  id: number;
+  employeeId: number;
+  employeeName: string;
+  typeId: number;
+  typeName: string;
+  startDate: Date;
+  endDate: Date;
+  halfDay: boolean;
+  reason: string | null;
+  status: string;
+  decidedByEmail: string | null;
+  decidedAt: Date | null;
+  decisionNote: string | null;
+  createdAt: Date;
+}
+
+export interface NuevaAusencia {
+  employeeId: number;
+  typeId: number;
+  startDate: Date;
+  endDate: Date;
+  halfDay: boolean;
+  reason?: string;
+  status: string;
+}
+
+/** Puerto: catálogo de tipos de ausencia (configurable por RRHH). */
+export interface AbsenceTypeRepository {
+  list(soloActivos?: boolean): Promise<AbsenceTypeRow[]>;
+  findById(id: number): Promise<AbsenceTypeRow | null>;
+  create(data: { name: string; computesBalance: boolean; requiresApproval: boolean; requiresAttachment: boolean }): Promise<AbsenceTypeRow>;
+  update(id: number, data: Partial<{ name: string; computesBalance: boolean; requiresApproval: boolean; requiresAttachment: boolean; active: boolean }>): Promise<AbsenceTypeRow>;
+  delete(id: number): Promise<void>;
+}
+
+/** Puerto: solicitudes de ausencia. */
+export interface AbsenceRepository {
+  create(nueva: NuevaAusencia, tx?: Prisma.TransactionClient): Promise<AbsenceRow>;
+  findById(id: number): Promise<AbsenceRow | null>;
+  decidir(id: number, data: { status: string; decidedByEmail: string; decidedAt: Date; decisionNote?: string }, tx?: Prisma.TransactionClient): Promise<AbsenceRow>;
+  listByEmployee(employeeId: number): Promise<AbsenceRow[]>;
+  /** Ausencias en un estado dado de varios empleados (p.ej. PENDING para el aprobador). */
+  listByStatusForEmployees(employeeIds: number[], status: string): Promise<AbsenceRow[]>;
+  /** Ausencias aprobadas de un empleado (para comprobar solapes). */
+  listApprovedByEmployee(employeeId: number): Promise<AbsenceRow[]>;
+}
+
 export const RRHH_STRUCTURE_REPOSITORY = Symbol('RRHH_STRUCTURE_REPOSITORY');
 
 /** Un centro/tienda con la cuenta de empleados asignados (para avisar antes de borrar). */

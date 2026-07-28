@@ -17,15 +17,17 @@ import { PrismaDestinationRepository } from './destinos/infrastructure/prisma-de
 import { SURTIDO_REPOSITORY } from './surtidos/application/ports';
 import { SurtidosService } from './surtidos/application/surtidos.service';
 import { PrismaSurtidoRepository } from './surtidos/infrastructure/prisma-surtido.repository';
-import { EMPLOYEE_REPOSITORY, RRHH_STRUCTURE_REPOSITORY, TIME_ENTRY_REPOSITORY } from './rrhh/application/ports';
+import { ABSENCE_REPOSITORY, ABSENCE_TYPE_REPOSITORY, EMPLOYEE_REPOSITORY, RRHH_STRUCTURE_REPOSITORY, TIME_ENTRY_REPOSITORY } from './rrhh/application/ports';
 import { RRHH_ACTIVITY_RECORDER } from './rrhh/application/rrhh-activity.port';
 import { RrhhService } from './rrhh/application/rrhh.service';
 import { RrhhStructureService } from './rrhh/application/rrhh-structure.service';
 import { FichajeService } from './rrhh/application/fichaje.service';
+import { AusenciaService } from './rrhh/application/ausencia.service';
 import { RrhhGuard } from './rrhh/interface/http/rrhh.guard';
 import { PrismaEmployeeRepository } from './rrhh/infrastructure/prisma-employee.repository';
 import { PrismaStructureRepository } from './rrhh/infrastructure/prisma-structure.repository';
 import { PrismaTimeEntryRepository } from './rrhh/infrastructure/prisma-time-entry.repository';
+import { PrismaAbsenceRepository, PrismaAbsenceTypeRepository } from './rrhh/infrastructure/prisma-absence.repository';
 import { PrismaRrhhActivityRecorder } from './rrhh/infrastructure/prisma-rrhh-activity.recorder';
 
 /**
@@ -56,11 +58,16 @@ export const coreProviders: Provider[] = [
   { provide: RRHH_STRUCTURE_REPOSITORY, useExisting: PrismaStructureRepository },
   PrismaTimeEntryRepository,
   { provide: TIME_ENTRY_REPOSITORY, useExisting: PrismaTimeEntryRepository },
+  PrismaAbsenceTypeRepository,
+  { provide: ABSENCE_TYPE_REPOSITORY, useExisting: PrismaAbsenceTypeRepository },
+  PrismaAbsenceRepository,
+  { provide: ABSENCE_REPOSITORY, useExisting: PrismaAbsenceRepository },
   PrismaRrhhActivityRecorder,
   { provide: RRHH_ACTIVITY_RECORDER, useExisting: PrismaRrhhActivityRecorder },
   RrhhService,
   RrhhStructureService,
   FichajeService,
+  AusenciaService,
   RrhhGuard,
   {
     provide: GENERATE_LABELS_USE_CASE,
