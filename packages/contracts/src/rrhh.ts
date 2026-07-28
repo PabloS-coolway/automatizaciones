@@ -94,6 +94,22 @@ export interface RrhhMeDto {
   employee: EmployeeDto | null;
 }
 
+/**
+ * Un empleado en el **organigrama público**: lo visible para toda la plantilla (nombre, puesto, rol, centro,
+ * marca y su responsable). SIN datos sensibles (correo, jornada, saldo, fichajes). Es un subconjunto de
+ * `EmployeeDto`, así que sirve para la misma vista de organigrama.
+ */
+export interface OrgEmployeeDto {
+  id: number;
+  fullName: string;
+  position: string | null;
+  rrhhRole: RrhhRole;
+  managerId: number | null;
+  active: boolean;
+  center: string | null;
+  brand: string | null;
+}
+
 // ---- REQ-008 Fase 2 · Fichajes ----
 
 export const MARCAJES = ['IN', 'OUT', 'BREAK_START', 'BREAK_END'] as const;

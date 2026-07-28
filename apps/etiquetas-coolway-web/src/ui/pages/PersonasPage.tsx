@@ -7,6 +7,7 @@ import {
   type CenterDto,
   type DepartmentDto,
   type EmployeeDto,
+  type OrgEmployeeDto,
   type RrhhRole,
 } from '@yorga/contracts';
 import { rrhhGateway } from '../composition';
@@ -30,6 +31,7 @@ type Vista = 'plantilla' | 'organigrama' | 'fichajes' | 'estructura' | 'activida
 export function PersonasPage() {
   const { employee, loading: rrhhLoading, puedeGestionar, refetch } = useRrhh();
   const [empleados, setEmpleados] = useState<EmployeeDto[]>([]);
+  const [orgEmpleados, setOrgEmpleados] = useState<OrgEmployeeDto[]>([]);
   const [centros, setCentros] = useState<CenterDto[]>([]);
   const [departamentos, setDepartamentos] = useState<DepartmentDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,11 +56,13 @@ export function PersonasPage() {
       rrhhGateway.listEmpleados(),
       puedeGestionar ? rrhhGateway.listCentros() : Promise.resolve([]),
       puedeGestionar ? rrhhGateway.listDepartamentos() : Promise.resolve([]),
+      rrhhGateway.organigrama(), // organigrama completo (público), para todos
     ])
-      .then(([emps, cs, ds]) => {
+      .then(([emps, cs, ds, org]) => {
         setEmpleados(emps);
         setCentros(cs);
         setDepartamentos(ds);
+        setOrgEmpleados(org);
       })
       .catch((e) => setError((e as Error).message))
       .finally(() => setLoading(false));
@@ -293,7 +297,7 @@ export function PersonasPage() {
           {vista === 'organigrama' && (
             <Card>
               <Card.Body className="p-4">
-                <OrganigramaView empleados={empleados} />
+                <OrganigramaView empleados={orgEmpleados} />
               </Card.Body>
             </Card>
           )}

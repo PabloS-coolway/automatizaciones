@@ -44,6 +44,11 @@ export class RrhhService {
     return this.repo.findByUserId(userId);
   }
 
+  /** Organigrama PÚBLICO: toda la plantilla activa (para que cualquiera vea la estructura), sin filtrar por rama. */
+  async organigrama(): Promise<EmployeeRow[]> {
+    return (await this.repo.findAll()).filter((e) => e.active);
+  }
+
   async listVisible(actor: EmployeeRow): Promise<EmployeeRow[]> {
     const all = await this.repo.findAll();
     const visibles = empleadosVisibles(
