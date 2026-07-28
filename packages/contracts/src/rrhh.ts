@@ -28,6 +28,8 @@ export interface EmployeeDto {
   brand: string | null;
   /** Jornada teórica semanal en minutos (para horas extra); `null` = sin horario definido. */
   weeklyMinutes: number | null;
+  /** Días de vacaciones que devenga al año (para el saldo); `null` = sin cupo. */
+  annualLeaveDays: number | null;
 }
 
 /**
@@ -43,6 +45,7 @@ export interface CreateEmployeeDto {
   centerId?: number;
   departmentId?: number;
   weeklyMinutes?: number | null;
+  annualLeaveDays?: number | null;
 }
 
 /** Edición de una ficha (Fase 1). Todo opcional; sólo lo presente se cambia. El correo/usuario no se cambia. */
@@ -54,6 +57,7 @@ export interface UpdateEmployeeDto {
   centerId?: number | null;
   departmentId?: number | null;
   weeklyMinutes?: number | null;
+  annualLeaveDays?: number | null;
 }
 
 /** Un centro/tienda del grupo. La `brand` (enseña) es la que **segmenta el organigrama** (multimarca). */
@@ -266,4 +270,20 @@ export interface SolicitarAusenciaDto {
 
 export interface DecidirAusenciaDto {
   note?: string;
+}
+
+/** Saldo de vacaciones de un empleado en un año. */
+export interface SaldoVacacionesDto {
+  year: number;
+  anual: number;
+  disfrutados: number;
+  pendientes: number;
+  restante: number;
+}
+
+/** Calendario de ausencias del equipo en un rango (para ver solapes antes de aprobar). */
+export interface CalendarioAusenciasDto {
+  desde: string;
+  hasta: string;
+  ausencias: AbsenceDto[];
 }

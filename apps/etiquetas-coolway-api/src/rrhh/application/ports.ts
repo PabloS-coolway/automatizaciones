@@ -20,6 +20,8 @@ export interface EmployeeRow {
   brand: string | null;
   /** Jornada teórica semanal en minutos (para horas extra); `null` = sin horario definido. */
   weeklyMinutes: number | null;
+  /** Días de vacaciones que devenga al año (para el saldo); `null` = sin cupo definido. */
+  annualLeaveDays: number | null;
 }
 
 export interface NuevoEmpleado {
@@ -31,6 +33,7 @@ export interface NuevoEmpleado {
   centerId?: number;
   departmentId?: number;
   weeklyMinutes?: number | null;
+  annualLeaveDays?: number | null;
 }
 
 /** Cambios sobre una ficha (edición / baja / reactivación). Sólo los campos presentes se tocan. */
@@ -42,6 +45,7 @@ export interface EmpleadoUpdate {
   centerId?: number | null;
   departmentId?: number | null;
   weeklyMinutes?: number | null;
+  annualLeaveDays?: number | null;
   active?: boolean;
 }
 
@@ -115,6 +119,8 @@ export interface AbsenceRow {
   employeeName: string;
   typeId: number;
   typeName: string;
+  /** ¿El tipo descuenta del saldo de vacaciones? (viene resuelto para no re-consultar). */
+  computesBalance: boolean;
   startDate: Date;
   endDate: Date;
   halfDay: boolean;
@@ -155,6 +161,8 @@ export interface AbsenceRepository {
   listByStatusForEmployees(employeeIds: number[], status: string): Promise<AbsenceRow[]>;
   /** Ausencias aprobadas de un empleado (para comprobar solapes). */
   listApprovedByEmployee(employeeId: number): Promise<AbsenceRow[]>;
+  /** Ausencias de varios empleados que tocan `[desde, hasta]`, en los estados dados (calendario/coordinación). */
+  listForEmployeesBetween(employeeIds: number[], desde: Date, hasta: Date, statuses: string[]): Promise<AbsenceRow[]>;
 }
 
 export const RRHH_STRUCTURE_REPOSITORY = Symbol('RRHH_STRUCTURE_REPOSITORY');

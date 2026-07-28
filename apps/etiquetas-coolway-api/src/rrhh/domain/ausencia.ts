@@ -45,3 +45,24 @@ export function diasSolicitados(r: Rango, halfDay: boolean): number {
   const dias = Math.round((soloDia(r.end) - soloDia(r.start)) / MS_DIA) + 1;
   return halfDay && dias === 1 ? 0.5 : dias;
 }
+
+/** Claves de día (YYYY-MM-DD, UTC) de todo el rango, inclusive. Para el calendario y la coordinación. */
+export function diasDeRango(r: Rango): string[] {
+  const out: string[] = [];
+  for (let t = soloDia(r.start); t <= soloDia(r.end); t += MS_DIA) {
+    out.push(new Date(t).toISOString().slice(0, 10));
+  }
+  return out;
+}
+
+/** Saldo de vacaciones: lo que devenga al año menos lo ya disfrutado (aprobado). `pendientes` es informativo. */
+export interface Saldo {
+  anual: number;
+  disfrutados: number;
+  pendientes: number;
+  restante: number;
+}
+
+export function saldoVacaciones(anual: number, disfrutados: number, pendientes: number): Saldo {
+  return { anual, disfrutados, pendientes, restante: Math.round((anual - disfrutados) * 10) / 10 };
+}

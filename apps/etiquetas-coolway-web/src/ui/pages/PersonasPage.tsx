@@ -16,7 +16,7 @@ import { OrganigramaView } from './personas/OrganigramaView';
 import { EstructuraManager } from './personas/EstructuraManager';
 import { PanelFichajes } from './personas/PanelFichajes';
 
-const VACIO = { email: '', fullName: '', rrhhRole: 'EMPLEADO' as RrhhRole, position: '', managerId: '', centerId: '', departmentId: '', weeklyHours: '' };
+const VACIO = { email: '', fullName: '', rrhhRole: 'EMPLEADO' as RrhhRole, position: '', managerId: '', centerId: '', departmentId: '', weeklyHours: '', annualLeaveDays: '' };
 type Vista = 'plantilla' | 'organigrama' | 'fichajes' | 'estructura';
 
 /**
@@ -84,6 +84,7 @@ export function PersonasPage() {
       centerId: e.centerId != null ? String(e.centerId) : '',
       departmentId: e.departmentId != null ? String(e.departmentId) : '',
       weeklyHours: e.weeklyMinutes != null ? String(e.weeklyMinutes / 60) : '',
+      annualLeaveDays: e.annualLeaveDays != null ? String(e.annualLeaveDays) : '',
     });
     setFormError('');
     setAbierto(true);
@@ -98,6 +99,7 @@ export function PersonasPage() {
     const centerId = form.centerId ? Number(form.centerId) : null;
     const departmentId = form.departmentId ? Number(form.departmentId) : null;
     const weeklyMinutes = form.weeklyHours.trim() ? Math.round(Number(form.weeklyHours) * 60) : null;
+    const annualLeaveDays = form.annualLeaveDays.trim() ? Math.round(Number(form.annualLeaveDays)) : null;
     try {
       if (editId == null) {
         const nuevo = await rrhhGateway.crearEmpleado({
@@ -109,6 +111,7 @@ export function PersonasPage() {
           centerId: centerId ?? undefined,
           departmentId: departmentId ?? undefined,
           weeklyMinutes,
+          annualLeaveDays,
         });
         setNotice(`${nuevo.fullName} dado de alta y enlazado a ${nuevo.email}.`);
       } else {
@@ -120,6 +123,7 @@ export function PersonasPage() {
           centerId,
           departmentId,
           weeklyMinutes,
+          annualLeaveDays,
         });
         setNotice(`Ficha de ${upd.fullName} actualizada.`);
       }
@@ -317,14 +321,19 @@ export function PersonasPage() {
                   ))}
                 </Form.Select>
               </div>
-              <div className="col-8">
+              <div className="col-6">
                 <Form.Label className="small" htmlFor="e-pos">Puesto (opcional)</Form.Label>
                 <Form.Control id="e-pos" value={form.position} onChange={(ev) => setForm({ ...form, position: ev.target.value })} placeholder="Dependienta" />
               </div>
-              <div className="col-4">
+              <div className="col-3">
                 <Form.Label className="small" htmlFor="e-hrs">Jornada (h/sem)</Form.Label>
                 <Form.Control id="e-hrs" type="number" min={0} step={0.5} value={form.weeklyHours}
                   onChange={(ev) => setForm({ ...form, weeklyHours: ev.target.value })} placeholder="40" />
+              </div>
+              <div className="col-3">
+                <Form.Label className="small" htmlFor="e-vac">Vacac. (d/año)</Form.Label>
+                <Form.Control id="e-vac" type="number" min={0} value={form.annualLeaveDays}
+                  onChange={(ev) => setForm({ ...form, annualLeaveDays: ev.target.value })} placeholder="23" />
               </div>
               <div className="col-12 col-sm-4">
                 <Form.Label className="small" htmlFor="e-mgr">Responsable</Form.Label>

@@ -3,6 +3,22 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-28] REQ-008 · RRHH Fase 3 (Slice 3b) — saldos, calendario y coordinación con fichaje
+
+Cierra la Fase 3.
+
+### Añadido
+- **Saldo de vacaciones** por año: cupo anual en la ficha (`annual_leave_days`) menos los días aprobados de
+  tipos que computan saldo. Muestra disfrutados / pendientes / restantes.
+- **Calendario de equipo** (próximos 90 días) para que el responsable vea solapes antes de aprobar.
+- **Coordinación con el fichaje**: un día cubierto por una ausencia **aprobada** ya **no** aparece como
+  incidencia de "jornada sin cerrar" en el cuadro de mando.
+
+### Verificado
+- typecheck + **289 tests API** + web + build. La coordinación verificada **rompiéndola a propósito**.
+- **En vivo:** saldo 23 → tras aprobar 5 días → restan 18; una jornada sin cerrar cubierta por ausencia
+  aprobada deja de ser incidencia; el calendario lista las ausencias del equipo. *Migración se aplica sola.*
+
 ## [2026-07-28] REQ-008 · RRHH Fase 3 (Slice 3a) — ausencias: tipos, solicitudes y aprobación
 
 Arranca la Fase 3 (ausencias y vacaciones).

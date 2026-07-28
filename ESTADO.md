@@ -218,7 +218,8 @@ admin por la consola del componente, y cargar el maestro desde la web. Usa el su
   1. `feat/req-008-rrhh-fase-2c-correcciones` — corrección de fichajes con traza.
   2. `feat/req-008-rrhh-fase-2d-horas-extra` — horario teórico + horas extra (**cierra Fase 2**).
   3. `feat/req-008-rrhh-fase-3a-ausencias` — ausencias: tipos + solicitudes + aprobación.
-  4. (en curso) Fase 3b (saldos+calendarios) y Fase 4 (refinos).
+  4. `feat/req-008-rrhh-fase-3b-saldos` — saldos + calendario + coordinación con fichaje (**cierra Fase 3**).
+  5. (en curso) Fase 4 (refinos).
 - **Acción de negocio pendiente (Silvia), no de BD:** para podar materiales/surtidos por color el borrador
   debe traer la **Horma**. En el último Excel ya venía rellena (BUG-006 resuelto por su lado). Falta validar
   la poda completa con un prepedido real.
