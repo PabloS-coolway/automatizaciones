@@ -354,9 +354,40 @@ export interface CalendarioAusenciasDto {
   ausencias: AbsenceDto[];
 }
 
+// ---- REQ-008 · Festivos (por centro o globales) ----
+
+/** Un festivo. `date` en YYYY-MM-DD. `centerId` null = GLOBAL (todos los centros). */
+export interface HolidayDto {
+  id: number;
+  date: string;
+  name: string;
+  centerId: number | null;
+  /** Nombre del centro resuelto, o `null` si es global. */
+  centerName: string | null;
+}
+
+export interface CreateHolidayDto {
+  date: string;
+  name: string;
+  /** Omitir o null = festivo global (todos los centros). */
+  centerId?: number | null;
+}
+
+/** Alta masiva de festivos (pegar un listado). Todos comparten el mismo `centerId` (o global). */
+export interface CreateHolidaysBulkDto {
+  centerId?: number | null;
+  festivos: { date: string; name: string }[];
+}
+
+/** Resultado del alta masiva: cuántos se crearon y cuáles se saltaron (duplicados/erróneos). */
+export interface HolidaysBulkResultDto {
+  creados: number;
+  saltados: { date: string; motivo: string }[];
+}
+
 // ---- REQ-008 · Panel de actividad RRHH (auditoría, solo lectura) ----
 
-export const RRHH_ACTIVITY_ENTITIES = ['EMPLEADO', 'CENTRO', 'DEPARTAMENTO', 'FICHAJE', 'AUSENCIA', 'TIPO_AUSENCIA'] as const;
+export const RRHH_ACTIVITY_ENTITIES = ['EMPLEADO', 'CENTRO', 'DEPARTAMENTO', 'FICHAJE', 'AUSENCIA', 'TIPO_AUSENCIA', 'FESTIVO'] as const;
 export type RrhhActivityEntity = (typeof RRHH_ACTIVITY_ENTITIES)[number];
 
 export const RRHH_ACTIVITY_ENTITY_LABELS: Record<RrhhActivityEntity, string> = {
@@ -366,6 +397,7 @@ export const RRHH_ACTIVITY_ENTITY_LABELS: Record<RrhhActivityEntity, string> = {
   FICHAJE: 'Fichaje',
   AUSENCIA: 'Ausencia',
   TIPO_AUSENCIA: 'Tipo de ausencia',
+  FESTIVO: 'Festivo',
 };
 
 export const RRHH_ACTIVITY_ACTION_LABELS: Record<string, string> = {

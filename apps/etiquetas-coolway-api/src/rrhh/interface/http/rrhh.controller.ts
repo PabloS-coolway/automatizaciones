@@ -12,9 +12,13 @@ import {
   CorreccionFichajeDto,
   CreateAbsenceTypeDto,
   CreateEmployeeDto,
+  CreateHolidayDto,
+  CreateHolidaysBulkDto,
   CumpleDto,
   DecidirAusenciaDto,
   DepartmentDto,
+  HolidayDto,
+  HolidaysBulkResultDto,
   DiaDetalleFichajeDto,
   EmployeeDto,
   FicharDto,
@@ -41,9 +45,10 @@ import { RrhhError, RrhhService } from '../../application/rrhh.service';
 import { RrhhStructureService } from '../../application/rrhh-structure.service';
 import { DiaDetalle, DiaJornada, FichajeService, Jornada, Panel } from '../../application/fichaje.service';
 import { AusenciaService } from '../../application/ausencia.service';
+import { FestivoService } from '../../application/festivo.service';
 import { NotificacionService } from '../../application/notificacion.service';
 import { RrhhActivityQueryService } from '../../application/rrhh-activity-query.service';
-import { AbsenceRow, AbsenceTypeRow, NotificationRow } from '../../application/ports';
+import { AbsenceRow, AbsenceTypeRow, HolidayRow, NotificationRow } from '../../application/ports';
 import { proximosCumpleanos } from '../../domain/cumpleanos';
 import { diasDeRango, diasSolicitados } from '../../domain/ausencia';
 import { esMarcaje } from '../../domain/fichaje';
@@ -107,6 +112,8 @@ const toDiaDetalleDto = (d: DiaDetalle): DiaDetalleFichajeDto => ({
 });
 
 const diaISO = (d: Date): string => d.toISOString().slice(0, 10);
+
+const toHolidayDto = (h: HolidayRow): HolidayDto => ({ id: h.id, date: diaISO(h.date), name: h.name, centerId: h.centerId, centerName: h.centerName });
 const toTipoAusenciaDto = (t: AbsenceTypeRow): AbsenceTypeDto => ({
   id: t.id,
   name: t.name,
@@ -171,6 +178,7 @@ export class RrhhController {
     private readonly estructura: RrhhStructureService,
     private readonly fichaje: FichajeService,
     private readonly ausencias: AusenciaService,
+    private readonly festivos: FestivoService,
     private readonly notificaciones: NotificacionService,
     private readonly actividad: RrhhActivityQueryService,
   ) {}
@@ -460,6 +468,46 @@ export class RrhhController {
     const visibles = await this.service.listVisible(actor);
     if (!visibles.some((e) => e.id === solicitud.employeeId)) throw new ForbiddenException('Esa persona no está en tu equipo.');
     return this.ausencias.decidir(id, aprobar, { email: actor.email }, nota).catch(traducir);
+  }
+
+  // ---- Festivos (por centro o globales). Los ve cualquier empleado (para su calendario); los gestiona RRHH. ----
+
+  @Get('festivos')
+  @UseGuards(RrhhGuard)
+  async festivosLista(@RrhhActor() actor: EmployeeRow, @Query('year') year?: string, @Query('centerId') centerId?: string): Promise<HolidayDto[]> {
+    const y = year ? Number(year) : new Date().getFullYear();
+    if (!Number.isInteger(y)) throw new BadRequestException('Año inválido.');
+    // Quien gestiona puede pedir un centro concreto (o todos si no lo indica). El resto ve los suyos:
+    // los globales + los de su propio centro.
+    let filtro: number | null | undefined;
+    if (gestionaPlantilla(actor.rrhhRole)) {
+      filtro = centerId != null && centerId !== '' ? Number(centerId) : undefined;
+    } else {
+      filtro = actor.centerId ?? null; // globales (+ el propio centro si lo tiene)
+    }
+    return (await this.festivos.listAnio(y, filtro)).map(toHolidayDto);
+  }
+
+  @Post('festivos')
+  @UseGuards(RrhhGuard)
+  async festivoCrear(@RrhhActor() actor: EmployeeRow, @Body() dto: CreateHolidayDto): Promise<HolidayDto> {
+    exigeGestion(actor);
+    return toHolidayDto(await this.festivos.crear(dto, { email: actor.email }).catch(traducir));
+  }
+
+  @Post('festivos/bulk')
+  @UseGuards(RrhhGuard)
+  async festivosBulk(@RrhhActor() actor: EmployeeRow, @Body() dto: CreateHolidaysBulkDto): Promise<HolidaysBulkResultDto> {
+    exigeGestion(actor);
+    return this.festivos.crearBulk(dto, { email: actor.email }).catch(traducir);
+  }
+
+  @Delete('festivos/:id')
+  @HttpCode(204)
+  @UseGuards(RrhhGuard)
+  async festivoBorrar(@RrhhActor() actor: EmployeeRow, @Param('id') id: string): Promise<void> {
+    exigeGestion(actor);
+    await this.festivos.borrar(Number(id), { email: actor.email }).catch(traducir);
   }
 
   // ---- Panel de actividad RRHH (auditoría, sólo RRHH/Admin). ----
