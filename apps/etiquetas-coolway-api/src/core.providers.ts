@@ -17,12 +17,13 @@ import { PrismaDestinationRepository } from './destinos/infrastructure/prisma-de
 import { SURTIDO_REPOSITORY } from './surtidos/application/ports';
 import { SurtidosService } from './surtidos/application/surtidos.service';
 import { PrismaSurtidoRepository } from './surtidos/infrastructure/prisma-surtido.repository';
-import { ABSENCE_REPOSITORY, ABSENCE_TYPE_REPOSITORY, EMPLOYEE_REPOSITORY, NOTIFICATION_REPOSITORY, RRHH_STRUCTURE_REPOSITORY, TIME_ENTRY_REPOSITORY } from './rrhh/application/ports';
+import { ABSENCE_REPOSITORY, ABSENCE_TYPE_REPOSITORY, EMPLOYEE_REPOSITORY, HOLIDAY_REPOSITORY, NOTIFICATION_REPOSITORY, RRHH_STRUCTURE_REPOSITORY, TIME_ENTRY_REPOSITORY } from './rrhh/application/ports';
 import { RRHH_ACTIVITY_RECORDER } from './rrhh/application/rrhh-activity.port';
 import { RrhhService } from './rrhh/application/rrhh.service';
 import { RrhhStructureService } from './rrhh/application/rrhh-structure.service';
 import { FichajeService } from './rrhh/application/fichaje.service';
 import { AusenciaService } from './rrhh/application/ausencia.service';
+import { FestivoService } from './rrhh/application/festivo.service';
 import { NotificacionService } from './rrhh/application/notificacion.service';
 import { RrhhActivityQueryService } from './rrhh/application/rrhh-activity-query.service';
 import { FILE_STORAGE } from './rrhh/application/file-storage.port';
@@ -33,6 +34,7 @@ import { PrismaEmployeeRepository } from './rrhh/infrastructure/prisma-employee.
 import { PrismaStructureRepository } from './rrhh/infrastructure/prisma-structure.repository';
 import { PrismaTimeEntryRepository } from './rrhh/infrastructure/prisma-time-entry.repository';
 import { PrismaAbsenceRepository, PrismaAbsenceTypeRepository } from './rrhh/infrastructure/prisma-absence.repository';
+import { PrismaHolidayRepository } from './rrhh/infrastructure/prisma-holiday.repository';
 import { PrismaNotificationRepository } from './rrhh/infrastructure/prisma-notification.repository';
 import { PrismaRrhhActivityRecorder } from './rrhh/infrastructure/prisma-rrhh-activity.recorder';
 
@@ -68,6 +70,8 @@ export const coreProviders: Provider[] = [
   { provide: ABSENCE_TYPE_REPOSITORY, useExisting: PrismaAbsenceTypeRepository },
   PrismaAbsenceRepository,
   { provide: ABSENCE_REPOSITORY, useExisting: PrismaAbsenceRepository },
+  PrismaHolidayRepository,
+  { provide: HOLIDAY_REPOSITORY, useExisting: PrismaHolidayRepository },
   {
     // Justificantes: Spaces (S3) si está configurado; disco local en desarrollo; deshabilitado en prod sin config.
     provide: FILE_STORAGE,
@@ -93,6 +97,7 @@ export const coreProviders: Provider[] = [
   RrhhStructureService,
   FichajeService,
   AusenciaService,
+  FestivoService,
   NotificacionService,
   RrhhActivityQueryService,
   RrhhGuard,

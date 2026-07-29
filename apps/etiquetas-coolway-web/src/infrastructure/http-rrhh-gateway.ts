@@ -13,6 +13,10 @@ import type {
   EmployeeDto,
   FicharDto,
   CumpleDto,
+  HolidayDto,
+  CreateHolidayDto,
+  CreateHolidaysBulkDto,
+  HolidaysBulkResultDto,
   OrgEmployeeDto,
   UsuarioSinFichaDto,
   HistoricoFichajeDto,
@@ -283,6 +287,33 @@ export class HttpRrhhGateway {
     const res = await apiFetch(`/rrhh/ausencias/calendario?desde=${desde}&hasta=${hasta}`);
     if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo cargar el calendario.'));
     return res.json();
+  }
+
+  // ---- Festivos ----
+
+  async listFestivos(year: number, centerId?: number | null): Promise<HolidayDto[]> {
+    const qs = new URLSearchParams({ year: String(year) });
+    if (centerId != null) qs.set('centerId', String(centerId));
+    const res = await apiFetch(`/rrhh/festivos?${qs}`);
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudieron cargar los festivos.'));
+    return res.json();
+  }
+
+  async crearFestivo(input: CreateHolidayDto): Promise<HolidayDto> {
+    const res = await apiFetch('/rrhh/festivos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo crear el festivo.'));
+    return res.json();
+  }
+
+  async crearFestivosBulk(input: CreateHolidaysBulkDto): Promise<HolidaysBulkResultDto> {
+    const res = await apiFetch('/rrhh/festivos/bulk', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudieron cargar los festivos.'));
+    return res.json();
+  }
+
+  async borrarFestivo(id: number): Promise<void> {
+    const res = await apiFetch(`/rrhh/festivos/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo borrar el festivo.'));
   }
 
   async actividadRrhh(page: number, entity?: string): Promise<RrhhActivityListDto> {

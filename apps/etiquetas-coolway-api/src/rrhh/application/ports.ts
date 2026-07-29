@@ -187,6 +187,28 @@ export interface AbsenceRepository {
   setAttachment(id: number, key: string, name: string): Promise<AbsenceRow>;
 }
 
+export const HOLIDAY_REPOSITORY = Symbol('HOLIDAY_REPOSITORY');
+
+/** Un festivo ya resuelto (con el nombre del centro si no es global). */
+export interface HolidayRow {
+  id: number;
+  date: Date;
+  name: string;
+  centerId: number | null;
+  centerName: string | null;
+}
+
+/** Puerto: festivos (por centro o globales). */
+export interface HolidayRepository {
+  /** Festivos que tocan `[desde, hasta]`. Si se pasa `centerId`, sólo los globales + los de ese centro. */
+  listBetween(desde: Date, hasta: Date, centerId?: number | null): Promise<HolidayRow[]>;
+  /** ¿Existe ya un festivo en esa fecha para ese centro (o global si null)? Para no duplicar. */
+  exists(date: Date, centerId: number | null): Promise<boolean>;
+  create(data: { date: Date; name: string; centerId: number | null }): Promise<HolidayRow>;
+  delete(id: number): Promise<void>;
+  findById(id: number): Promise<HolidayRow | null>;
+}
+
 export const NOTIFICATION_REPOSITORY = Symbol('NOTIFICATION_REPOSITORY');
 
 export interface NotificationRow {

@@ -6,7 +6,7 @@ export const RRHH_ACTIVITY_RECORDER = Symbol('RRHH_ACTIVITY_RECORDER');
 export interface RrhhActivityRecord {
   actorEmail: string;
   action: 'CREATE' | 'UPDATE' | 'DELETE';
-  entity: 'EMPLEADO' | 'CENTRO' | 'DEPARTAMENTO' | 'FICHAJE' | 'AUSENCIA' | 'TIPO_AUSENCIA';
+  entity: 'EMPLEADO' | 'CENTRO' | 'DEPARTAMENTO' | 'FICHAJE' | 'AUSENCIA' | 'TIPO_AUSENCIA' | 'FESTIVO';
   entityId: string;
   before?: unknown;
   after?: unknown;

@@ -15,10 +15,11 @@ import { useRrhh } from '../rrhh/RrhhContext';
 import { TiposAusenciaManager } from './personas/TiposAusenciaManager';
 import { CalendarioAusencias } from './personas/CalendarioAusencias';
 import { MiCalendarioAnual } from './personas/MiCalendarioAnual';
+import { FestivosManager } from './personas/FestivosManager';
 import { diasSolicitados as calcDias, esUnSoloDia } from '../../domain/ausencia-dias';
 
 const VARIANTE: Record<EstadoAusencia, string> = { PENDING: 'warning', APPROVED: 'success', REJECTED: 'danger', CANCELLED: 'secondary' };
-type Vista = 'mias' | 'calendario' | 'aprobaciones' | 'tipos';
+type Vista = 'mias' | 'calendario' | 'aprobaciones' | 'tipos' | 'festivos';
 type CalModo = 'mio' | 'equipo';
 
 /**
@@ -166,6 +167,7 @@ export function AusenciasPage() {
           <Nav.Item><Nav.Link eventKey="aprobaciones">Aprobaciones {pendientes.length > 0 && <Badge bg="warning" text="dark">{pendientes.length}</Badge>}</Nav.Link></Nav.Item>
         )}
         {puedeGestionar && <Nav.Item><Nav.Link eventKey="tipos">Tipos</Nav.Link></Nav.Item>}
+        {puedeGestionar && <Nav.Item><Nav.Link eventKey="festivos">Festivos</Nav.Link></Nav.Item>}
       </Nav>
 
       {vista === 'mias' && (
@@ -277,7 +279,7 @@ export function AusenciasPage() {
           )}
           {puedeAprobar && calModo === 'equipo'
             ? <CalendarioAusencias puedeGestionar={puedeGestionar} />
-            : <MiCalendarioAnual ausencias={mias} />}
+            : <MiCalendarioAnual ausencias={mias} centerId={employee.centerId} />}
         </>
       )}
 
@@ -313,6 +315,8 @@ export function AusenciasPage() {
       )}
 
       {vista === 'tipos' && puedeGestionar && <TiposAusenciaManager tipos={tipos} onChange={reload} />}
+
+      {vista === 'festivos' && puedeGestionar && <FestivosManager />}
     </div>
   );
 }
