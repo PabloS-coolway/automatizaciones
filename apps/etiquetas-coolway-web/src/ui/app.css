@@ -497,6 +497,29 @@ button, a, [role='button'], .form-control, .form-select { touch-action: manipula
 .cal-chip { font-size: .68rem; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 640px) { .cal-cell { min-height: 60px; } }
 
+/* Organigrama en lienzo (React Flow). */
+.org-rf-wrap { display: flex; flex-direction: column; gap: 12px; }
+.org-rf-toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+.org-rf-canvas { height: 68vh; min-height: 420px; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+.org-rf-card {
+  width: 230px; display: flex; align-items: center; gap: 9px; padding: 9px 11px;
+  border: 1px solid var(--border); border-radius: 12px; background: var(--surface, #fff);
+  box-shadow: 0 1px 4px rgba(0,0,0,.05);
+}
+.org-rf-off { opacity: .6; }
+.org-rf-avatar { width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: .78rem; }
+.org-rf-info { min-width: 0; flex-grow: 1; }
+.org-rf-nombre { font-weight: 600; font-size: .82rem; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.org-rf-meta { font-size: .72rem; color: var(--bs-secondary-color, #888); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.org-rf-toggle {
+  border: 1px solid var(--border); background: var(--kpi-bg, rgba(127,127,127,.06)); border-radius: 8px;
+  display: inline-flex; flex-direction: column; align-items: center; gap: 1px; padding: 2px 5px; cursor: pointer;
+  color: var(--brand); font-size: .62rem; font-weight: 600; line-height: 1;
+}
+.org-rf-toggle:hover { border-color: var(--brand-2); }
+.org-rf-equipo { display: inline-flex; align-items: center; gap: 2px; }
+.org-rf-handle { opacity: 0; width: 1px; height: 1px; }
+
 /* Vista de fichar (minimalista). */
 .fichar-hero { border: 1px solid var(--border); border-radius: 18px; }
 .fichar-time { font-size: 3rem; font-weight: 700; line-height: 1.1; letter-spacing: -0.02em; }
