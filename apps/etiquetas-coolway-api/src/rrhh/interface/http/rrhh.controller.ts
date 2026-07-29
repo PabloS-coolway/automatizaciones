@@ -52,6 +52,7 @@ import { AbsenceRow, AbsenceTypeRow, HolidayRow, NotificationRow } from '../../a
 import { proximosCumpleanos } from '../../domain/cumpleanos';
 import { diasDeRango, diasSolicitados } from '../../domain/ausencia';
 import { esMarcaje } from '../../domain/fichaje';
+import { jornadaDiariaMin } from '../../domain/horario';
 import { gestionaPlantilla } from '../../domain/rrhh-org';
 import { RrhhActor, RrhhGuard } from './rrhh.guard';
 
@@ -79,11 +80,12 @@ function toDto(e: EmployeeRow): EmployeeDto {
 const toCenterDto = (c: CenterRow): CenterDto => ({ id: c.id, name: c.name, brand: c.brand, employees: c.employees });
 const toDeptDto = (d: DepartmentRow): DepartmentDto => ({ id: d.id, name: d.name, employees: d.employees });
 const toEntryDto = (e: TimeEntryRow): TimeEntryDto => ({ id: e.id, kind: e.kind as TimeEntryDto['kind'], at: e.at.toISOString(), source: e.source, note: e.note });
-const toJornadaDto = (j: Jornada): JornadaHoyDto => ({
+const toJornadaDto = (j: Jornada, jornadaTeoricaMin: number): JornadaHoyDto => ({
   fecha: j.fecha.toISOString().slice(0, 10),
   estado: j.estado,
   posibles: j.posibles,
   minutosTrabajados: j.minutosTrabajados,
+  jornadaTeoricaMin,
   fichajes: j.fichajes.map(toEntryDto),
 });
 const toPanelDto = (p: Panel): PanelFichajeDto => ({ ahora: p.ahora, incidencias: p.incidencias });
@@ -259,7 +261,7 @@ export class RrhhController {
   @Get('fichajes/hoy')
   @UseGuards(RrhhGuard)
   async miJornada(@RrhhActor() actor: EmployeeRow): Promise<JornadaHoyDto> {
-    return toJornadaDto(await this.fichaje.jornadaHoy(actor.id));
+    return toJornadaDto(await this.fichaje.jornadaHoy(actor.id), jornadaDiariaMin(actor.weeklyMinutes));
   }
 
   @Post('fichajes')
@@ -270,7 +272,14 @@ export class RrhhController {
     // Geolocalización opcional: sólo números válidos (si el navegador no la dio, se ficha igual sin coords).
     const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : undefined);
     const geo = { latitude: num(dto.latitude), longitude: num(dto.longitude), accuracy: num(dto.accuracy) };
-    return toJornadaDto(await this.fichaje.fichar(actor.id, dto.kind, source, geo).catch(traducir));
+    return toJornadaDto(await this.fichaje.fichar(actor.id, dto.kind, source, geo).catch(traducir), jornadaDiariaMin(actor.weeklyMinutes));
+  }
+
+  /** Cierra la jornada de hoy con la jornada teórica (red de seguridad para el fichaje olvidado). */
+  @Post('fichajes/cerrar-jornada')
+  @UseGuards(RrhhGuard)
+  async cerrarJornada(@RrhhActor() actor: EmployeeRow): Promise<JornadaHoyDto> {
+    return toJornadaDto(await this.fichaje.cerrarConJornada(actor.id, actor.weeklyMinutes).catch(traducir), jornadaDiariaMin(actor.weeklyMinutes));
   }
 
   @Get('fichajes/historico')

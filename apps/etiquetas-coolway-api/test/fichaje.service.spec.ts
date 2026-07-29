@@ -219,3 +219,32 @@ describe('FichajeService · corrección con traza', () => {
     await expect(svc.corregir(1, { action: 'VOID', targetId: 9999 }, actor)).rejects.toBeInstanceOf(FichajeError); // inexistente
   });
 });
+
+describe('FichajeService · cerrar con jornada teórica', () => {
+  it('registra un OUT que hace que el día sume la jornada (8h) en vez del tiempo real', async () => {
+    const repo = repoMem();
+    // Entró hoy a las 05:00 y "se olvidó" de salir → sin cerrar llevaría muchas horas.
+    sembrar(repo, 1, 'IN', conDia(0, '05:00'));
+    const svc = new FichajeService(repo, recorderSpy().recorder, db);
+    const j = await svc.cerrarConJornada(1, 2400); // 40h/semana → 8h/día
+    expect(j.estado).toBe('FUERA');
+    expect(j.minutosTrabajados).toBe(480); // exactamente la jornada teórica
+    expect(repo.filas.some((r) => r.kind === 'OUT')).toBe(true);
+  });
+
+  it('sin horario definido usa 8h por defecto', async () => {
+    const repo = repoMem();
+    sembrar(repo, 1, 'IN', conDia(0, '04:00'));
+    const svc = new FichajeService(repo, recorderSpy().recorder, db);
+    const j = await svc.cerrarConJornada(1, null);
+    expect(j.minutosTrabajados).toBe(480);
+  });
+
+  it('falla si no hay jornada abierta (ya salió)', async () => {
+    const repo = repoMem();
+    sembrar(repo, 1, 'IN', conDia(0, '05:00'));
+    sembrar(repo, 1, 'OUT', conDia(0, '09:00'));
+    const svc = new FichajeService(repo, recorderSpy().recorder, db);
+    await expect(svc.cerrarConJornada(1, 2400)).rejects.toBeInstanceOf(FichajeError);
+  });
+});

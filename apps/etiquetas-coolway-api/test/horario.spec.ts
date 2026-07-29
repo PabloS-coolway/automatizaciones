@@ -1,4 +1,4 @@
-import { minutosExtra, minutosTeoricoDiario } from '../src/rrhh/domain/horario';
+import { jornadaDiariaMin, minutosExtra, minutosTeoricoDiario } from '../src/rrhh/domain/horario';
 
 describe('horario · teórico y horas extra', () => {
   it('la teórica diaria reparte la semanal entre 5 laborables', () => {
@@ -17,5 +17,11 @@ describe('horario · teórico y horas extra', () => {
 
   it('sin horario definido (null), nunca hay extra', () => {
     expect(minutosExtra(600, null)).toBe(0);
+  });
+
+  it('la jornada diaria usa la teórica, o 8h por defecto sin horario', () => {
+    expect(jornadaDiariaMin(2400)).toBe(480); // 40h/semana → 8h/día
+    expect(jornadaDiariaMin(2000)).toBe(400);
+    expect(jornadaDiariaMin(null)).toBe(480); // sin horario → 8h por defecto
   });
 });
