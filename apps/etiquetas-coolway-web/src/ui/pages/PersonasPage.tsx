@@ -13,7 +13,7 @@ import {
 import { rrhhGateway } from '../composition';
 import { useRrhh } from '../rrhh/RrhhContext';
 import { Column, DataTable, useMemoryTable } from '../components/table';
-import { OrganigramaView } from './personas/OrganigramaView';
+import { OrganigramaLienzo } from './personas/OrganigramaLienzo';
 import { EstructuraManager } from './personas/EstructuraManager';
 import { PanelFichajes } from './personas/PanelFichajes';
 import { ActividadRrhh } from './personas/ActividadRrhh';
@@ -329,7 +329,7 @@ export function PersonasPage() {
           {vista === 'organigrama' && (
             <Card>
               <Card.Body className="p-4">
-                <OrganigramaView empleados={orgEmpleados} />
+                <OrganigramaLienzo empleados={orgEmpleados} />
               </Card.Body>
             </Card>
           )}
