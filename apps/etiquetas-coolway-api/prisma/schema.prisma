@@ -114,8 +114,26 @@ model Center {
   /// Marca/enseña del grupo Yorga (COOLWAY, …). Segmenta el organigrama y los permisos.
   brand     String
   employees Employee[]
+  holidays  Holiday[]
 
   @@map("hr_center")
+}
+
+/// REQ-008 · Festivo (día no laborable) de un centro, o GLOBAL para todos los centros si `centerId` es null.
+/// Las vacaciones se cuentan en días naturales, así que un festivo NO descuenta saldo: es informativo (se
+/// pinta en el calendario y ayuda a coordinar). Un festivo se identifica por (fecha, centro): no se repite.
+model Holiday {
+  id        Int      @id @default(autoincrement())
+  date      DateTime @db.Date
+  name      String
+  /// `null` = festivo GLOBAL (aplica a todos los centros). Si apunta a un centro, sólo aplica a ese.
+  centerId  Int?     @map("center_id")
+  center    Center?  @relation(fields: [centerId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([date, centerId])
+  @@index([date])
+  @@map("hr_holiday")
 }
 
 /// REQ-008 · Departamento (Ventas, Almacén, IT…).

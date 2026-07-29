@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button, Card } from 'react-bootstrap';
 import { ChevronLeft, ChevronRight } from 'react-bootstrap-icons';
-import { ESTADO_AUSENCIA_LABELS, type AbsenceDto } from '@yorga/contracts';
+import { ESTADO_AUSENCIA_LABELS, type AbsenceDto, type HolidayDto } from '@yorga/contracts';
+import { rrhhGateway } from '../../composition';
 
 const DIAS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
@@ -15,10 +16,18 @@ const iso = (y: number, m: number, d: number) => `${y}-${String(m + 1).padStart(
  * leyenda y marca de hoy (inspirado en Factorial). Se pinta en cliente con `misAusencias`; no necesita
  * endpoint nuevo. Los rechazados y cancelados no se muestran; los pendientes van con borde punteado.
  */
-export function MiCalendarioAnual({ ausencias }: { ausencias: AbsenceDto[] }) {
+export function MiCalendarioAnual({ ausencias, centerId }: { ausencias: AbsenceDto[]; centerId?: number | null }) {
   const hoy = new Date();
   const hoyIso = iso(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
   const [year, setYear] = useState(hoy.getFullYear());
+  const [festivos, setFestivos] = useState<HolidayDto[]>([]);
+
+  // Festivos aplicables (globales + los del propio centro), para marcarlos en el año.
+  useEffect(() => {
+    rrhhGateway.listFestivos(year, centerId ?? undefined).then(setFestivos).catch(() => setFestivos([]));
+  }, [year, centerId]);
+
+  const festivoPorDia = useMemo(() => new Map(festivos.map((f) => [f.date, f])), [festivos]);
 
   // Sólo lo que "cuenta" visualmente: aprobadas y pendientes (los rechazados/cancelados no ensucian el año).
   const visibles = useMemo(() => ausencias.filter((a) => a.status === 'APPROVED' || a.status === 'PENDING'), [ausencias]);
@@ -76,15 +85,24 @@ export function MiCalendarioAnual({ ausencias }: { ausencias: AbsenceDto[] }) {
                     if (dia == null) return <div key={i} className="miano-cel" />;
                     const clave = iso(year, mes, dia);
                     const a = porDia.get(clave);
+                    const festivo = festivoPorDia.get(clave);
                     const esHoy = clave === hoyIso;
                     const color = a ? colorPorTipo.get(a.typeName) : undefined;
                     const pendiente = a?.status === 'PENDING';
+                    const titulo = [
+                      a ? `${a.typeName} · ${ESTADO_AUSENCIA_LABELS[a.status]}${a.halfDay ? ' · medio día' : ''}` : null,
+                      festivo ? `Festivo: ${festivo.name}` : null,
+                    ].filter(Boolean).join(' · ') || undefined;
+                    // Festivo sin ausencia: fondo tenue + número resaltado. Con ausencia: manda el color de la ausencia.
+                    const estilo = color
+                      ? { background: pendiente ? 'transparent' : color, color: pendiente ? 'inherit' : '#fff', border: pendiente ? `1.5px dashed ${color}` : undefined }
+                      : festivo ? { background: 'var(--festivo-bg, rgba(217,164,65,.22))', fontWeight: 700 } : undefined;
                     return (
                       <div
                         key={i}
                         className={`miano-cel ${esHoy ? 'miano-hoy' : ''}`}
-                        title={a ? `${a.typeName} · ${ESTADO_AUSENCIA_LABELS[a.status]}${a.halfDay ? ' · medio día' : ''}` : undefined}
-                        style={color ? { background: pendiente ? 'transparent' : color, color: pendiente ? 'inherit' : '#fff', border: pendiente ? `1.5px dashed ${color}` : undefined } : undefined}
+                        title={titulo}
+                        style={estilo}
                       >
                         {dia}
                       </div>
@@ -98,6 +116,7 @@ export function MiCalendarioAnual({ ausencias }: { ausencias: AbsenceDto[] }) {
 
         <div className="text-secondary small mt-3 d-flex flex-wrap gap-3">
           <span><span className="miano-cel miano-hoy d-inline-block align-middle" style={{ width: 18, height: 18 }} /> hoy</span>
+          <span className="d-inline-flex align-items-center gap-1"><span style={{ width: 12, height: 12, borderRadius: 3, background: 'rgba(217,164,65,.22)', display: 'inline-block' }} /> festivo</span>
           <span>Relleno = aprobada · borde punteado = pendiente</span>
         </div>
       </Card.Body>
