@@ -91,7 +91,9 @@ export class AusenciaService {
     if (!name) throw new RrhhError('El nombre del tipo no puede quedar vacío.');
     const creado = await this.tipos.create({
       name,
-      computesBalance: !!dto.computesBalance,
+      // Por defecto un tipo DESCUENTA saldo (el caso habitual: vacaciones). Sólo se desmarca a propósito
+      // para bajas/permisos que no consumen cupo. Así no aparece un confuso "No descuenta saldo" en Vacaciones.
+      computesBalance: dto.computesBalance ?? true,
       requiresApproval: dto.requiresApproval ?? true,
       requiresAttachment: !!dto.requiresAttachment,
     });
