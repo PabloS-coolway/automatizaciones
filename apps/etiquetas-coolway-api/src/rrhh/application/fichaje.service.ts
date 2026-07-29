@@ -11,6 +11,7 @@ import {
   estaAnulado,
   estadoActual,
   fichajesEfectivos,
+  instanteCierrePorMinutos,
   jornadaSinCerrar,
   marcajesPosibles,
   minutosTrabajados,
@@ -20,7 +21,7 @@ import {
   type Fichaje,
   type FichajeCrudo,
 } from '../domain/fichaje';
-import { minutosExtra } from '../domain/horario';
+import { jornadaDiariaMin, minutosExtra } from '../domain/horario';
 
 /** Error de fichaje (transición imposible). Extiende RrhhError → el controller lo traduce a 400. */
 export class FichajeError extends RrhhError {}
@@ -110,6 +111,24 @@ export class FichajeService {
       throw new FichajeError(`No puedes «${MARCAJE_LABELS[kind]}» ahora mismo: estás ${ESTADO_HUMANO[estado]}.`);
     }
     await this.repo.add({ employeeId, kind, source, latitude: geo?.latitude, longitude: geo?.longitude, accuracy: geo?.accuracy });
+    return this.jornadaHoy(employeeId);
+  }
+
+  /**
+   * Cierra la jornada de hoy registrando un OUT en el instante que hace que el día sume **la jornada teórica**
+   * (p.ej. 8 h), en vez del tiempo real. Es la red de seguridad para el fichaje olvidado (se dejó abierto de un
+   * día para otro): así no queda un día de 20 h. Sólo aplica con la jornada abierta (TRABAJANDO).
+   */
+  async cerrarConJornada(employeeId: number, weeklyMinutes: number | null): Promise<Jornada> {
+    const { desde, hasta } = rangoDiaDe(new Date());
+    const hoy = await this.repo.listBetween(employeeId, desde, hasta);
+    const efectivos = fichajesEfectivos(hoy.map(toCrudo));
+    if (estadoActual(efectivos) !== 'TRABAJANDO') {
+      throw new FichajeError('Sólo se puede cerrar con la jornada teórica mientras estás trabajando.');
+    }
+    const at = instanteCierrePorMinutos(efectivos, jornadaDiariaMin(weeklyMinutes));
+    if (!at) throw new FichajeError('No hay una jornada abierta que cerrar.');
+    await this.repo.add({ employeeId, kind: 'OUT', source: 'WEB', at, note: 'Cierre con jornada teórica' });
     return this.jornadaHoy(employeeId);
   }
 

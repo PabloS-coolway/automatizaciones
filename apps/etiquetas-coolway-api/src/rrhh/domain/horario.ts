@@ -8,9 +8,17 @@
 
 const DIAS_LABORABLES = 5;
 
+/** Jornada diaria por defecto cuando el empleado no tiene horario definido: 8 h. */
+export const JORNADA_DIARIA_DEFECTO_MIN = 8 * 60;
+
 /** Minutos teóricos por día laborable a partir de la jornada semanal (redondeados). */
 export function minutosTeoricoDiario(weeklyMinutes: number): number {
   return Math.round(weeklyMinutes / DIAS_LABORABLES);
+}
+
+/** Jornada diaria teórica en minutos; si no hay horario definido, las 8 h por defecto. */
+export function jornadaDiariaMin(weeklyMinutes: number | null): number {
+  return weeklyMinutes != null ? minutosTeoricoDiario(weeklyMinutes) : JORNADA_DIARIA_DEFECTO_MIN;
 }
 
 /**

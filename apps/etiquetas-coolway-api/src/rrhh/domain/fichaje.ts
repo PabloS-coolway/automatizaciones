@@ -116,6 +116,32 @@ function ordenados(fichajes: Fichaje[]): Fichaje[] {
   return [...fichajes].sort((a, b) => a.at.getTime() - b.at.getTime());
 }
 
+/**
+ * Instante en que, colocando un OUT, la jornada del día sumaría exactamente `objetivoMin` minutos trabajados.
+ * Sólo tiene sentido con la jornada **abierta** (estado final TRABAJANDO): sirve para "cerrar con la jornada
+ * teórica" cuando alguien se dejó el fichaje abierto (p.ej. de un día para otro) y el tiempo real mentiría.
+ * Devuelve `null` si no hay un tramo de trabajo abierto. Respeta las pausas: sólo rellena el tramo abierto.
+ */
+export function instanteCierrePorMinutos(fichajes: Fichaje[], objetivoMin: number): Date | null {
+  let estado: EstadoJornada = 'FUERA';
+  let inicioTramo: Date | null = null;
+  let msCerrados = 0;
+  for (const f of ordenados(fichajes)) {
+    const siguiente = siguienteEstado(estado, f.kind);
+    if (!siguiente) continue;
+    if (siguiente === 'TRABAJANDO' && estado !== 'TRABAJANDO') inicioTramo = f.at;
+    if (estado === 'TRABAJANDO' && siguiente !== 'TRABAJANDO') {
+      if (inicioTramo) msCerrados += f.at.getTime() - inicioTramo.getTime();
+      inicioTramo = null;
+    }
+    estado = siguiente;
+  }
+  if (estado !== 'TRABAJANDO' || !inicioTramo) return null; // no hay tramo abierto que cerrar
+  const minCerrados = Math.round(msCerrados / 60000);
+  const restanteMin = Math.max(0, objetivoMin - minCerrados); // lo que falta para el objetivo, en el tramo abierto
+  return new Date(inicioTramo.getTime() + restanteMin * 60000);
+}
+
 /** Clave de día local (YYYY-MM-DD) del instante — para agrupar la jornada por fecha. */
 export function claveDia(d: Date): string {
   const y = d.getFullYear();
