@@ -180,6 +180,8 @@ export interface JornadaHoyDto {
   estado: EstadoJornada;
   posibles: Marcaje[];
   minutosTrabajados: number;
+  /** Jornada teórica diaria en minutos (para detectar un fichaje olvidado y ofrecer cerrarlo con ella). */
+  jornadaTeoricaMin: number;
   fichajes: TimeEntryDto[];
 }
 

@@ -367,6 +367,14 @@ button, a, [role='button'], .form-control, .form-select { touch-action: manipula
 .content { flex: 1; min-width: 0; padding: 36px 40px; display: flex; justify-content: center; }
 .page { width: 100%; max-width: 720px; transition: max-width 0.25s ease; }
 .page-wide { max-width: 1080px; } /* resultados: más anchos y visibles */
+.page-full { max-width: min(1600px, 100%); } /* gestión: la tabla ocupa la pantalla */
+
+/* Buscador de la plantilla (input con icono y botón de limpiar). */
+.buscador-plantilla { position: relative; display: inline-flex; align-items: center; }
+.buscador-plantilla .form-control { padding-left: 30px; padding-right: 26px; min-width: 260px; }
+.buscador-icono { position: absolute; left: 9px; color: var(--bs-secondary-color, #888); pointer-events: none; font-size: .85rem; }
+.buscador-limpiar { position: absolute; right: 6px; border: 0; background: transparent; color: var(--bs-secondary-color, #888); font-size: 1.1rem; line-height: 1; cursor: pointer; padding: 0 4px; }
+.buscador-limpiar:hover { color: var(--brand); }
 
 /* --- MEJ-004 · Pantalla de inicio: tarjetas de acceso rápido --- */
 .acceso-card {
@@ -451,14 +459,34 @@ button, a, [role='button'], .form-control, .form-select { touch-action: manipula
 .login-card { width: 100%; max-width: 380px; border: 1px solid var(--border); }
 .login-brand { font-weight: 700; font-size: 1.25rem; display: flex; align-items: center; color: var(--ink); }
 
-/* REQ-008 Fase 1 (Slice 2) · Organigrama */
+/* REQ-008 · Organigrama interactivo (tarjetas + avatares + colapsable) */
 .org-tree .org-node { position: relative; }
-.org-tree ul { border-left: 1px solid var(--border); margin-left: 0.35rem; }
-.org-dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--bs-success, #198754); flex-shrink: 0;
+/* Línea guía de la rama + conector horizontal a cada tarjeta. */
+.org-tree ul { border-left: 1.5px solid var(--border); margin-left: 1.15rem; padding-left: 1rem; }
+.org-tree ul .org-node::before {
+  content: ''; position: absolute; top: 1.55rem; left: -1rem; width: .85rem; height: 1.5px; background: var(--border);
 }
-.org-dot-off { background: var(--border); }
+.org-card {
+  display: flex; align-items: center; gap: 10px; padding: 8px 12px; margin: 6px 0;
+  border: 1px solid var(--border); border-radius: 12px; background: var(--surface, #fff);
+  transition: box-shadow .15s ease, border-color .15s ease;
+}
+.org-card:hover { border-color: var(--brand-2); box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+.org-toggle {
+  border: 0; background: transparent; color: var(--bs-secondary-color, #888); cursor: pointer;
+  width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 0;
+}
+.org-toggle:hover { color: var(--brand); }
+.org-toggle-empty { cursor: default; }
+.org-avatar {
+  width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 700; font-size: .8rem; letter-spacing: .02em;
+}
+.org-info { min-width: 0; }
+.org-nombre { line-height: 1.2; }
+.org-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 1px; }
+.org-equipo { display: inline-flex; align-items: center; color: var(--brand); font-weight: 600; }
 
 /* Calendario de ausencias (RRHH Fase 3) */
 .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
@@ -468,6 +496,16 @@ button, a, [role='button'], .form-control, .form-select { touch-action: manipula
 .cal-num { font-size: .8rem; color: var(--bs-secondary-color, #888); }
 .cal-chip { font-size: .68rem; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 640px) { .cal-cell { min-height: 60px; } }
+
+/* Vista de fichar (minimalista). */
+.fichar-hero { border: 1px solid var(--border); border-radius: 18px; }
+.fichar-time { font-size: 3rem; font-weight: 700; line-height: 1.1; letter-spacing: -0.02em; }
+.fichar-geo { font-size: .9rem; color: var(--bs-body-color); background: var(--kpi-bg, rgba(127,127,127,.06)); border: 1px solid var(--border); border-radius: 12px; padding: 8px 12px; text-align: center; }
+.fichar-btn { border-radius: 999px; padding-top: .8rem; padding-bottom: .8rem; font-weight: 600; }
+.fichar-mes-cab { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 4px; margin-bottom: 4px; border-bottom: 1px solid var(--border); }
+.fichar-dia { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.fichar-dia:last-child { border-bottom: 0; }
+.fichar-dia-h { font-variant-numeric: tabular-nums; font-weight: 600; }
 
 /* Festivo en el calendario mensual de equipo. */
 .cal-festivo { background: rgba(217,164,65,.12); }

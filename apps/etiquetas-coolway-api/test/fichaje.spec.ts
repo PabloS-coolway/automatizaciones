@@ -5,6 +5,7 @@ import {
   estaAnulado,
   estadoActual,
   fichajesEfectivos,
+  instanteCierrePorMinutos,
   jornadaSinCerrar,
   marcajesPosibles,
   minutosTrabajados,
@@ -107,5 +108,32 @@ describe('fichaje · efectivos (correcciones)', () => {
   it('sin correcciones, los efectivos son todos los marcajes reales', () => {
     const crudos = [crudo(1, 'IN', '09:00'), crudo(2, 'OUT', '17:00')];
     expect(fichajesEfectivos(crudos)).toHaveLength(2);
+  });
+});
+
+describe('fichaje · instante de cierre por minutos (cierre con jornada teórica)', () => {
+  const hhmm = (d: Date) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+
+  it('con la jornada abierta, coloca el OUT para sumar el objetivo (8h)', () => {
+    const at = instanteCierrePorMinutos([f('IN', '09:00')], 480);
+    expect(at && hhmm(at)).toBe('17:00'); // 09:00 + 8h
+  });
+
+  it('respeta la pausa: sólo rellena el tramo abierto', () => {
+    // 09:00–13:00 cerrado (240) + pausa + reanuda 14:00. Faltan 240 → OUT a las 18:00.
+    const at = instanteCierrePorMinutos([f('IN', '09:00'), f('BREAK_START', '13:00'), f('BREAK_END', '14:00')], 480);
+    expect(at && hhmm(at)).toBe('18:00');
+  });
+
+  it('si los tramos cerrados ya superan el objetivo, cierra sin añadir más', () => {
+    // 09:00–17:20 cerrado (500 min) + reanuda 18:00. objetivo 480 < 500 → OUT justo al reanudar (no resta).
+    const at = instanteCierrePorMinutos([f('IN', '09:00'), f('BREAK_START', '17:20'), f('BREAK_END', '18:00')], 480);
+    expect(at && hhmm(at)).toBe('18:00');
+  });
+
+  it('devuelve null si la jornada no está abierta (ya salió o está en pausa)', () => {
+    expect(instanteCierrePorMinutos([f('IN', '09:00'), f('OUT', '17:00')], 480)).toBeNull();
+    expect(instanteCierrePorMinutos([f('IN', '09:00'), f('BREAK_START', '13:00')], 480)).toBeNull();
+    expect(instanteCierrePorMinutos([], 480)).toBeNull();
   });
 });
