@@ -469,6 +469,10 @@ button, a, [role='button'], .form-control, .form-select { touch-action: manipula
 .cal-chip { font-size: .68rem; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 640px) { .cal-cell { min-height: 60px; } }
 
+/* Festivo en el calendario mensual de equipo. */
+.cal-festivo { background: rgba(217,164,65,.12); }
+.cal-festivo-dot { color: #d9a441; font-size: .8rem; line-height: 1; }
+
 /* Resumen de la solicitud de ausencia (#3). */
 .resumen-ausencia { background: var(--kpi-bg, rgba(127,127,127,.08)); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
 
