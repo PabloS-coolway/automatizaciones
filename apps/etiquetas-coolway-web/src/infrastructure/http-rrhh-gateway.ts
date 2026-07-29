@@ -165,6 +165,13 @@ export class HttpRrhhGateway {
     return res.json();
   }
 
+  /** Cierra la jornada de hoy con la jornada teórica (red de seguridad para el fichaje olvidado). */
+  async cerrarConJornada(): Promise<JornadaHoyDto> {
+    const res = await apiFetch('/rrhh/fichajes/cerrar-jornada', { method: 'POST' });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo cerrar la jornada.'));
+    return res.json();
+  }
+
   async miHistorico(desde?: string, hasta?: string): Promise<HistoricoFichajeDto> {
     const qs = new URLSearchParams();
     if (desde) qs.set('desde', desde);

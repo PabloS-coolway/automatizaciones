@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Alert, Badge, Button, Card, Form, Modal, Nav, Spinner } from 'react-bootstrap';
-import { Diagram3, Download, PencilSquare, PersonDash, PersonCheck, PlusLg, Building, ClockHistory, ListUl } from 'react-bootstrap-icons';
+import { Diagram3, Download, PencilSquare, PersonDash, PersonCheck, PlusLg, Building, ClockHistory, ListUl, Search } from 'react-bootstrap-icons';
 import {
   RRHH_ROLE_LABELS,
   RRHH_ROLES,
@@ -38,6 +38,7 @@ export function PersonasPage() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [vista, setVista] = useState<Vista>('plantilla');
+  const [buscar, setBuscar] = useState('');
 
   const [abierto, setAbierto] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
@@ -226,7 +227,18 @@ export function PersonasPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [puedeGestionar, nombrePorId, busyId]);
 
-  const tabla = useMemoryTable(empleados, columns);
+  // Buscador global de la plantilla: filtra por nombre, correo, puesto, rol, departamento y centro/marca.
+  const empleadosFiltrados = useMemo(() => {
+    const q = buscar.trim().toLowerCase();
+    if (!q) return empleados;
+    return empleados.filter((e) =>
+      [e.fullName, e.email, e.position, RRHH_ROLE_LABELS[e.rrhhRole], e.department, e.center, e.brand]
+        .filter(Boolean)
+        .some((campo) => String(campo).toLowerCase().includes(q)),
+    );
+  }, [empleados, buscar]);
+
+  const tabla = useMemoryTable(empleadosFiltrados, columns);
 
   const posiblesResponsables = useMemo(() => empleados.filter((e) => e.id !== editId), [empleados, editId]);
 
@@ -242,14 +254,14 @@ export function PersonasPage() {
 
   if (rrhhLoading || loading) {
     return (
-      <div className="page page-wide">
+      <div className="page page-full">
         <Spinner animation="border" size="sm" className="me-2" /> Cargando…
       </div>
     );
   }
 
   return (
-    <div className="page page-wide">
+    <div className="page page-full">
       <header className="page-head mb-4 d-flex justify-content-between align-items-start gap-3">
         <div>
           <h1 className="h4 mb-1">Personas</h1>
@@ -290,13 +302,26 @@ export function PersonasPage() {
           {vista === 'plantilla' && (
             <Card>
               <Card.Body className="p-4">
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <Card.Title className="mb-0">Plantilla ({empleados.length})</Card.Title>
-                  {puedeGestionar && empleados.length > 0 && (
-                    <Button size="sm" variant="outline-secondary" onClick={exportarPlantilla}><Download className="me-1" /> CSV</Button>
-                  )}
+                <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                  <Card.Title className="mb-0">Plantilla ({empleadosFiltrados.length}{buscar.trim() ? ` de ${empleados.length}` : ''})</Card.Title>
+                  <div className="d-flex align-items-center gap-2">
+                    <div className="buscador-plantilla">
+                      <Search className="buscador-icono" />
+                      <input
+                        className="form-control form-control-sm"
+                        placeholder="Buscar por nombre, correo, puesto, centro…"
+                        value={buscar}
+                        onChange={(e) => setBuscar(e.target.value)}
+                        aria-label="Buscar en la plantilla"
+                      />
+                      {buscar && <button type="button" className="buscador-limpiar" onClick={() => setBuscar('')} aria-label="Limpiar búsqueda">×</button>}
+                    </div>
+                    {puedeGestionar && empleados.length > 0 && (
+                      <Button size="sm" variant="outline-secondary" onClick={exportarPlantilla}><Download className="me-1" /> CSV</Button>
+                    )}
+                  </div>
                 </div>
-                <DataTable model={tabla} allRows={empleados} rowKey={(e) => String(e.id)} empty="No hay empleados visibles." />
+                <DataTable model={tabla} allRows={empleadosFiltrados} rowKey={(e) => String(e.id)} empty={buscar.trim() ? 'Sin resultados para tu búsqueda.' : 'No hay empleados visibles.'} />
               </Card.Body>
             </Card>
           )}
