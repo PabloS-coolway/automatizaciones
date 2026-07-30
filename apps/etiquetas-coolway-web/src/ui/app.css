@@ -530,16 +530,44 @@ button, a, [role='button'], .form-control, .form-select { touch-action: manipula
 .fichar-dia:last-child { border-bottom: 0; }
 .fichar-dia-h { font-variant-numeric: tabular-nums; font-weight: 600; }
 
-/* Mi jornada por mes (fichar). */
-.mm-dia { display: grid; grid-template-columns: 80px 1fr auto; align-items: center; gap: 10px; padding: 7px 8px; border-bottom: 1px solid var(--border); border-radius: 8px; }
-.mm-dia:last-child { border-bottom: 0; }
-.mm-falta { background: rgba(220,53,69,.06); }
-.mm-warn { background: rgba(217,164,65,.06); }
-.mm-fecha { font-weight: 600; }
-.mm-centro { min-width: 0; }
-.mm-derecha { display: inline-flex; align-items: center; gap: 8px; justify-self: end; }
-.mm-horas { font-variant-numeric: tabular-nums; font-weight: 600; }
-.mm-editar { padding: 1px 8px; }
+/* Mi jornada por mes — CALENDARIO. */
+.mmc-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.mmc-cab { text-align: center; font-size: .72rem; font-weight: 600; color: var(--bs-secondary-color, #888); padding-bottom: 2px; }
+.mmc-cel {
+  aspect-ratio: 1 / 1; border: 1px solid var(--border); border-radius: 10px; padding: 5px 6px;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; background: var(--surface);
+  text-align: left; overflow: hidden; color: var(--ink);
+}
+.mmc-empty { border: none; background: transparent; }
+.mmc-clic { cursor: pointer; transition: box-shadow .12s, transform .05s; }
+.mmc-clic:hover { box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+.mmc-clic:active { transform: scale(.98); }
+.mmc-num { font-size: .8rem; font-weight: 600; }
+.mmc-h { font-size: .72rem; font-variant-numeric: tabular-nums; }
+.mmc-falta-dot { font-size: .62rem; font-weight: 700; color: #dc3545; text-transform: uppercase; }
+.mmc-etq { font-size: .62rem; color: var(--bs-secondary-color, #888); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.mmc-ok { background: rgba(25,135,84,.12); border-color: rgba(25,135,84,.3); }
+.mmc-warn { background: rgba(217,164,65,.14); border-color: rgba(217,164,65,.35); }
+.mmc-falta { background: rgba(220,53,69,.1); border-color: rgba(220,53,69,.32); }
+.mmc-festivo { background: rgba(13,110,253,.08); border-color: rgba(13,110,253,.22); }
+.mmc-ausencia { background: rgba(13,202,240,.1); border-color: rgba(13,202,240,.3); }
+.mmc-finde { background: var(--kpi-bg, rgba(127,127,127,.05)); color: var(--bs-secondary-color, #999); }
+.mmc-hoy { outline: 2px solid var(--brand-2); outline-offset: -2px; font-weight: 700; }
+.mmc-vacio { background: transparent; color: var(--bs-secondary-color, #bbb); border-style: dashed; }
+.mmc-leyenda { display: flex; flex-wrap: wrap; gap: 12px; }
+.mmc-leyenda .mmc-dot { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 4px; vertical-align: middle; }
+.mmc-skeleton { display: block; width: 100%; height: 280px; }
+@media (max-width: 520px) { .mmc-num { font-size: .72rem; } .mmc-h, .mmc-etq, .mmc-falta-dot { font-size: .58rem; } }
+
+/* Skeleton de carga (placeholder con brillo). */
+.skeleton { display: inline-block; background: linear-gradient(90deg, var(--kpi-bg, #eee) 25%, var(--border) 37%, var(--kpi-bg, #eee) 63%); background-size: 400% 100%; animation: skeleton-shimmer 1.3s ease infinite; }
+.skeleton-rounded { border-radius: 8px; }
+@keyframes skeleton-shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+.skeleton-table { display: flex; flex-direction: column; gap: 10px; }
+.skeleton-row { display: grid; grid-template-columns: repeat(var(--sk-cols, 5), 1fr); gap: 12px; }
+.skeleton-head { opacity: .7; }
+
+/* Festivo en el calendario mensual de equipo. */
 
 /* Festivo en el calendario mensual de equipo. */
 .cal-festivo { background: rgba(217,164,65,.12); }

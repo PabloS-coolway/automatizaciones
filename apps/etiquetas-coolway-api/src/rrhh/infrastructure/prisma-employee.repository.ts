@@ -24,6 +24,7 @@ type ConRelaciones = {
   annualLeaveDays: number | null;
   birthDate: Date | null;
   hideBirthday: boolean;
+  fichajeDesde: Date | null;
   user: { email: string };
   department: { name: string } | null;
   center: { name: string; brand: string } | null;
@@ -48,6 +49,7 @@ function toRow(e: ConRelaciones): EmployeeRow {
     annualLeaveDays: e.annualLeaveDays,
     birthDate: e.birthDate ? e.birthDate.toISOString().slice(0, 10) : null,
     hideBirthday: e.hideBirthday,
+    fichajeDesde: e.fichajeDesde ? e.fichajeDesde.toISOString().slice(0, 10) : null,
   };
 }
 
@@ -90,6 +92,7 @@ export class PrismaEmployeeRepository implements EmployeeRepository {
         annualLeaveDays: nuevo.annualLeaveDays ?? undefined,
         birthDate: nuevo.birthDate ? new Date(`${nuevo.birthDate}T00:00:00Z`) : undefined,
         hideBirthday: nuevo.hideBirthday ?? undefined,
+        fichajeDesde: nuevo.fichajeDesde ? new Date(`${nuevo.fichajeDesde}T00:00:00Z`) : undefined,
       },
       include: INCLUDE,
     });
@@ -110,6 +113,7 @@ export class PrismaEmployeeRepository implements EmployeeRepository {
         ...(data.annualLeaveDays !== undefined ? { annualLeaveDays: data.annualLeaveDays } : {}),
         ...(data.birthDate !== undefined ? { birthDate: data.birthDate ? new Date(`${data.birthDate}T00:00:00Z`) : null } : {}),
         ...(data.hideBirthday !== undefined ? { hideBirthday: data.hideBirthday } : {}),
+        ...(data.fichajeDesde !== undefined ? { fichajeDesde: data.fichajeDesde ? new Date(`${data.fichajeDesde}T00:00:00Z`) : null } : {}),
         ...(data.active !== undefined ? { active: data.active, terminatedAt: data.active ? null : new Date() } : {}),
       },
       include: INCLUDE,

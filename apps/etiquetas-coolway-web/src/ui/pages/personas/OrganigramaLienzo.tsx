@@ -149,6 +149,7 @@ function LienzoInterno({ empleados }: { empleados: OrgEmployeeDto[] }) {
           nodeTypes={nodeTypes}
           colorMode="system"
           fitView
+          fitViewOptions={{ maxZoom: 0.85, padding: 0.25 }}
           minZoom={0.15}
           nodesDraggable={false}
           nodesConnectable={false}

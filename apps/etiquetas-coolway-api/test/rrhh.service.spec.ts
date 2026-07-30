@@ -21,6 +21,7 @@ const fila = (p: Partial<EmployeeRow>): EmployeeRow => ({
   annualLeaveDays: null,
   birthDate: null,
   hideBirthday: false,
+  fichajeDesde: null,
   ...p,
 });
 

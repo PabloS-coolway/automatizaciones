@@ -26,6 +26,8 @@ export interface EmployeeRow {
   birthDate: string | null;
   /** Privacidad: el empleado no quiere que su cumpleaños se muestre al equipo. */
   hideBirthday: boolean;
+  /** Desde qué día se le exige fichar (YYYY-MM-DD); antes no cuenta como falta. `null` = sin control. */
+  fichajeDesde: string | null;
 }
 
 export interface NuevoEmpleado {
@@ -40,6 +42,7 @@ export interface NuevoEmpleado {
   annualLeaveDays?: number | null;
   birthDate?: string | null;
   hideBirthday?: boolean;
+  fichajeDesde?: string | null;
 }
 
 /** Cambios sobre una ficha (edición / baja / reactivación). Sólo los campos presentes se tocan. */
@@ -54,6 +57,7 @@ export interface EmpleadoUpdate {
   annualLeaveDays?: number | null;
   birthDate?: string | null;
   hideBirthday?: boolean;
+  fichajeDesde?: string | null;
   active?: boolean;
 }
 
