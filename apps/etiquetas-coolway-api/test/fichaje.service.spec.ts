@@ -248,3 +248,29 @@ describe('FichajeService · cerrar con jornada teórica', () => {
     await expect(svc.cerrarConJornada(1, 2400)).rejects.toBeInstanceOf(FichajeError);
   });
 });
+
+describe('FichajeService · auto-corrección del propio empleado (últimos 14 días)', () => {
+  it('permite AÑADIR un marcaje en un día reciente y lo audita', async () => {
+    const repo = repoMem();
+    const { svc, registros } = nuevoServicio(repo);
+    await svc.corregirPropio(1, { action: 'ADD', kind: 'IN', at: conDia(1, '09:00') }, actor);
+    expect(repo.filas.some((f) => f.kind === 'IN')).toBe(true);
+    expect(registros.some((r) => r.entity === 'FICHAJE')).toBe(true);
+  });
+
+  it('rechaza corregir un día MÁS antiguo que el límite (lo hace RRHH)', async () => {
+    const svc = new FichajeService(repoMem(), recorderSpy().recorder, db);
+    await expect(svc.corregirPropio(1, { action: 'ADD', kind: 'IN', at: conDia(30, '09:00') }, actor)).rejects.toBeInstanceOf(FichajeError);
+  });
+
+  it('permite ANULAR un marcaje propio reciente, pero no uno antiguo ni ajeno', async () => {
+    const repo = repoMem();
+    const svc = new FichajeService(repo, recorderSpy().recorder, db);
+    const idReciente = sembrar(repo, 1, 'IN', conDia(2, '09:00'));
+    const idAntiguo = sembrar(repo, 1, 'IN', conDia(30, '09:00'));
+    const idAjeno = sembrar(repo, 2, 'IN', conDia(1, '09:00'));
+    await expect(svc.corregirPropio(1, { action: 'VOID', targetId: idReciente }, actor)).resolves.toBeDefined();
+    await expect(svc.corregirPropio(1, { action: 'VOID', targetId: idAntiguo }, actor)).rejects.toBeInstanceOf(FichajeError);
+    await expect(svc.corregirPropio(1, { action: 'VOID', targetId: idAjeno }, actor)).rejects.toBeInstanceOf(FichajeError);
+  });
+});

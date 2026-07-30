@@ -26,6 +26,9 @@ import { jornadaDiariaMin, minutosExtra } from '../domain/horario';
 /** Error de fichaje (transición imposible). Extiende RrhhError → el controller lo traduce a 400. */
 export class FichajeError extends RrhhError {}
 
+/** Días hacia atrás que el propio empleado puede autocorregir sus marcajes (más antiguo → lo corrige RRHH). */
+export const DIAS_AUTOEDICION = 14;
+
 const ESTADO_HUMANO: Record<EstadoJornada, string> = {
   FUERA: 'fuera de jornada',
   TRABAJANDO: 'trabajando',
@@ -56,6 +59,8 @@ export interface DiaJornada {
   fecha: string;
   minutosTrabajados: number;
   minutosExtra: number;
+  /** La jornada de ese día quedó sin cerrar (entró y no salió). */
+  abierta: boolean;
   fichajes: TimeEntryRow[];
 }
 
@@ -205,7 +210,7 @@ export class FichajeService {
       // El día ya cerrado: se computa hasta su último marcaje EFECTIVO (no hasta "ahora").
       const ultimo = ultimoInstante(efectivos, filas[0].at);
       const trabajados = minutosTrabajados(efectivos, ultimo);
-      dias.push({ fecha, minutosTrabajados: trabajados, minutosExtra: minutosExtra(trabajados, weeklyMinutes), fichajes: filas });
+      dias.push({ fecha, minutosTrabajados: trabajados, minutosExtra: minutosExtra(trabajados, weeklyMinutes), abierta: jornadaSinCerrar(efectivos), fichajes: filas });
     }
     return dias.sort((a, b) => b.fecha.localeCompare(a.fecha));
   }
@@ -221,6 +226,33 @@ export class FichajeService {
       minutosTrabajados: minutosTrabajados(efectivos, ultimoInstante(efectivos, desde)),
       entradas: rows.map((row) => ({ row, anulado: estaAnulado(row.id, crudos) })),
     };
+  }
+
+  /**
+   * Auto-corrección del PROPIO empleado (estilo Factorial): puede añadir/anular sus marcajes de los últimos
+   * `maxDias` días (por defecto 14). Todo queda auditado igual que una corrección de RRHH (el actor es él
+   * mismo). El pasado más antiguo queda fuera: eso lo corrige RRHH. La fecha afectada se valida contra el rango.
+   */
+  async corregirPropio(employeeId: number, c: Correccion, actor: { email: string }, maxDias = DIAS_AUTOEDICION): Promise<DiaDetalle> {
+    const hoy = new Date();
+    const limite = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - maxDias);
+    const finHoy = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+    finHoy.setDate(finHoy.getDate() + 1); // hasta el final de hoy
+
+    // ¿Qué día toca esta corrección? ADD → el marcaje que se añade; VOID → el que se anula.
+    let fechaAfectada: Date | undefined;
+    if (c.action === 'ADD') {
+      fechaAfectada = c.at;
+    } else if (c.action === 'VOID' && c.targetId) {
+      const target = await this.repo.findById(c.targetId);
+      if (!target || target.employeeId !== employeeId) throw new FichajeError('Ese fichaje no existe o no es tuyo.');
+      fechaAfectada = target.at;
+    }
+    if (!fechaAfectada || Number.isNaN(fechaAfectada.getTime())) throw new FichajeError('Falta la fecha del marcaje.');
+    if (fechaAfectada < limite || fechaAfectada >= finHoy) {
+      throw new FichajeError(`Solo puedes corregir tus fichajes de los últimos ${maxDias} días. Para días más antiguos, pídelo a RRHH.`);
+    }
+    return this.corregir(employeeId, c, actor);
   }
 
   /**

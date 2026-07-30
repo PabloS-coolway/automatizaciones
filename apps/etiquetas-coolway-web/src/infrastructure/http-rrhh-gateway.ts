@@ -23,6 +23,7 @@ import type {
   JornadaHoyDto,
   NotificacionDto,
   PanelFichajeDto,
+  ResumenMesDto,
   RrhhActivityListDto,
   RrhhMeDto,
   SaldoVacacionesDto,
@@ -195,6 +196,30 @@ export class HttpRrhhGateway {
 
   async corregirFichaje(id: number, input: CorreccionFichajeDto): Promise<DiaDetalleFichajeDto> {
     const res = await apiFetch(`/rrhh/empleados/${id}/fichajes/correccion`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo aplicar la corrección.'));
+    return res.json();
+  }
+
+  // ---- Mi jornada (mensual + auto-edición del propio empleado) ----
+
+  async resumenMes(year: number, month: number): Promise<ResumenMesDto> {
+    const res = await apiFetch(`/rrhh/fichajes/resumen-mes?year=${year}&month=${month}`);
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo cargar el mes.'));
+    return res.json();
+  }
+
+  async miDia(fecha: string): Promise<DiaDetalleFichajeDto> {
+    const res = await apiFetch(`/rrhh/fichajes/mi-dia?fecha=${fecha}`);
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo cargar el día.'));
+    return res.json();
+  }
+
+  async miCorreccion(input: CorreccionFichajeDto): Promise<DiaDetalleFichajeDto> {
+    const res = await apiFetch('/rrhh/fichajes/mi-correccion', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(input),
