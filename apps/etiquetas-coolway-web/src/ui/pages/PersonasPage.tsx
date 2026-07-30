@@ -17,9 +17,10 @@ import { OrganigramaLienzo } from './personas/OrganigramaLienzo';
 import { EstructuraManager } from './personas/EstructuraManager';
 import { PanelFichajes } from './personas/PanelFichajes';
 import { ActividadRrhh } from './personas/ActividadRrhh';
+import { Skeleton, SkeletonTable } from '../components/Skeleton';
 import { plantillaACsv } from '../../domain/plantilla-csv';
 
-const VACIO = { email: '', fullName: '', rrhhRole: 'EMPLEADO' as RrhhRole, position: '', managerId: '', centerId: '', departmentId: '', weeklyHours: '', annualLeaveDays: '', birthDate: '', hideBirthday: false };
+const VACIO = { email: '', fullName: '', rrhhRole: 'EMPLEADO' as RrhhRole, position: '', managerId: '', centerId: '', departmentId: '', weeklyHours: '', annualLeaveDays: '', birthDate: '', hideBirthday: false, fichajeDesde: '' };
 type Vista = 'plantilla' | 'organigrama' | 'fichajes' | 'estructura' | 'actividad';
 
 /**
@@ -94,6 +95,7 @@ export function PersonasPage() {
       annualLeaveDays: e.annualLeaveDays != null ? String(e.annualLeaveDays) : '',
       birthDate: e.birthDate ?? '',
       hideBirthday: e.hideBirthday,
+      fichajeDesde: e.fichajeDesde ?? '',
     });
     setFormError('');
     setAbierto(true);
@@ -110,6 +112,7 @@ export function PersonasPage() {
     const weeklyMinutes = form.weeklyHours.trim() ? Math.round(Number(form.weeklyHours) * 60) : null;
     const annualLeaveDays = form.annualLeaveDays.trim() ? Math.round(Number(form.annualLeaveDays)) : null;
     const birthDate = form.birthDate.trim() || null;
+    const fichajeDesde = form.fichajeDesde.trim() || null;
     try {
       if (editId == null) {
         const nuevo = await rrhhGateway.crearEmpleado({
@@ -124,6 +127,7 @@ export function PersonasPage() {
           annualLeaveDays,
           birthDate,
           hideBirthday: form.hideBirthday,
+          fichajeDesde: fichajeDesde ?? undefined,
         });
         setNotice(`${nuevo.fullName} dado de alta y enlazado a ${nuevo.email}.`);
       } else {
@@ -138,6 +142,7 @@ export function PersonasPage() {
           annualLeaveDays,
           birthDate,
           hideBirthday: form.hideBirthday,
+          fichajeDesde,
         });
         setNotice(`Ficha de ${upd.fullName} actualizada.`);
       }
@@ -255,7 +260,11 @@ export function PersonasPage() {
   if (rrhhLoading || loading) {
     return (
       <div className="page page-full">
-        <Spinner animation="border" size="sm" className="me-2" /> Cargando…
+        <header className="page-head mb-4">
+          <Skeleton height={30} width={220} className="d-block mb-2" />
+          <Skeleton height={16} width={360} />
+        </header>
+        <Card><Card.Body className="p-4"><SkeletonTable rows={8} cols={7} /></Card.Body></Card>
       </div>
     );
   }
@@ -403,6 +412,11 @@ export function PersonasPage() {
                 <Form.Label className="small" htmlFor="e-vac">Vacac. (d/año)</Form.Label>
                 <Form.Control id="e-vac" type="number" min={0} value={form.annualLeaveDays}
                   onChange={(ev) => setForm({ ...form, annualLeaveDays: ev.target.value })} placeholder="23" />
+              </div>
+              <div className="col-6">
+                <Form.Label className="small" htmlFor="e-fichaje">Ficha desde</Form.Label>
+                <Form.Control id="e-fichaje" type="date" value={form.fichajeDesde} onChange={(ev) => setForm({ ...form, fichajeDesde: ev.target.value })} />
+                <div className="text-secondary small mt-1">Antes de esta fecha no se marca “falta fichar”. Por defecto, el día de alta.</div>
               </div>
               <div className="col-12 col-sm-4">
                 <Form.Label className="small" htmlFor="e-mgr">Responsable</Form.Label>

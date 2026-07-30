@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react
 import { Alert, Badge, Button, Card, Form, Spinner } from 'react-bootstrap';
 import { KeyFill, PersonPlus } from 'react-bootstrap-icons';
 import type { RoleDto, UserDto } from '@yorga/contracts';
-import { rolesGateway, usersGateway } from '../composition';
+import { rolesGateway, usersGateway, rrhhGateway } from '../composition';
 import { useAuth } from '../auth/AuthContext';
 import { Column, DataTable, useMemoryTable } from '../components/table';
 
@@ -21,6 +21,7 @@ export function UsuariosPage() {
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('');
+  const [crearFicha, setCrearFicha] = useState(true); // al alta, crear también su ficha de empleado
   const [creating, setCreating] = useState(false);
 
   const activos = useMemo(() => roles.filter((r) => r.active), [roles]);
@@ -47,7 +48,17 @@ export function UsuariosPage() {
     setCreating(true);
     try {
       const u = await usersGateway.create({ email, name, password, role });
-      setNotice(`Usuario ${u.email} creado.`);
+      let msg = `Usuario ${u.email} creado.`;
+      // Al alta, opcionalmente se crea también su ficha de empleado (RRHH), enlazada por correo.
+      if (crearFicha) {
+        try {
+          await rrhhGateway.crearEmpleado({ email: u.email, fullName: u.name });
+          msg += ' Ficha de empleado creada; RRHH puede completar sus datos.';
+        } catch (fe) {
+          msg += ` (No se pudo crear la ficha de empleado: ${(fe as Error).message})`;
+        }
+      }
+      setNotice(msg);
       setEmail('');
       setName('');
       setPassword('');
@@ -213,6 +224,13 @@ export function UsuariosPage() {
                 </Button>
               </div>
             </div>
+            <Form.Check
+              className="mt-3"
+              id="u-crear-ficha"
+              label="Crear también su ficha de empleado (RRHH) — recomendado"
+              checked={crearFicha}
+              onChange={(e) => setCrearFicha(e.target.checked)}
+            />
           </Form>
         </Card.Body>
       </Card>

@@ -16,6 +16,7 @@ import { TiposAusenciaManager } from './personas/TiposAusenciaManager';
 import { CalendarioAusencias } from './personas/CalendarioAusencias';
 import { MiCalendarioAnual } from './personas/MiCalendarioAnual';
 import { FestivosManager } from './personas/FestivosManager';
+import { Skeleton, SkeletonLines } from '../components/Skeleton';
 import { diasSolicitados as calcDias, esUnSoloDia } from '../../domain/ausencia-dias';
 
 const VARIANTE: Record<EstadoAusencia, string> = { PENDING: 'warning', APPROVED: 'success', REJECTED: 'danger', CANCELLED: 'secondary' };
@@ -134,15 +135,22 @@ export function AusenciasPage() {
 
   if (rrhhLoading || loading) {
     return (
-      <div className="page">
-        <Spinner animation="border" size="sm" className="me-2" /> Cargando…
+      <div className="page page-full">
+        <header className="page-head mb-4">
+          <Skeleton height={30} width={240} className="d-block mb-2" />
+          <Skeleton height={16} width={340} />
+        </header>
+        <div className="row g-4">
+          <div className="col-12 col-lg-5"><Card><Card.Body><SkeletonLines lines={6} /></Card.Body></Card></div>
+          <div className="col-12 col-lg-7"><Card><Card.Body><SkeletonLines lines={6} /></Card.Body></Card></div>
+        </div>
       </div>
     );
   }
 
   if (!employee) {
     return (
-      <div className="page">
+      <div className="page page-full">
         <Alert variant="light" className="border">
           Aún no tienes <strong>ficha de empleado</strong>: no puedes gestionar ausencias hasta que RRHH te dé de alta.
         </Alert>
@@ -151,7 +159,7 @@ export function AusenciasPage() {
   }
 
   return (
-    <div className="page page-wide">
+    <div className="page page-full">
       <header className="page-head mb-4">
         <h1 className="h4 mb-1">Ausencias y vacaciones</h1>
         <p className="text-secondary mb-0">Solicita tus ausencias y consulta su estado.</p>

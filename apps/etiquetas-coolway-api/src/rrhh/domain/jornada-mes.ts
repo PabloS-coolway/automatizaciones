@@ -4,7 +4,7 @@
  * marcar los días laborables pasados en los que **falta fichar** (el olvido silencioso que hay que cazar).
  */
 
-export const ESTADOS_DIA = ['OK', 'INCOMPLETO', 'FALTA', 'FESTIVO', 'FIN_SEMANA', 'AUSENCIA', 'HOY', 'FUTURO'] as const;
+export const ESTADOS_DIA = ['OK', 'INCOMPLETO', 'FALTA', 'FESTIVO', 'FIN_SEMANA', 'AUSENCIA', 'HOY', 'FUTURO', 'PREVIO'] as const;
 export type EstadoDia = (typeof ESTADOS_DIA)[number];
 
 export interface DiaResumen {
@@ -38,8 +38,10 @@ export function resumenMensual(args: {
   trabajado: Map<string, TrabajoDia>;
   festivos: Map<string, string>;
   ausencias: Map<string, string>;
+  /** Desde qué día se exige fichar; antes de esta fecha no hay FALTA (estado PREVIO). `null` = desde siempre. */
+  fichajeDesdeISO?: string | null;
 }): DiaResumen[] {
-  const { year, month, hoyISO, trabajado, festivos, ausencias } = args;
+  const { year, month, hoyISO, trabajado, festivos, ausencias, fichajeDesdeISO } = args;
   const diasEnMes = new Date(year, month, 0).getDate();
   const out: DiaResumen[] = [];
 
@@ -58,8 +60,11 @@ export function resumenMensual(args: {
     } else if (fecha === hoyISO) {
       estado = 'HOY';
     } else if (t) {
-      // Día pasado con fichajes: OK salvo que quedara sin cerrar.
+      // Día pasado con fichajes: OK salvo que quedara sin cerrar. Los fichajes mandan (aunque sea previo).
       estado = t.abierta ? 'INCOMPLETO' : 'OK';
+    } else if (fichajeDesdeISO && fecha < fichajeDesdeISO) {
+      // Antes de que se le exigiera fichar: ni falta ni nada, no existía/no fichaba.
+      estado = 'PREVIO';
     } else if (ausencias.has(fecha)) {
       estado = 'AUSENCIA';
       etiqueta = ausencias.get(fecha) ?? null;

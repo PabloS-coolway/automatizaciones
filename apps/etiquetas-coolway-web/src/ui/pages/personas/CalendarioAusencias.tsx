@@ -40,7 +40,15 @@ export function CalendarioAusencias({ puedeGestionar = false }: { puedeGestionar
 
   useEffect(() => load(), [load]);
 
-  const departamentos = useMemo(() => [...new Set(aus.map((a) => a.department).filter((d): d is string => !!d))].sort(), [aus]);
+  // Departamentos del selector: de la plantilla VISIBLE (no de las ausencias del mes, que puede no tener ninguna).
+  const [deptos, setDeptos] = useState<string[]>([]);
+  useEffect(() => {
+    rrhhGateway
+      .listEmpleados()
+      .then((emps) => setDeptos([...new Set(emps.map((e) => e.department).filter((d): d is string => !!d))].sort()))
+      .catch(() => setDeptos([]));
+  }, []);
+  const departamentos = deptos;
   const filtradas = useMemo(() => (dep ? aus.filter((a) => a.department === dep) : aus), [aus, dep]);
 
   // Rejilla del mes: huecos iniciales (lunes=0) + días.

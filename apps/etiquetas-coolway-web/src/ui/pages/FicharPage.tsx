@@ -6,6 +6,7 @@ import { rrhhGateway } from '../composition';
 import { useRrhh } from '../rrhh/RrhhContext';
 import { formatearMinutos } from '../../domain/fichaje-csv';
 import { MiMesFichajes } from './personas/MiMesFichajes';
+import { Skeleton, SkeletonLines } from '../components/Skeleton';
 
 const ICONO: Record<Marcaje, JSX.Element> = {
   IN: <BoxArrowInRight />,
@@ -125,15 +126,22 @@ export function FicharPage() {
 
   if (rrhhLoading || loading) {
     return (
-      <div className="page">
-        <Spinner animation="border" size="sm" className="me-2" /> Cargando…
+      <div className="page page-wide">
+        <header className="page-head mb-4">
+          <Skeleton height={30} width={140} className="d-block mb-2" />
+          <Skeleton height={16} width={320} />
+        </header>
+        <div className="row g-4">
+          <div className="col-12 col-lg-5"><Card><Card.Body><SkeletonLines lines={5} /></Card.Body></Card></div>
+          <div className="col-12 col-lg-7"><Card><Card.Body><Skeleton height={280} className="d-block" /></Card.Body></Card></div>
+        </div>
       </div>
     );
   }
 
   if (!employee) {
     return (
-      <div className="page">
+      <div className="page page-wide">
         <Alert variant="light" className="border">
           Aún no tienes <strong>ficha de empleado</strong>: no puedes fichar hasta que RRHH te dé de alta.
         </Alert>
@@ -142,7 +150,7 @@ export function FicharPage() {
   }
 
   return (
-    <div className="page" style={{ maxWidth: 480 }}>
+    <div className="page page-wide">
       <header className="page-head mb-4">
         <h1 className="h4 mb-1">Fichar</h1>
         <p className="text-secondary mb-0">Tu jornada de hoy. La hora la registra el servidor.</p>
@@ -151,7 +159,8 @@ export function FicharPage() {
       {error && <Alert variant="danger" onClose={() => setError('')} dismissible>⚠ {error}</Alert>}
 
       {jornada && (
-        <>
+        <div className="row g-4">
+          <div className="col-12 col-lg-5">
           {/* Hero: estado + tiempo en grande, limpio */}
           <Card className="fichar-hero mb-3">
             <Card.Body className="text-center py-4">
@@ -212,9 +221,12 @@ export function FicharPage() {
             </Card>
           )}
 
-          {/* Mi jornada por mes (navegable, con faltantes y auto-edición) */}
-          <MiMesFichajes />
-        </>
+          </div>
+          <div className="col-12 col-lg-7">
+            {/* Mi jornada por mes (calendario, con faltantes y auto-edición) */}
+            <MiMesFichajes />
+          </div>
+        </div>
       )}
 
       {/* Cierre de jornada olvidada */}
