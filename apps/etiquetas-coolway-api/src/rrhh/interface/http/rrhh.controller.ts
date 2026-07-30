@@ -27,6 +27,7 @@ import {
   NotificacionDto,
   OrgEmployeeDto,
   PanelFichajeDto,
+  ResumenMesDto,
   RrhhActivityListDto,
   RrhhMeDto,
   SaldoVacacionesDto,
@@ -53,6 +54,8 @@ import { proximosCumpleanos } from '../../domain/cumpleanos';
 import { diasDeRango, diasSolicitados } from '../../domain/ausencia';
 import { esMarcaje } from '../../domain/fichaje';
 import { jornadaDiariaMin } from '../../domain/horario';
+import { resumenMensual, type TrabajoDia } from '../../domain/jornada-mes';
+import { DIAS_AUTOEDICION } from '../../application/fichaje.service';
 import { gestionaPlantilla } from '../../domain/rrhh-org';
 import { RrhhActor, RrhhGuard } from './rrhh.guard';
 
@@ -287,6 +290,66 @@ export class RrhhController {
   async miHistorico(@RrhhActor() actor: EmployeeRow, @Query('desde') desde?: string, @Query('hasta') hasta?: string): Promise<HistoricoFichajeDto> {
     const r = rangoDesdeQuery(desde, hasta);
     return toHistoricoDto(r.desde, r.hasta, await this.fichaje.historico(actor.id, r.desde, r.hasta, actor.weeklyMinutes));
+  }
+
+  /** Resumen del mes del propio empleado: estado de cada día (incluye los FALTA de fichar) + totales. */
+  @Get('fichajes/resumen-mes')
+  @UseGuards(RrhhGuard)
+  async resumenMes(@RrhhActor() actor: EmployeeRow, @Query('year') year?: string, @Query('month') month?: string): Promise<ResumenMesDto> {
+    const hoy = new Date();
+    const y = year ? Number(year) : hoy.getFullYear();
+    const m = month ? Number(month) : hoy.getMonth() + 1; // 1-12
+    if (!Number.isInteger(y) || !Number.isInteger(m) || m < 1 || m > 12) throw new BadRequestException('Año o mes inválido.');
+
+    const inicio = new Date(y, m - 1, 1);
+    const finExclusivo = new Date(y, m, 1);
+    const finInclusivo = new Date(y, m, 0);
+
+    const [dias, festivos, ausencias] = await Promise.all([
+      this.fichaje.historico(actor.id, inicio, finExclusivo, actor.weeklyMinutes),
+      this.festivos.listBetween(inicio, finInclusivo, actor.centerId),
+      this.ausencias.diasConAusenciaAprobada([actor.id], inicio, finInclusivo),
+    ]);
+
+    const trabajado = new Map<string, TrabajoDia>(dias.map((d) => [d.fecha, { minutos: d.minutosTrabajados, extra: d.minutosExtra, abierta: d.abierta }]));
+    const mapaFestivos = new Map(festivos.map((f) => [diaISO(f.date), f.name]));
+    const mapaAusencias = new Map<string, string>();
+    for (const a of ausencias) for (const d of diasDeRango({ start: a.startDate, end: a.endDate })) mapaAusencias.set(d, a.typeName);
+
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const hoyISO = `${hoy.getFullYear()}-${pad(hoy.getMonth() + 1)}-${pad(hoy.getDate())}`;
+    const resumen = resumenMensual({ year: y, month: m, hoyISO, trabajado, festivos: mapaFestivos, ausencias: mapaAusencias });
+
+    return {
+      year: y,
+      month: m,
+      dias: resumen,
+      totalMinutos: resumen.reduce((s, d) => s + d.minutosTrabajados, 0),
+      totalExtra: resumen.reduce((s, d) => s + d.minutosExtra, 0),
+      faltan: resumen.filter((d) => d.estado === 'FALTA').length,
+      diasAutoedicion: DIAS_AUTOEDICION,
+    };
+  }
+
+  /** Detalle de un día del PROPIO empleado (para revisarlo/corregirlo él mismo). */
+  @Get('fichajes/mi-dia')
+  @UseGuards(RrhhGuard)
+  async miDia(@RrhhActor() actor: EmployeeRow, @Query('fecha') fecha?: string): Promise<DiaDetalleFichajeDto> {
+    const dia = fecha ? new Date(`${fecha}T00:00:00`) : new Date();
+    if (Number.isNaN(dia.getTime())) throw new BadRequestException('Fecha inválida (usa YYYY-MM-DD).');
+    return toDiaDetalleDto(await this.fichaje.diaDetalle(actor.id, dia));
+  }
+
+  /** Auto-corrección de los propios marcajes (últimos días). Queda auditada como cualquier corrección. */
+  @Post('fichajes/mi-correccion')
+  @UseGuards(RrhhGuard)
+  async miCorreccion(@RrhhActor() actor: EmployeeRow, @Body() dto: CorreccionFichajeDto): Promise<DiaDetalleFichajeDto> {
+    if (dto.action !== 'ADD' && dto.action !== 'VOID') throw new BadRequestException('Acción de corrección no válida (ADD | VOID).');
+    const at = dto.at ? new Date(dto.at) : undefined;
+    const detalle = await this.fichaje
+      .corregirPropio(actor.id, { action: dto.action, kind: dto.kind, at, targetId: dto.targetId, note: dto.note }, { email: actor.email })
+      .catch(traducir);
+    return toDiaDetalleDto(detalle);
   }
 
   @Get('fichajes/panel')
