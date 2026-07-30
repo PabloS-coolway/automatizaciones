@@ -3,6 +3,43 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-07-30] REQ-008 · RRHH — tanda de UX inspirada en Factorial (semana 28–30/07)
+
+Bloque grande de mejoras de experiencia sobre el módulo RRHH, casi todo revisado en vivo (curl a la API y
+Playwright en el navegador) y con la disciplina de siempre (tests + break-on-purpose).
+
+### Añadido / mejorado (todo en `main`)
+- **Home role-adaptive**: empleado ve "Fichar" primero; RRHH ve KPIs (sin ficha, ausencias por aprobar,
+  fichados). **Próximos cumpleaños**, "estás fichando", **campana de avisos**, sidebar con scroll.
+- **Geolocalización opcional al fichar** (solo coordenadas + precisión, con consentimiento del navegador;
+  si se deniega, ficha igual sin ubicación). RRHH la ve con enlace a Google Maps.
+- **Privacidad de cumpleaños**: ocultar el cumpleaños al equipo sin borrar la fecha.
+- **Time-off (Factorial)**: reglas del tipo en la solicitud, resumen calculado, **medio día 1ª/2ª mitad**,
+  **calendario unificado** (Mi año / Equipo), filtro activas/todas, **tipos editables**, saldo estilo
+  Factorial (Devengado *maqueta* / Disponible / Disfrutado).
+- **Festivos por centro** (o globales): alta suelta + **carga masiva**, marcados en los calendarios.
+- **Mi jornada por MES** en formato **calendario** navegable (escala a años), con días **"falta fichar"** y
+  **auto-edición** de los propios marcajes de los últimos 14 días (auditado como una corrección de RRHH).
+- **Organigrama en LIENZO** (React Flow: zoom/pan/minimap, colapsable, buscador) — escala a cientos de
+  empleados. Armado del árbol en dominio puro (`construirBosque`) con tests (incluye caso de 300).
+- **Detalles UX** (rama `feat/rrhh-ux-detalles-2`, pusheada, pendiente de merge): fichar en calendario +
+  dos columnas; **fecha "ficha desde"** por empleado (no marca falta antes del alta → estado PREVIO);
+  check **"crear empleado"** al alta de usuario; **skeletons** de carga; ancho consistente entre pestañas;
+  **fix** del selector de departamentos del calendario de equipo (salía vacío); menos zoom inicial del organigrama.
+
+### Verificado
+- typecheck + **API 347 tests** + **web 95** + build. Break-on-purpose en la lógica sensible (instante de
+  cierre con jornada teórica, guardia de 14 días de auto-edición, corte PREVIO por fecha de fichaje,
+  no-duplicado de festivos, armado del organigrama).
+- **En vivo por HTTP**: cierre con jornada teórica (OUT a las 13:00 = 8h exactas), auto-edición reciente OK /
+  día >14d → 400, resumen del mes con faltantes, festivos por centro. **En navegador (Playwright)**: fichar
+  (calendario + 2 columnas + días previos ocultos), organigrama (zoom moderado), selector de departamentos.
+
+### Notas de despliegue
+- Migraciones nuevas (se aplican solas en el deploy): `birthdate`, `fichaje_geo`, `justificantes`,
+  `ocultar_cumple`, `medio_dia_mitad`, `festivos`, `fichaje_desde`.
+- La geolocalización necesita **HTTPS** en producción. Justificantes en **DigitalOcean Spaces** (env `SPACES_*`).
+
 ## [2026-07-28] BUG-008 · Surtidos: expandir al catálogo en vez de filtrar (corrección de REQ-011)
 
 Silvia probó la poda de COOLWAY USA 4000: sociedad, materiales y anulación de colores **perfectos**. Pero el

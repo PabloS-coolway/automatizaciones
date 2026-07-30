@@ -1,7 +1,7 @@
 # Estado del proyecto · dónde vamos y qué sigue
 
 > Documento de traspaso. Si retomas el trabajo (o cambias de ordenador), **empieza por aquí**.
-> Última actualización: **2026-07-27**. Historial detallado en [`CHANGELOG.md`](CHANGELOG.md).
+> Última actualización: **2026-07-30**. Historial detallado en [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Arranque en un ordenador nuevo
 
@@ -207,16 +207,29 @@ Todo el andamiaje está hecho y **probado construyendo la imagen de verdad**. Gu
 --spec .do/app.yaml` o importar el spec en el panel), poner el `JWT_SECRET` como secreto, crear el primer
 admin por la consola del componente, y cargar el maestro desde la web. Usa el subdominio `.ondigitalocean.app`.
 
-## En vuelo (27/07)
+## En vuelo (30/07)
 
 - **Ya en `main`:** BUG-006 + **REQ-010** (poda configurable: sociedad + surtidos), **REQ-011** (surtidos por
-  **prefijo** 76/86 — rediseña la Fase 2 de REQ-010 tras el feedback de Silvia), BUG-007 (lectura tolerante
-  del Excel de Silvia), y **REQ-008 RRHH Fase 0** (cimientos: identidad + roles jerárquicos + esqueleto
-  "Personas"). REQ-006/007/009 ya estaban en prod.
+  **prefijo** 76/86), BUG-007, BUG-008 (surtidos: expandir al catálogo), y **REQ-008 RRHH Fases 0–4**.
+  REQ-006/007/009 en prod.
 - **REQ-008 · RRHH — Fases 1–4 COMPLETAS y en `main`.** Fichajes (motor + cuadro de mando + histórico +
   corrección con traza + horas extra), ausencias (tipos + aprobación + saldos + calendario + coordinación con
-  fichaje) y refinos (avisos in-app + export). Único pendiente de infra: el **envío por correo** de los avisos
-  (necesita SMTP; el modelo ya deja el enganche).
+  fichaje) y refinos (avisos in-app + export). Único pendiente de infra: el **envío por correo** (SMTP).
+- **REQ-008 · RRHH — tanda de UX inspirada en Factorial (semana 28–30/07), toda en `main` salvo la última:**
+  - **Home role-adaptive** + próximos cumpleaños + "estás fichando"; **campana de avisos**; sidebar con scroll.
+  - **Geolocalización opcional al fichar** (solo coords, con consentimiento; nunca bloquea).
+  - **Privacidad de cumpleaños** (ocultar sin borrar la fecha).
+  - **Time-off UX**: reglas del tipo en la solicitud, resumen calculado, medio día 1ª/2ª mitad, calendario
+    unificado (Mi año / Equipo), filtro activas/todas, tipos **editables**, saldo estilo Factorial (maqueta).
+  - **Festivos por centro** (o globales), con carga masiva y pintados en el calendario.
+  - **Mi jornada por MES** (calendario navegable, escala a años) con días **"falta fichar"** y
+    **auto-edición** de los propios marcajes de los últimos 14 días (auditado).
+  - **Organigrama en lienzo** (React Flow: zoom/pan/minimap, colapsable, buscador) — escala a cientos.
+  - **`feat/rrhh-ux-detalles-2` (pusheada, PENDIENTE de merge):** fichar en calendario + 2 columnas;
+    **fecha "ficha desde"** por empleado (no marca falta antes del alta); check "crear empleado" al alta de
+    usuario; skeletons de carga; ancho consistente entre pestañas; fix del selector de departamentos;
+    menos zoom inicial del organigrama.
+- **Con esto, la Fase 2 (Slice 2c: horario teórico + horas extra) y la Fase 3 (ausencias) quedan CERRADAS.**
 - **Arranque en frío del módulo (IMPORTANTE):** el módulo exige ficha de empleado para verlo, y sólo un empleado
   de gestión da de alta a otros → nadie puede crear el primero desde la UI. Se resuelve con **`RRHH_BOOTSTRAP_EMAIL`**
   (opcional `RRHH_BOOTSTRAP_NAME`): al arrancar, enlaza ese **usuario del login existente** con una ficha de
@@ -228,16 +241,17 @@ admin por la consola del componente, y cargar el maestro desde la web. Usa el su
 
 ## Siguiente hilo (elige uno)
 
-1. **REQ-008 · RRHH Fase 2 Slice 2c (Fichajes):** **horario teórico por empleado** y **detección de horas
-   extra** (worked vs jornada teórica). Con esto se cierra la Fase 2. (Motor, supervisión y corrección ya están.)
-2. **REQ-008 · RRHH Fase 3 (Ausencias y vacaciones):** catálogo de tipos, solicitudes → aprobación, saldos,
-   calendarios laborales, coordinación con el fichaje.
+1. **Mergear `feat/rrhh-ux-detalles-2`** (pusheada, verde: typecheck + API 347 + web 95 + build). Trae la
+   migración `fichaje_desde` (se aplica sola en el deploy).
+2. **Saldo de vacaciones real** (el "devengado" está de maqueta): definir la política de devengo con negocio
+   y calcularlo de verdad. Hoy Disponible/Disfrutado son reales; Devengado va marcado como borrador.
 3. **Adopción con Silvia:** validar la poda completa (materiales + surtidos por prefijo) con un prepedido real
    ahora que la Horma viene rellena. Es lo que desbloquea el valor de REQ-005/010/011.
 4. **Fase 2 · Bloque 3 — gobernanza del maestro**: publicar el maestro a Excel/Sheets para los
    departamentos, y coordinar accesos con Tomás.
-5. **Fase 4**: plantillas de ventas.
-6. Próximos requerimientos anunciados: gestión de email, listados de stocks, listados de ventas.
+5. **Avisos por correo (SMTP)** de RRHH: el modelo deja el enganche; falta servidor/credenciales (con Tomás).
+6. **Fase 4**: plantillas de ventas. Próximos requerimientos anunciados: gestión de email, listados de
+   stocks, listados de ventas.
 
 ## Cómo se clasifica lo que entra (no todo es un requerimiento)
 
