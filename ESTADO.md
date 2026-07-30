@@ -225,32 +225,28 @@ admin por la consola del componente, y cargar el maestro desde la web. Usa el su
   - **Mi jornada por MES** (calendario navegable, escala a años) con días **"falta fichar"** y
     **auto-edición** de los propios marcajes de los últimos 14 días (auditado).
   - **Organigrama en lienzo** (React Flow: zoom/pan/minimap, colapsable, buscador) — escala a cientos.
-  - **`feat/rrhh-ux-detalles-2` (pusheada, PENDIENTE de merge):** fichar en calendario + 2 columnas;
-    **fecha "ficha desde"** por empleado (no marca falta antes del alta); check "crear empleado" al alta de
-    usuario; skeletons de carga; ancho consistente entre pestañas; fix del selector de departamentos;
-    menos zoom inicial del organigrama.
+  - **`feat/rrhh-ux-detalles-2` (ya en `main`):** fichar en calendario + 2 columnas; **fecha "ficha desde"**
+    por empleado (no marca falta antes del alta); check "crear empleado" al alta de usuario; skeletons de
+    carga; ancho consistente entre pestañas; fix del selector de departamentos; menos zoom del organigrama.
 - **Con esto, la Fase 2 (Slice 2c: horario teórico + horas extra) y la Fase 3 (ausencias) quedan CERRADAS.**
+- **✅ Adopción con Silvia (29/07):** validó la **poda completa** (materiales + surtidos por prefijo, sociedad
+  y anulación de colores) — **dada por completada**. Cierra el valor de REQ-005/010/011.
 - **Arranque en frío del módulo (IMPORTANTE):** el módulo exige ficha de empleado para verlo, y sólo un empleado
   de gestión da de alta a otros → nadie puede crear el primero desde la UI. Se resuelve con **`RRHH_BOOTSTRAP_EMAIL`**
   (opcional `RRHH_BOOTSTRAP_NAME`): al arrancar, enlaza ese **usuario del login existente** con una ficha de
   empleado **ADMIN**. Idempotente; tras el primer arranque se puede quitar. En el deploy: definir la variable y
   redesplegar. En local: en el `.env`, o `RRHH_BOOTSTRAP_EMAIL=… npm run dev`. Mismo patrón que `ADMIN_EMAIL`.
-- **Acción de negocio pendiente (Silvia), no de BD:** para podar materiales/surtidos por color el borrador
-  debe traer la **Horma**. En el último Excel ya venía rellena (BUG-006 resuelto por su lado). Falta validar
-  la poda completa con un prepedido real.
+- **Poda validada con Silvia (29/07)** con la Horma rellena — completada. Ya no hay acción de negocio pendiente
+  en la poda.
 
 ## Siguiente hilo (elige uno)
 
-1. **Mergear `feat/rrhh-ux-detalles-2`** (pusheada, verde: typecheck + API 347 + web 95 + build). Trae la
-   migración `fichaje_desde` (se aplica sola en el deploy).
-2. **Saldo de vacaciones real** (el "devengado" está de maqueta): definir la política de devengo con negocio
+1. **Saldo de vacaciones real** (el "devengado" está de maqueta): definir la política de devengo con negocio
    y calcularlo de verdad. Hoy Disponible/Disfrutado son reales; Devengado va marcado como borrador.
-3. **Adopción con Silvia:** validar la poda completa (materiales + surtidos por prefijo) con un prepedido real
-   ahora que la Horma viene rellena. Es lo que desbloquea el valor de REQ-005/010/011.
-4. **Fase 2 · Bloque 3 — gobernanza del maestro**: publicar el maestro a Excel/Sheets para los
+2. **Fase 2 · Bloque 3 — gobernanza del maestro**: publicar el maestro a Excel/Sheets para los
    departamentos, y coordinar accesos con Tomás.
-5. **Avisos por correo (SMTP)** de RRHH: el modelo deja el enganche; falta servidor/credenciales (con Tomás).
-6. **Fase 4**: plantillas de ventas. Próximos requerimientos anunciados: gestión de email, listados de
+3. **Avisos por correo (SMTP)** de RRHH: el modelo deja el enganche; falta servidor/credenciales (con Tomás).
+4. **Fase 4**: plantillas de ventas. Próximos requerimientos anunciados: gestión de email, listados de
    stocks, listados de ventas.
 
 ## Cómo se clasifica lo que entra (no todo es un requerimiento)
