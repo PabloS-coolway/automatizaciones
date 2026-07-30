@@ -224,6 +224,43 @@ export interface HistoricoFichajeDto {
   totalExtra: number;
 }
 
+// ---- REQ-008 · Resumen mensual de jornada (vista escalable + faltantes) ----
+
+export const ESTADOS_DIA = ['OK', 'INCOMPLETO', 'FALTA', 'FESTIVO', 'FIN_SEMANA', 'AUSENCIA', 'HOY', 'FUTURO'] as const;
+export type EstadoDia = (typeof ESTADOS_DIA)[number];
+
+export const ESTADO_DIA_LABELS: Record<EstadoDia, string> = {
+  OK: 'Fichado',
+  INCOMPLETO: 'Sin cerrar',
+  FALTA: 'Falta fichar',
+  FESTIVO: 'Festivo',
+  FIN_SEMANA: 'Fin de semana',
+  AUSENCIA: 'Ausencia',
+  HOY: 'Hoy',
+  FUTURO: '',
+};
+
+/** Un día del resumen mensual: su estado + minutos + etiqueta (festivo/ausencia). */
+export interface DiaResumenDto {
+  fecha: string;
+  estado: EstadoDia;
+  minutosTrabajados: number;
+  minutosExtra: number;
+  etiqueta: string | null;
+}
+
+/** Resumen de un mes: los días con su estado + totales y nº de días con falta. */
+export interface ResumenMesDto {
+  year: number;
+  month: number; // 1-12
+  dias: DiaResumenDto[];
+  totalMinutos: number;
+  totalExtra: number;
+  faltan: number;
+  /** Nº de días máximo hacia atrás que el propio empleado puede autocorregir (para pintar el botón). */
+  diasAutoedicion: number;
+}
+
 /** Un marcaje en la vista de revisión/corrección: incluye quién lo puso y si está anulado. */
 export interface EntradaFichajeDto {
   id: number;

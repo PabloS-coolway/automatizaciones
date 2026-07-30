@@ -1,16 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Badge, Button, Card, Modal, Spinner } from 'react-bootstrap';
-import { BoxArrowInRight, BoxArrowRight, CupHot, Download, GeoAlt, GeoAltFill, PlayFill } from 'react-bootstrap-icons';
-import {
-  ESTADO_JORNADA_LABELS,
-  MARCAJE_LABELS,
-  type HistoricoFichajeDto,
-  type JornadaHoyDto,
-  type Marcaje,
-} from '@yorga/contracts';
+import { Alert, Button, Card, Modal, Spinner } from 'react-bootstrap';
+import { BoxArrowInRight, BoxArrowRight, CupHot, GeoAlt, GeoAltFill, PlayFill } from 'react-bootstrap-icons';
+import { ESTADO_JORNADA_LABELS, MARCAJE_LABELS, type JornadaHoyDto, type Marcaje } from '@yorga/contracts';
 import { rrhhGateway } from '../composition';
 import { useRrhh } from '../rrhh/RrhhContext';
-import { formatearMinutos, historicoACsv } from '../../domain/fichaje-csv';
+import { formatearMinutos } from '../../domain/fichaje-csv';
+import { MiMesFichajes } from './personas/MiMesFichajes';
 
 const ICONO: Record<Marcaje, JSX.Element> = {
   IN: <BoxArrowInRight />,
@@ -30,37 +25,6 @@ type GeoEstado = 'idle' | 'cargando' | 'ok' | 'no';
 /** Hora local HH:MM de un ISO. */
 function hora(iso: string): string {
   return new Date(iso).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-}
-
-/** 'YYYY-MM-DD' local de una fecha. */
-function isoLocal(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-const capitalizar = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-
-/** "lunes 28" a partir de 'YYYY-MM-DD'. */
-function diaLabel(fecha: string): string {
-  return new Date(`${fecha}T00:00:00`).toLocaleDateString('es-ES', { weekday: 'long', day: '2-digit' });
-}
-
-/** Agrupa los días del histórico por mes (conserva el orden, más reciente primero) con sus subtotales. */
-function agruparPorMes(dias: { fecha: string; minutosTrabajados: number; minutosExtra: number }[]) {
-  const grupos: { ym: string; label: string; dias: typeof dias; totalMin: number; totalExtra: number }[] = [];
-  for (const d of dias) {
-    const ym = d.fecha.slice(0, 7);
-    let g = grupos.find((x) => x.ym === ym);
-    if (!g) {
-      const base = new Date(`${ym}-01T00:00:00`);
-      const label = `${capitalizar(base.toLocaleDateString('es-ES', { month: 'long' }))} ${base.getFullYear()}`;
-      g = { ym, label, dias: [], totalMin: 0, totalExtra: 0 };
-      grupos.push(g);
-    }
-    g.dias.push(d);
-    g.totalMin += d.minutosTrabajados;
-    g.totalExtra += d.minutosExtra;
-  }
-  return grupos;
 }
 
 /** Desde móvil (puntero grueso) marcamos el origen como MOBILE; si no, WEB. Es sólo informativo. */
@@ -89,17 +53,12 @@ function obtenerUbicacion(): Promise<Ubicacion | undefined> {
 export function FicharPage() {
   const { employee, loading: rrhhLoading } = useRrhh();
   const [jornada, setJornada] = useState<JornadaHoyDto | null>(null);
-  const [historico, setHistorico] = useState<HistoricoFichajeDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [marcando, setMarcando] = useState<Marcaje | null>(null);
   const [geo, setGeo] = useState<Ubicacion | null>(null);
   const [geoEstado, setGeoEstado] = useState<GeoEstado>('idle');
   const [confirmarSalir, setConfirmarSalir] = useState(false);
-
-  const cargarHistorico = useCallback(() => {
-    rrhhGateway.miHistorico().then(setHistorico).catch(() => setHistorico(null));
-  }, []);
 
   const load = useCallback(() => {
     if (!employee) {
@@ -112,8 +71,7 @@ export function FicharPage() {
       .then(setJornada)
       .catch((e) => setError((e as Error).message))
       .finally(() => setLoading(false));
-    cargarHistorico();
-  }, [employee, cargarHistorico]);
+  }, [employee]);
 
   useEffect(() => load(), [load]);
 
@@ -136,7 +94,6 @@ export function FicharPage() {
       setGeo(u ?? null);
       setGeoEstado(u ? 'ok' : 'no');
       setJornada(await rrhhGateway.fichar({ kind, source: origen(), ...u }));
-      cargarHistorico(); // el fichaje puede cerrar el día → refresca el historial
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -159,23 +116,11 @@ export function FicharPage() {
     setMarcando('OUT');
     try {
       setJornada(await rrhhGateway.cerrarConJornada());
-      cargarHistorico();
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setMarcando(null);
     }
-  }
-
-  function descargarCsv() {
-    if (!historico) return;
-    const blob = new Blob([historicoACsv(historico.dias)], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `fichajes_${historico.desde}_${historico.hasta}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
   }
 
   if (rrhhLoading || loading) {
@@ -195,9 +140,6 @@ export function FicharPage() {
       </div>
     );
   }
-
-  const hoyISO = isoLocal(new Date());
-  const diasPasados = (historico?.dias ?? []).filter((d) => d.fecha !== hoyISO); // hoy ya se ve arriba (en curso)
 
   return (
     <div className="page" style={{ maxWidth: 480 }}>
@@ -270,44 +212,8 @@ export function FicharPage() {
             </Card>
           )}
 
-          {/* Historial de días pasados */}
-          {diasPasados.length > 0 && (
-            <Card>
-              <Card.Body>
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <Card.Title className="h6 mb-0">Mi historial</Card.Title>
-                  <Button size="sm" variant="outline-secondary" onClick={descargarCsv}>
-                    <Download className="me-1" /> CSV
-                  </Button>
-                </div>
-                {agruparPorMes(diasPasados).map((mes) => (
-                  <div key={mes.ym} className="fichar-mes mb-3">
-                    <div className="fichar-mes-cab">
-                      <span className="fw-semibold">{mes.label}</span>
-                      <span className="small text-secondary">{formatearMinutos(mes.totalMin)}{mes.totalExtra > 0 && ` · +${formatearMinutos(mes.totalExtra)} extra`}</span>
-                    </div>
-                    <ul className="list-unstyled mb-0">
-                      {mes.dias.map((d) => (
-                        <li key={d.fecha} className="fichar-dia">
-                          <span className="text-capitalize">{diaLabel(d.fecha)}</span>
-                          <span className="d-flex align-items-center gap-2">
-                            {d.minutosExtra > 0 && <Badge bg="warning-subtle" text="warning">+{formatearMinutos(d.minutosExtra)}</Badge>}
-                            <span className="fichar-dia-h">{formatearMinutos(d.minutosTrabajados)}</span>
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-                {historico && (
-                  <p className="text-secondary small mb-0 pt-2 border-top">
-                    Total del periodo: <strong>{formatearMinutos(historico.totalMinutos)}</strong>
-                    {historico.totalExtra > 0 && <> · extra: <strong>{formatearMinutos(historico.totalExtra)}</strong></>}
-                  </p>
-                )}
-              </Card.Body>
-            </Card>
-          )}
+          {/* Mi jornada por mes (navegable, con faltantes y auto-edición) */}
+          <MiMesFichajes />
         </>
       )}
 

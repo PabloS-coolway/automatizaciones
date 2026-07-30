@@ -530,6 +530,17 @@ button, a, [role='button'], .form-control, .form-select { touch-action: manipula
 .fichar-dia:last-child { border-bottom: 0; }
 .fichar-dia-h { font-variant-numeric: tabular-nums; font-weight: 600; }
 
+/* Mi jornada por mes (fichar). */
+.mm-dia { display: grid; grid-template-columns: 80px 1fr auto; align-items: center; gap: 10px; padding: 7px 8px; border-bottom: 1px solid var(--border); border-radius: 8px; }
+.mm-dia:last-child { border-bottom: 0; }
+.mm-falta { background: rgba(220,53,69,.06); }
+.mm-warn { background: rgba(217,164,65,.06); }
+.mm-fecha { font-weight: 600; }
+.mm-centro { min-width: 0; }
+.mm-derecha { display: inline-flex; align-items: center; gap: 8px; justify-self: end; }
+.mm-horas { font-variant-numeric: tabular-nums; font-weight: 600; }
+.mm-editar { padding: 1px 8px; }
+
 /* Festivo en el calendario mensual de equipo. */
 .cal-festivo { background: rgba(217,164,65,.12); }
 .cal-festivo-dot { color: #d9a441; font-size: .8rem; line-height: 1; }
