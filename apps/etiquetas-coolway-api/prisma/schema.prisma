@@ -171,6 +171,9 @@ model Employee {
   weeklyMinutes Int?       @map("weekly_minutes")
   /// Días de vacaciones que devenga al año (para el saldo). `null` = sin cupo definido.
   annualLeaveDays Int?     @map("annual_leave_days")
+  /// Desde qué día se le exige fichar: antes de esta fecha NO se marca "falta fichar" (no existía o no
+  /// fichaba). Por defecto, el día de alta. `null` = no se controla la asistencia por faltas.
+  fichajeDesde DateTime?   @map("fichaje_desde") @db.Date
   /// Datos bancarios opcionales, preparados para una futura nómina (no se usan en Fase 1).
   iban         String?
   /// Fecha de nacimiento (para los próximos cumpleaños del equipo). Sólo la fecha, sin hora.

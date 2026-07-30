@@ -34,6 +34,8 @@ export interface EmployeeDto {
   birthDate: string | null;
   /** Privacidad: el empleado no quiere que su cumpleaños se muestre al equipo (no borra la fecha). */
   hideBirthday: boolean;
+  /** Desde qué día se le exige fichar (YYYY-MM-DD); antes no se marca "falta fichar". `null` = sin control. */
+  fichajeDesde: string | null;
 }
 
 /**
@@ -52,6 +54,7 @@ export interface CreateEmployeeDto {
   annualLeaveDays?: number | null;
   birthDate?: string | null;
   hideBirthday?: boolean;
+  fichajeDesde?: string | null;
 }
 
 /** Edición de una ficha (Fase 1). Todo opcional; sólo lo presente se cambia. El correo/usuario no se cambia. */
@@ -66,6 +69,7 @@ export interface UpdateEmployeeDto {
   annualLeaveDays?: number | null;
   birthDate?: string | null;
   hideBirthday?: boolean;
+  fichajeDesde?: string | null;
 }
 
 /** Un centro/tienda del grupo. La `brand` (enseña) es la que **segmenta el organigrama** (multimarca). */
@@ -226,7 +230,7 @@ export interface HistoricoFichajeDto {
 
 // ---- REQ-008 · Resumen mensual de jornada (vista escalable + faltantes) ----
 
-export const ESTADOS_DIA = ['OK', 'INCOMPLETO', 'FALTA', 'FESTIVO', 'FIN_SEMANA', 'AUSENCIA', 'HOY', 'FUTURO'] as const;
+export const ESTADOS_DIA = ['OK', 'INCOMPLETO', 'FALTA', 'FESTIVO', 'FIN_SEMANA', 'AUSENCIA', 'HOY', 'FUTURO', 'PREVIO'] as const;
 export type EstadoDia = (typeof ESTADOS_DIA)[number];
 
 export const ESTADO_DIA_LABELS: Record<EstadoDia, string> = {
@@ -238,6 +242,7 @@ export const ESTADO_DIA_LABELS: Record<EstadoDia, string> = {
   AUSENCIA: 'Ausencia',
   HOY: 'Hoy',
   FUTURO: '',
+  PREVIO: '',
 };
 
 /** Un día del resumen mensual: su estado + minutos + etiqueta (festivo/ausencia). */

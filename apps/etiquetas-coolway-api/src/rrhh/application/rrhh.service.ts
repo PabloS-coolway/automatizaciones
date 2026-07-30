@@ -104,6 +104,8 @@ export class RrhhService {
           annualLeaveDays: dto.annualLeaveDays ?? undefined,
           birthDate: dto.birthDate ?? undefined,
           hideBirthday: dto.hideBirthday ?? undefined,
+          // Por defecto se empieza a exigir fichar el día del alta (así no salen faltas de antes de existir).
+          fichajeDesde: dto.fichajeDesde ?? new Date().toISOString().slice(0, 10),
         },
         tx,
       );
@@ -167,6 +169,12 @@ export class RrhhService {
       data.birthDate = dto.birthDate;
     }
     if (dto.hideBirthday !== undefined) data.hideBirthday = dto.hideBirthday;
+    if (dto.fichajeDesde !== undefined) {
+      if (dto.fichajeDesde !== null && !/^\d{4}-\d{2}-\d{2}$/.test(dto.fichajeDesde)) {
+        throw new RrhhError('La fecha de inicio de fichaje debe ser YYYY-MM-DD.');
+      }
+      data.fichajeDesde = dto.fichajeDesde;
+    }
 
     return this.prisma.$transaction(async (tx) => {
       const actualizado = await this.repo.update(id, data, tx);
