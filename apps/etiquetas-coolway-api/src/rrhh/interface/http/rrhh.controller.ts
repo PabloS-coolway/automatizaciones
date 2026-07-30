@@ -77,6 +77,7 @@ function toDto(e: EmployeeRow): EmployeeDto {
     annualLeaveDays: e.annualLeaveDays,
     birthDate: e.birthDate,
     hideBirthday: e.hideBirthday,
+    fichajeDesde: e.fichajeDesde,
   };
 }
 
@@ -318,7 +319,7 @@ export class RrhhController {
 
     const pad = (n: number) => String(n).padStart(2, '0');
     const hoyISO = `${hoy.getFullYear()}-${pad(hoy.getMonth() + 1)}-${pad(hoy.getDate())}`;
-    const resumen = resumenMensual({ year: y, month: m, hoyISO, trabajado, festivos: mapaFestivos, ausencias: mapaAusencias });
+    const resumen = resumenMensual({ year: y, month: m, hoyISO, trabajado, festivos: mapaFestivos, ausencias: mapaAusencias, fichajeDesdeISO: actor.fichajeDesde });
 
     return {
       year: y,

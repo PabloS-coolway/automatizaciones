@@ -55,4 +55,17 @@ describe('domain · resumenMensual', () => {
     const dias = resumenMensual({ ...base, hoyISO: '2026-07-31', trabajado: new Map() });
     expect(dias).toHaveLength(31);
   });
+
+  it('antes de la fecha de inicio de fichaje NO hay FALTA (estado PREVIO)', () => {
+    // Empieza a fichar el 15. El día 3 (laborable) es PREVIO; el 16 (laborable) es FALTA.
+    const dias = resumenMensual({ ...base, hoyISO: '2026-07-31', trabajado: new Map(), fichajeDesdeISO: '2026-07-15' });
+    expect(dias.find((x) => x.fecha === '2026-07-03')!.estado).toBe('PREVIO');
+    expect(dias.find((x) => x.fecha === '2026-07-16')!.estado).toBe('FALTA');
+  });
+
+  it('los fichajes de un día previo siguen mandando (se ven OK, no PREVIO)', () => {
+    const trabajado = new Map([['2026-07-03', trab(480)]]);
+    const dias = resumenMensual({ ...base, hoyISO: '2026-07-31', trabajado, fichajeDesdeISO: '2026-07-15' });
+    expect(dias.find((x) => x.fecha === '2026-07-03')!.estado).toBe('OK');
+  });
 });
