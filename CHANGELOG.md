@@ -3,6 +3,25 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-08-12] MEJ · Feature «cambiar la contraseña de usuarios» (REQ-006), sumada al admin
+
+El reset de contraseña de OTROS usuarios pasa a ser un **permiso propio y granulable**, no algo atado a
+"gestionar usuarios".
+
+### Añadido / cambiado
+- **Nueva feature del catálogo**: `usuarios.password` ("Cambiar la contraseña de usuarios"). Aparece sola en
+  la pantalla de Roles, así que se puede dar/quitar a cualquier rol (p.ej. un rol de soporte que sólo resetea
+  contraseñas, sin dar de alta/baja usuarios).
+- **Endpoint dedicado** `POST /users/:id/reset-password`, guardado por `usuarios.password` (antes el reset iba
+  dentro del PATCH, atado a `usuarios.gestionar`). El listado de usuarios se ve con `usuarios.gestionar` **o**
+  `usuarios.password`. El botón de resetear en la web sólo aparece con la feature.
+- **Migración**: se suma `usuarios.password` al rol de sistema **admin** (idempotente).
+
+### Verificado
+- typecheck + **API 363 tests** + web 95 + build. Test del reset (endpoint propio; el hash nunca se registra).
+- **En vivo por HTTP**: admin trae la feature; reset → 204 y el usuario entra con la nueva; pass corta → 400;
+  el PATCH ya **no** resetea contraseña.
+
 ## [2026-08-12] MEJ · Usuarios: cambiar la propia contraseña + import masivo desde Excel
 
 Dos mejoras sobre la administración de usuarios (auth), pedidas de cara a validar RRHH con toda la plantilla.

@@ -38,16 +38,15 @@ describe('REQ-007 · el log de usuarios NUNCA guarda el hash de contraseña', ()
     expect(entry.after).not.toHaveProperty('passwordHash');
   });
 
-  it('al resetear la contraseña, ni el before ni el after llevan el hash (y el resumen lo dice)', async () => {
+  it('al resetear la contraseña (endpoint propio), el registro NO lleva el hash (y el resumen lo dice)', async () => {
     const { c, recorder } = build();
-    await c.update(10, { password: '654321' }, me);
+    await c.resetPassword(10, { password: '654321' }, me);
 
     const [entry] = recorder.record.mock.calls[0];
     expect(entry).toMatchObject({ action: 'UPDATE', entity: 'USER' });
-    expect(entry.before).not.toHaveProperty('passwordHash');
-    expect(entry.after).not.toHaveProperty('passwordHash');
+    expect(entry).not.toHaveProperty('after'); // el reset no registra estado, sólo el resumen
     expect(JSON.stringify(entry)).not.toContain('HASH');
-    expect(entry.summary).toMatch(/contraseña reseteada/);
+    expect(entry.summary).toMatch(/Reseteó la contraseña/);
   });
 
   it('un cambio de rol se registra con antes→después (sin hash)', async () => {
