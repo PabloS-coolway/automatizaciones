@@ -29,6 +29,16 @@ export class HttpUsersGateway {
     return res.json();
   }
 
+  /** Resetea la contraseña de OTRO usuario (feature `usuarios.password`). */
+  async resetearPassword(id: number, password: string): Promise<void> {
+    const res = await apiFetch(`/users/${id}/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password }),
+    });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo resetear la contraseña.'));
+  }
+
   /** Import masivo desde Excel: crea usuarios (con contraseña temporal) y su ficha RRHH. */
   async importar(file: File): Promise<ImportUsuariosResultDto> {
     const fd = new FormData();
