@@ -1,5 +1,5 @@
-import { BadRequestException, Body, Controller, Get, Post } from '@nestjs/common';
-import { LoginRequest, LoginResponse, UserDto } from '@yorga/contracts';
+import { BadRequestException, Body, Controller, Get, HttpCode, Post } from '@nestjs/common';
+import { CambiarPasswordDto, LoginRequest, LoginResponse, UserDto } from '@yorga/contracts';
 import { AuthService } from '../../application/auth.service';
 import { CurrentUser, Public } from './decorators';
 import { JwtPayload } from '../../application/auth.service';
@@ -18,5 +18,13 @@ export class AuthController {
   @Get('me')
   me(@CurrentUser() user: JwtPayload): Promise<UserDto> {
     return this.auth.me(user.sub);
+  }
+
+  /** El propio usuario cambia su contraseña (exige la actual). */
+  @Post('cambiar-password')
+  @HttpCode(204)
+  async cambiarPassword(@CurrentUser() user: JwtPayload, @Body() body: CambiarPasswordDto): Promise<void> {
+    if (!body?.actual || !body?.nueva) throw new BadRequestException('Indica la contraseña actual y la nueva.');
+    await this.auth.changePassword(user.sub, body.actual, body.nueva);
   }
 }

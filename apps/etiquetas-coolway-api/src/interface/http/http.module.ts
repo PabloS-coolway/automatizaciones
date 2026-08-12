@@ -13,11 +13,12 @@ import { SurtidosController } from '../../surtidos/interface/http/surtidos.contr
 import { RrhhController } from '../../rrhh/interface/http/rrhh.controller';
 import { ActividadController } from '../../actividad/interface/http/actividad.controller';
 import { ActivityQueryService } from '../../actividad/application/activity-query.service';
+import { ImportUsuariosController } from './import-usuarios.controller';
 
 /** Módulo de la API HTTP: auth (guards globales) + proveedores comunes + subida de ficheros + controladores. */
 @Module({
   imports: [AuthModule, MulterModule.register({ dest: tmpdir() })],
-  controllers: [LabelsController, MaestroController, DestinationsController, PodaController, SurtidosController, RrhhController, ActividadController],
+  controllers: [LabelsController, MaestroController, DestinationsController, PodaController, SurtidosController, RrhhController, ActividadController, ImportUsuariosController],
   providers: [...coreProviders, MaestroQuery, MaestroExcelSerializer, ActivityQueryService],
 })
 export class HttpModule {}
