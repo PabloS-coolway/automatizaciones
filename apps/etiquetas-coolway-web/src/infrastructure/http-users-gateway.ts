@@ -1,4 +1,4 @@
-import type { CreateUserRequest, UpdateUserRequest, UserDto } from '@yorga/contracts';
+import type { CreateUserRequest, ImportUsuariosResultDto, UpdateUserRequest, UserDto } from '@yorga/contracts';
 import { apiFetch, errorMessage } from './api-client';
 
 /** Adapter: administración de usuarios contra la API HTTP (endpoints sólo admin). */
@@ -26,6 +26,15 @@ export class HttpUsersGateway {
       body: JSON.stringify(input),
     });
     if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo actualizar el usuario.'));
+    return res.json();
+  }
+
+  /** Import masivo desde Excel: crea usuarios (con contraseña temporal) y su ficha RRHH. */
+  async importar(file: File): Promise<ImportUsuariosResultDto> {
+    const fd = new FormData();
+    fd.append('file', file);
+    const res = await apiFetch('/users/import', { method: 'POST', body: fd });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo importar el Excel.'));
     return res.json();
   }
 }

@@ -1,4 +1,4 @@
-import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Feature, LoginResponse, UserDto } from '@yorga/contracts';
 import { User } from '../domain/user';
@@ -38,6 +38,24 @@ export class AuthService {
     const user = await this.users.findById(userId);
     if (!user || !user.active) throw new UnauthorizedException('Sesión no válida.');
     return toDto(user, await this.roles.featuresOf(user.role));
+  }
+
+  /**
+   * MEJ · El propio usuario cambia su contraseña (tras entrar con la temporal que le puso el admin). Exige la
+   * contraseña **actual** (verificación real, no basta con estar logueado) y que la nueva sea distinta.
+   */
+  async changePassword(userId: number, actual: string, nueva: string): Promise<void> {
+    const user = await this.users.findById(userId);
+    if (!user || !user.active) throw new UnauthorizedException('Sesión no válida.');
+    if (!(await this.hasher.compare(String(actual ?? ''), user.passwordHash))) {
+      throw new BadRequestException('La contraseña actual no es correcta.');
+    }
+    const limpia = String(nueva ?? '');
+    if (limpia.length < 6) throw new BadRequestException('La nueva contraseña debe tener al menos 6 caracteres.');
+    if (await this.hasher.compare(limpia, user.passwordHash)) {
+      throw new BadRequestException('La nueva contraseña debe ser distinta de la actual.');
+    }
+    await this.users.update(userId, { passwordHash: await this.hasher.hash(limpia) });
   }
 }
 

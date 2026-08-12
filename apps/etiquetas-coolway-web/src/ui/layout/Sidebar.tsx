@@ -9,18 +9,20 @@ import {
   FileEarmarkText,
   GeoAlt,
   HouseDoorFill,
+  Key,
   People,
   PersonCircle,
   Scissors,
   ShieldLock,
   Tags,
 } from 'react-bootstrap-icons';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { Feature } from '@yorga/contracts';
 import { Button } from 'react-bootstrap';
 import { ThemeSwitcher } from './ThemeSwitcher';
 import type { Theme } from '../useTheme';
 import { useAuth } from '../auth/AuthContext';
+import { CambiarPasswordModal } from '../auth/CambiarPasswordModal';
 import { useRrhh } from '../rrhh/RrhhContext';
 
 interface NavItem {
@@ -80,6 +82,7 @@ const NAV: NavGroup[] = [
 export function Sidebar({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme) => void }) {
   const { user, logout, hasFeature } = useAuth();
   const { esEmpleado, avisosNoLeidos } = useRrhh();
+  const [cambiarPass, setCambiarPass] = useState(false);
   const visibles = (items: NavItem[]) =>
     items.filter((n) => (!n.feature || hasFeature(n.feature)) && (!n.soloEmpleados || esEmpleado));
 
@@ -123,6 +126,16 @@ export function Sidebar({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme
               variant="link"
               size="sm"
               className="sidebar-logout"
+              onClick={() => setCambiarPass(true)}
+              title="Cambiar contraseña"
+              aria-label="Cambiar contraseña"
+            >
+              <Key />
+            </Button>
+            <Button
+              variant="link"
+              size="sm"
+              className="sidebar-logout"
               onClick={logout}
               title="Cerrar sesión"
               aria-label="Cerrar sesión"
@@ -134,6 +147,7 @@ export function Sidebar({ theme, setTheme }: { theme: Theme; setTheme: (t: Theme
         <ThemeSwitcher theme={theme} setTheme={setTheme} />
         <div className="mt-2">Grupo Yorga · Automatizaciones</div>
       </div>
+      {cambiarPass && <CambiarPasswordModal onClose={() => setCambiarPass(false)} />}
     </aside>
   );
 }
