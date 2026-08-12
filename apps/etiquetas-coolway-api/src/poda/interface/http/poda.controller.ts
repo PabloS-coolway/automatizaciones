@@ -2,7 +2,7 @@ import { readFile, unlink } from 'node:fs/promises';
 import { BadRequestException, Body, Controller, Inject, Post, UploadedFiles, UseInterceptors } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { PodaResponse, SOCIEDADES, SociedadCodigo } from '@yorga/contracts';
-import { leerBorrador } from '../../infrastructure/borrador-reader';
+import { leerBorrador, BorradorInvalidoError } from '../../infrastructure/borrador-reader';
 import { podarFicheros } from '../../application/podar-ficheros.use-case';
 import { RefInvalidaError } from '../../domain/familia';
 import { RequireFeature } from '../../../auth/interface/http/decorators';
@@ -78,6 +78,8 @@ export class PodaController {
     } catch (err) {
       // Una ref con formato inesperado en el borrador es un dato malo, no un fallo del servidor: se dice cuál.
       if (err instanceof RefInvalidaError) throw new BadRequestException(err.message);
+      // BUG-009 · Un borrador con la cabecera inesperada (sin «Suma»/«Our Reference») se avisa, no se traga.
+      if (err instanceof BorradorInvalidoError) throw new BadRequestException(err.message);
       throw err;
     } finally {
       const subidos = [borradorFile, ...ficheros].filter((f): f is Express.Multer.File => !!f);

@@ -25,9 +25,57 @@ async function abrirWorkbook(path: string): Promise<ExcelJS.Workbook> {
 }
 
 // Columnas del borrador de prepedidos (Hoja1). Verificado con `prepedidos 2003.xlsx`.
-const COL_HORMA = 3; // código de color de SAP
-const COL_OUR_REFERENCE = 7; // ref color-a-color (7 dígitos)
-const COL_SUMA = 14; // pares comprados
+/** Error de un borrador con una cabecera inesperada (columna esencial ausente). El controller lo traduce a 400. */
+export class BorradorInvalidoError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'BorradorInvalidoError';
+  }
+}
+
+/** Columnas del borrador, resueltas por su cabecera. `horma` = -1 si el borrador no trae esa columna. */
+export interface ColumnasBorrador {
+  ourRef: number;
+  horma: number;
+  suma: number;
+}
+
+/** Normaliza un texto de cabecera para comparar: recorta, minúsculas, colapsa espacios y quita acentos. */
+function normalizaCabecera(s: string | undefined): string {
+  return String(s ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '');
+}
+
+/**
+ * BUG-009 · Localiza las columnas del borrador **por su cabecera**, no por una posición fija. El nº de columnas
+ * de talla varía entre modelos/marcas: en Coolway aparecen S46/Z y "Suma" cae en la col 14; en otros ficheros
+ * (p.ej. Ulanka) no están y "Suma" cae en la 12. Con una posición fija, la poda leía una columna vacía y
+ * devolvía **0 compras → 0 conservadas EN SILENCIO**. Ahora, si falta una columna esencial, se AVISA en vez de
+ * mentir. `Our Reference` y `Suma` son obligatorias; `Horma` es opcional (su ausencia/vacío ya lo trata BUG-006).
+ */
+export function localizarColumnas(cabeceras: (string | undefined)[]): ColumnasBorrador {
+  const buscar = (nombre: string): number => {
+    const objetivo = normalizaCabecera(nombre);
+    for (let c = 1; c < cabeceras.length; c++) {
+      if (normalizaCabecera(cabeceras[c]) === objetivo) return c;
+    }
+    return -1;
+  };
+  const ourRef = buscar('Our Reference');
+  const suma = buscar('Suma');
+  const horma = buscar('Horma');
+  const faltan = [ourRef < 0 ? '«Our Reference»' : null, suma < 0 ? '«Suma»' : null].filter(Boolean);
+  if (faltan.length > 0) {
+    throw new BorradorInvalidoError(
+      `El borrador no tiene la(s) columna(s) ${faltan.join(' y ')} en su cabecera. Revisa que es el fichero de prepedidos correcto.`,
+    );
+  }
+  return { ourRef, horma, suma };
+}
 
 function texto(cell: ExcelJS.Cell): string {
   const v = cell.value;
@@ -50,14 +98,21 @@ export async function leerBorrador(path: string): Promise<LineaBorrador[]> {
   const wb = await abrirWorkbook(path);
   const ws = wb.worksheets[0];
 
+  // Cabeceras (fila 1) indexadas por número de columna (1-based), para localizar las columnas por su nombre.
+  const cabeceras: (string | undefined)[] = [];
+  ws.getRow(1).eachCell({ includeEmpty: true }, (cell, col) => {
+    cabeceras[col] = texto(cell);
+  });
+  const cols = localizarColumnas(cabeceras);
+
   const lineas: LineaBorrador[] = [];
   for (let r = 2; r <= ws.rowCount; r++) {
-    const ourRef = texto(ws.getRow(r).getCell(COL_OUR_REFERENCE)).trim();
+    const ourRef = texto(ws.getRow(r).getCell(cols.ourRef)).trim();
     if (!normalizeRef(ourRef)) continue; // fila sin ref (cabecera, separadores) → no es dato
     lineas.push({
       ourRef,
-      colorSap: texto(ws.getRow(r).getCell(COL_HORMA)).trim(),
-      suma: numero(ws.getRow(r).getCell(COL_SUMA)),
+      colorSap: cols.horma > 0 ? texto(ws.getRow(r).getCell(cols.horma)).trim() : '',
+      suma: numero(ws.getRow(r).getCell(cols.suma)),
     });
   }
   return lineas;

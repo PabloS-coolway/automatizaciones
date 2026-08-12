@@ -3,6 +3,27 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-08-12] BUG-009 · Poda: el borrador salía con "0 elementos" en silencio (columna Suma fija)
+
+**Síntoma (Silvia, 12/08):** subió un borrador de Ulanka (`b.81 ulanka.xlsx`) a *Podar SAP* y "no salía
+información del fichero" — **0 elementos**, sin decir por qué.
+
+**Causa raíz:** el lector del borrador buscaba la columna **`Suma`** (pares comprados) en una **posición fija
+(col 14)**. Pero esa posición **no es fija**: depende de cuántas columnas de talla traiga el modelo. En Coolway
+aparecen `S46`/`Z` y `Suma` cae en la 14; en el fichero de Ulanka no están y `Suma` cae en la **12**. Al leer la
+14 (vacía), `Suma=0` en todas las filas → **0 compras deducidas → 0 líneas conservadas, y encima sin avisar**.
+El patrón de siempre: no falla, **miente** con un resultado vacío.
+
+**Arreglado:** el lector localiza `Our Reference`, `Suma` y `Horma` **por su cabecera** (tolerante a
+mayúsculas/espacios/acentos), no por posición. Si falta una columna esencial (`Suma`/`Our Reference`), **avisa**
+(error claro → 400) en vez de devolver 0. `Horma` es opcional (su ausencia/vacío ya lo trata BUG-006).
+
+**Verificado:** test de regresión (`localizarColumnas`: Coolway→14, Ulanka→12, cabecera incompleta→avisa) +
+**break-on-purpose** (fijar Suma=14 → el test de Ulanka cae). **En vivo con el fichero real de Silvia**: pasa de
+**0** a leer **136 líneas / 26 compras**, y detecta que las 136 vienen **sin Horma** → ahora se lo dice claro
+("rellena la Horma") en vez de "0 elementos". *(Acción de Silvia: rellenar la Horma en ese borrador para poder
+podar por color.)*
+
 ## [2026-07-30] REQ-008 · RRHH — tanda de UX inspirada en Factorial (semana 28–30/07)
 
 Bloque grande de mejoras de experiencia sobre el módulo RRHH, casi todo revisado en vivo (curl a la API y
