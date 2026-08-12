@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Alert, Badge, Button, Card, Form, Spinner } from 'react-bootstrap';
-import { KeyFill, PersonPlus } from 'react-bootstrap-icons';
+import { FileEarmarkExcel, KeyFill, PersonPlus } from 'react-bootstrap-icons';
 import type { RoleDto, UserDto } from '@yorga/contracts';
 import { rolesGateway, usersGateway, rrhhGateway } from '../composition';
 import { useAuth } from '../auth/AuthContext';
 import { Column, DataTable, useMemoryTable } from '../components/table';
+import { ImportUsuariosModal } from './ImportUsuariosModal';
 
 export function UsuariosPage() {
   const { user: me } = useAuth();
@@ -176,12 +177,16 @@ export function UsuariosPage() {
   );
 
   const tabla = useMemoryTable(users, columns);
+  const [importar, setImportar] = useState(false);
 
   return (
     <div className="page page-wide">
-      <header className="page-head mb-4">
-        <h1 className="h4 mb-1">Usuarios</h1>
-        <p className="text-secondary mb-0">Da de alta y gestiona quién accede a la herramienta.</p>
+      <header className="page-head mb-4 d-flex justify-content-between align-items-start gap-3">
+        <div>
+          <h1 className="h4 mb-1">Usuarios</h1>
+          <p className="text-secondary mb-0">Da de alta y gestiona quién accede a la herramienta.</p>
+        </div>
+        <Button variant="outline-secondary" onClick={() => setImportar(true)}><FileEarmarkExcel className="me-1" /> Importar Excel</Button>
       </header>
 
       {error && <Alert variant="danger" onClose={() => setError('')} dismissible>⚠ {error}</Alert>}
@@ -244,6 +249,8 @@ export function UsuariosPage() {
           <DataTable model={tabla} allRows={users} rowKey={(u) => String(u.id)} empty="Ningún usuario cumple el filtro." />
         </Card.Body>
       </Card>
+
+      {importar && <ImportUsuariosModal onClose={() => setImportar(false)} onImported={load} />}
     </div>
   );
 }
