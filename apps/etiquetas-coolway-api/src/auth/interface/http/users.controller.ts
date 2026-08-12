@@ -5,6 +5,7 @@ import {
   Controller,
   ForbiddenException,
   Get,
+  HttpCode,
   Inject,
   NotFoundException,
   Param,
@@ -12,7 +13,7 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
-import { CreateUserRequest, UpdateUserRequest, UserDto } from '@yorga/contracts';
+import { CreateUserRequest, ResetPasswordRequest, UpdateUserRequest, UserDto } from '@yorga/contracts';
 import { PASSWORD_HASHER, PasswordHasher, USER_REPOSITORY, UserRepository } from '../../application/ports';
 import { ROLE_REPOSITORY, RoleRepository } from '../../application/role.port';
 import { toDto, JwtPayload } from '../../application/auth.service';
@@ -39,7 +40,10 @@ export class UsersController {
     private readonly prisma: PrismaService,
   ) {}
 
+  // El listado se ve tanto con «gestionar usuarios» como con «cambiar contraseña de usuarios» (para poder
+  // elegir a quién resetear). Anula el @RequireFeature de clase (que exige sólo `usuarios.gestionar`).
   @Get()
+  @RequireFeature('usuarios.gestionar', 'usuarios.password')
   async list(): Promise<UserDto[]> {
     // Se cargan los roles una vez y se mapean sus features, en vez de una consulta por usuario.
     const roles = await this.roles.findAll();
@@ -83,7 +87,7 @@ export class UsersController {
     const target = await this.users.findById(id);
     if (!target) throw new NotFoundException('Usuario no encontrado.');
 
-    const data: { role?: string; active?: boolean; passwordHash?: string } = {};
+    const data: { role?: string; active?: boolean } = {};
 
     if (body.role !== undefined && body.role !== target.role) {
       const nuevo = await this.roleOrFail(body.role);
@@ -99,18 +103,12 @@ export class UsersController {
       data.active = body.active;
     }
 
-    if (body.password) {
-      if (body.password.length < 6) throw new BadRequestException('La contraseña debe tener al menos 6 caracteres.');
-      data.passwordHash = await this.hasher.hash(body.password);
-    }
-
     if (Object.keys(data).length === 0) throw new BadRequestException('Nada que actualizar.');
 
-    // Resumen legible de lo que cambió (la contraseña se menciona, pero su hash NUNCA se registra).
+    // Resumen legible de lo que cambió. (El reset de contraseña es un endpoint aparte, con su propia feature.)
     const cambios: string[] = [];
     if (data.role) cambios.push(`rol → ${data.role}`);
     if (data.active !== undefined) cambios.push(data.active ? 'activado' : 'desactivado');
-    if (data.passwordHash) cambios.push('contraseña reseteada');
 
     const updated = await this.prisma.$transaction(async (tx) => {
       const u = await this.users.update(id, data, tx);
@@ -129,6 +127,37 @@ export class UsersController {
       return u;
     });
     return toDto(updated, await this.roles.featuresOf(updated.role));
+  }
+
+  /**
+   * Resetea la contraseña de OTRO usuario. Permiso propio (`usuarios.password`), separado de la gestión de
+   * usuarios: así se puede dar "sólo reseteo" a un rol de soporte sin darle el alta/baja de usuarios.
+   */
+  @Post(':id/reset-password')
+  @RequireFeature('usuarios.password')
+  @HttpCode(204)
+  async resetPassword(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: ResetPasswordRequest,
+    @CurrentUser() me: JwtPayload,
+  ): Promise<void> {
+    const target = await this.users.findById(id);
+    if (!target) throw new NotFoundException('Usuario no encontrado.');
+    if (!body?.password || body.password.length < 6) throw new BadRequestException('La contraseña debe tener al menos 6 caracteres.');
+    const passwordHash = await this.hasher.hash(body.password);
+    await this.prisma.$transaction(async (tx) => {
+      await this.users.update(id, { passwordHash }, tx);
+      await this.actividad.record(
+        {
+          actor: { userId: me.sub, email: me.email },
+          action: 'UPDATE',
+          entity: 'USER',
+          entityId: String(id),
+          summary: `Reseteó la contraseña de ${target.email}`, // el hash NUNCA se registra
+        },
+        tx,
+      );
+    });
   }
 
   /** El rol tiene que existir (la FK lo exigiría igual, pero así el error es 400 claro, no un 500). */

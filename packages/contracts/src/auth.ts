@@ -27,11 +27,15 @@ export interface CreateUserRequest {
   role: Role;
 }
 
-/** PATCH /api/users/:id (cambiar rol, activar/desactivar o resetear contraseña; sólo admin). */
+/** PATCH /api/users/:id (cambiar rol o activar/desactivar; feature `usuarios.gestionar`). */
 export interface UpdateUserRequest {
   role?: Role;
   active?: boolean;
-  password?: string;
+}
+
+/** POST /api/users/:id/reset-password (resetear la contraseña de OTRO usuario; feature `usuarios.password`). */
+export interface ResetPasswordRequest {
+  password: string;
 }
 
 /** POST /api/auth/login */
