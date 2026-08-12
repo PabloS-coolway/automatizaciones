@@ -3,6 +3,27 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-08-12] MEJ · Usuarios: cambiar la propia contraseña + import masivo desde Excel
+
+Dos mejoras sobre la administración de usuarios (auth), pedidas de cara a validar RRHH con toda la plantilla.
+
+### Añadido
+- **Cambiar tu propia contraseña** (tras entrar con la temporal): opción en el menú de usuario (icono llave) →
+  pide la actual + la nueva (por duplicado). El servidor **verifica la actual de verdad** y exige que la nueva
+  sea distinta. Endpoint `POST /auth/cambiar-password`.
+- **Import masivo de usuarios desde Excel**: en *Usuarios* → "Importar Excel". Localiza las columnas
+  **por su cabecera** (email/nombre obligatorias, rol opcional; robusto ante variaciones, como BUG-009), y por
+  cada fila crea el **usuario del login con una contraseña temporal generada** (legible, sin caracteres
+  ambiguos; se muestra y se descarga en CSV para repartir) **y su ficha de empleado (RRHH)**, enlazada por
+  correo. Salta —sin cortar— duplicados y filas inválidas, diciendo el motivo. Endpoint `POST /users/import`.
+
+### Verificado
+- typecheck + **API 363 tests** + web 95 + build. Tests de los helpers puros (localizar columnas, generar
+  contraseña, leer el Excel) + del cambio de contraseña.
+- **En vivo por HTTP**: cambiar contraseña (entra con la nueva, la vieja deja de valer, actual incorrecta→400,
+  restaurada); import (2 creados con ficha + contraseña temporal, duplicado y email inválido saltados, fila sin
+  email ignorada) y **el usuario importado entra con su contraseña temporal**.
+
 ## [2026-08-12] BUG-009 · Poda: el borrador salía con "0 elementos" en silencio (columna Suma fija)
 
 **Síntoma (Silvia, 12/08):** subió un borrador de Ulanka (`b.81 ulanka.xlsx`) a *Podar SAP* y "no salía

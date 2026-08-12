@@ -40,6 +40,38 @@ export interface LoginRequest {
   password: string;
 }
 
+/** POST /api/auth/cambiar-password (el propio usuario cambia su contraseña; exige la actual). */
+export interface CambiarPasswordDto {
+  actual: string;
+  nueva: string;
+}
+
+// ---- Import masivo de usuarios (desde Excel) ----
+
+/** Un usuario creado por el import, con la contraseña temporal generada (para repartir). */
+export interface UsuarioImportadoDto {
+  email: string;
+  name: string;
+  role: Role;
+  /** Contraseña temporal generada; el usuario la cambia al entrar. */
+  passwordTemporal: string;
+  /** ¿Se creó también su ficha de empleado (RRHH)? */
+  fichaCreada: boolean;
+}
+
+/** Una fila que NO se importó, con el motivo (duplicado, datos incompletos, rol inválido…). */
+export interface UsuarioSaltadoDto {
+  fila: number;
+  email: string;
+  motivo: string;
+}
+
+/** Resultado del import masivo de usuarios. */
+export interface ImportUsuariosResultDto {
+  creados: UsuarioImportadoDto[];
+  saltados: UsuarioSaltadoDto[];
+}
+
 /** Respuesta de login: token JWT + datos del usuario autenticado. */
 export interface LoginResponse {
   token: string;

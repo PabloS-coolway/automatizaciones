@@ -19,4 +19,14 @@ export class HttpAuthGateway {
     if (!res.ok) throw new Error('Sesión no válida.');
     return res.json();
   }
+
+  /** El propio usuario cambia su contraseña (exige la actual). */
+  async cambiarPassword(actual: string, nueva: string): Promise<void> {
+    const res = await apiFetch('/auth/cambiar-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ actual, nueva }),
+    });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo cambiar la contraseña.'));
+  }
 }
