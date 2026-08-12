@@ -14,6 +14,7 @@ export const FEATURES = [
   'maestro.color-web.editar',
   'destinos.gestionar',
   'usuarios.gestionar',
+  'usuarios.password',
   'roles.gestionar',
   'actividad.ver',
 ] as const;
@@ -28,6 +29,7 @@ export const FEATURE_LABELS: Record<Feature, string> = {
   'maestro.color-web.editar': 'Editar el «color web» del maestro',
   'destinos.gestionar': 'Gestionar destinos',
   'usuarios.gestionar': 'Gestionar usuarios',
+  'usuarios.password': 'Cambiar la contraseña de usuarios',
   'roles.gestionar': 'Gestionar roles y permisos',
   'actividad.ver': 'Ver el log de actividad',
 };

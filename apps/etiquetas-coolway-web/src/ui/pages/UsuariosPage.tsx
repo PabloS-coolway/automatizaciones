@@ -8,7 +8,7 @@ import { Column, DataTable, useMemoryTable } from '../components/table';
 import { ImportUsuariosModal } from './ImportUsuariosModal';
 
 export function UsuariosPage() {
-  const { user: me } = useAuth();
+  const { user: me, hasFeature } = useAuth();
   const [users, setUsers] = useState<UserDto[]>([]);
   // REQ-006 · Los roles ya no son fijos: se cargan para el desplegable de alta y el cambio de rol por fila.
   const [roles, setRoles] = useState<RoleDto[]>([]);
@@ -72,7 +72,7 @@ export function UsuariosPage() {
     }
   }
 
-  async function patch(id: number, data: { role?: string; active?: boolean; password?: string }, ok: string) {
+  async function patch(id: number, data: { role?: string; active?: boolean }, ok: string) {
     setError('');
     setNotice('');
     setBusyId(id);
@@ -87,14 +87,24 @@ export function UsuariosPage() {
     }
   }
 
-  function resetPassword(u: UserDto) {
+  async function resetPassword(u: UserDto) {
     const pwd = window.prompt(`Nueva contraseña para ${u.email} (mínimo 6 caracteres):`);
     if (pwd == null) return;
     if (pwd.length < 6) {
       setError('La contraseña debe tener al menos 6 caracteres.');
       return;
     }
-    patch(u.id, { password: pwd }, `Contraseña de ${u.email} actualizada.`);
+    setError('');
+    setNotice('');
+    setBusyId(u.id);
+    try {
+      await usersGateway.resetearPassword(u.id, pwd);
+      setNotice(`Contraseña de ${u.email} actualizada.`);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusyId(null);
+    }
   }
 
   // El valor CRUDO (`value`) es lo que se ordena y se filtra; `render` sólo decide cómo se ve.
@@ -155,9 +165,11 @@ export function UsuariosPage() {
                 {/* Si el rol actual del usuario no está entre los activos, se muestra igual para no perderlo. */}
                 {!activos.some((r) => r.key === u.role) && <option value={u.role}>{roleName(u.role)}</option>}
               </Form.Select>
-              <Button size="sm" variant="outline-secondary" disabled={busy} title="Resetear contraseña" onClick={() => resetPassword(u)}>
-                <KeyFill />
-              </Button>
+              {hasFeature('usuarios.password') && (
+                <Button size="sm" variant="outline-secondary" disabled={busy} title="Resetear contraseña" onClick={() => resetPassword(u)}>
+                  <KeyFill />
+                </Button>
+              )}
               <Button
                 size="sm"
                 variant={u.active ? 'outline-danger' : 'outline-success'}
@@ -173,7 +185,7 @@ export function UsuariosPage() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [me?.id, busyId, roles],
+    [me?.id, busyId, roles, hasFeature],
   );
 
   const tabla = useMemoryTable(users, columns);
