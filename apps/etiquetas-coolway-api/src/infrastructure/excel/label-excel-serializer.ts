@@ -14,6 +14,12 @@ export class LabelExcelSerializer {
     const has = (key: keyof OrderLabels['rows'][number]) =>
       labels.rows.some((r) => r[key] != null && r[key] !== '');
 
+    // El "importado por" es un texto legal largo (razón social + dirección + NIF). La columna se AJUSTA a su
+    // longitud real (con un tope sensato) para que se vea ENTERO: así nadie confunde "se ve cortado en Excel"
+    // con "se ha cortado el dato" — el dato nunca se recorta (columna TEXT, sin límite).
+    const impLen = Math.max(0, ...labels.rows.map((r) => (r.importadoPor ?? '').length));
+    const impWidth = Math.min(160, Math.max(20, impLen + 2)); // tope holgado: cualquier texto legal cabe entero
+
     sheet.columns = [
       { header: 'style', key: 'style', width: 12 },
       { header: 'color', key: 'color', width: 8 },
@@ -24,7 +30,7 @@ export class LabelExcelSerializer {
       ...(has('ean13') ? [{ header: 'ean13', key: 'ean13', width: 16 }] : []),
       ...(has('upc') ? [{ header: 'upc', key: 'upc', width: 16 }] : []),
       ...(has('code128') ? [{ header: 'code128', key: 'code128', width: 18 }] : []),
-      ...(has('importadoPor') ? [{ header: 'importado por', key: 'importadoPor', width: 16 }] : []),
+      ...(has('importadoPor') ? [{ header: 'importado por', key: 'importadoPor', width: impWidth }] : []),
     ];
     for (const r of labels.rows) sheet.addRow(r);
 
