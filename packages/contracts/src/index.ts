@@ -6,3 +6,4 @@ export * from './actividad';
 export * from './auth';
 export * from './rrhh';
 export * from './rrhh-fichas';
+export * from './rrhh-permisos';

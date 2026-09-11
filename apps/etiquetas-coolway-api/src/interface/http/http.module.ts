@@ -18,11 +18,15 @@ import { ImportFichasController } from '../../rrhh/interface/http/import-fichas.
 import { ImportFichasService } from '../../rrhh/application/import-fichas.service';
 import { FICHAS_IMPORT_REPOSITORY } from '../../rrhh/application/fichas-import.port';
 import { PrismaFichasImportRepository } from '../../rrhh/infrastructure/prisma-fichas-import.repository';
+import { ConvenioPermisosController } from '../../rrhh/interface/http/convenio-permisos.controller';
+import { ConvenioPermisosService } from '../../rrhh/application/convenio-permisos.service';
+import { CONVENIO_PERMISOS_REPOSITORY } from '../../rrhh/application/convenio-permisos.port';
+import { PrismaConvenioPermisosRepository } from '../../rrhh/infrastructure/prisma-convenio-permisos.repository';
 
 /** Módulo de la API HTTP: auth (guards globales) + proveedores comunes + subida de ficheros + controladores. */
 @Module({
   imports: [AuthModule, MulterModule.register({ dest: tmpdir() })],
-  controllers: [LabelsController, MaestroController, DestinationsController, PodaController, SurtidosController, RrhhController, ActividadController, ImportUsuariosController, ImportFichasController],
+  controllers: [LabelsController, MaestroController, DestinationsController, PodaController, SurtidosController, RrhhController, ActividadController, ImportUsuariosController, ImportFichasController, ConvenioPermisosController],
   providers: [
     ...coreProviders,
     MaestroQuery,
@@ -31,6 +35,9 @@ import { PrismaFichasImportRepository } from '../../rrhh/infrastructure/prisma-f
     ImportFichasService,
     PrismaFichasImportRepository,
     { provide: FICHAS_IMPORT_REPOSITORY, useExisting: PrismaFichasImportRepository },
+    ConvenioPermisosService,
+    PrismaConvenioPermisosRepository,
+    { provide: CONVENIO_PERMISOS_REPOSITORY, useExisting: PrismaConvenioPermisosRepository },
   ],
 })
 export class HttpModule {}
