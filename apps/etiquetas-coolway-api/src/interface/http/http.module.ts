@@ -14,11 +14,23 @@ import { RrhhController } from '../../rrhh/interface/http/rrhh.controller';
 import { ActividadController } from '../../actividad/interface/http/actividad.controller';
 import { ActivityQueryService } from '../../actividad/application/activity-query.service';
 import { ImportUsuariosController } from './import-usuarios.controller';
+import { ImportFichasController } from '../../rrhh/interface/http/import-fichas.controller';
+import { ImportFichasService } from '../../rrhh/application/import-fichas.service';
+import { FICHAS_IMPORT_REPOSITORY } from '../../rrhh/application/fichas-import.port';
+import { PrismaFichasImportRepository } from '../../rrhh/infrastructure/prisma-fichas-import.repository';
 
 /** Módulo de la API HTTP: auth (guards globales) + proveedores comunes + subida de ficheros + controladores. */
 @Module({
   imports: [AuthModule, MulterModule.register({ dest: tmpdir() })],
-  controllers: [LabelsController, MaestroController, DestinationsController, PodaController, SurtidosController, RrhhController, ActividadController, ImportUsuariosController],
-  providers: [...coreProviders, MaestroQuery, MaestroExcelSerializer, ActivityQueryService],
+  controllers: [LabelsController, MaestroController, DestinationsController, PodaController, SurtidosController, RrhhController, ActividadController, ImportUsuariosController, ImportFichasController],
+  providers: [
+    ...coreProviders,
+    MaestroQuery,
+    MaestroExcelSerializer,
+    ActivityQueryService,
+    ImportFichasService,
+    PrismaFichasImportRepository,
+    { provide: FICHAS_IMPORT_REPOSITORY, useExisting: PrismaFichasImportRepository },
+  ],
 })
 export class HttpModule {}
