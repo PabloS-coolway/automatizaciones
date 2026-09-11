@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import ExcelJS from 'exceljs';
 import {
@@ -84,9 +84,10 @@ describe('fichas-rrhh-excel-reader · leerFichasDesdeBuffer (formato agrupado)',
     expect(fichas[4]).toMatchObject({ empresaCodigo: '120', empleadoCodigo: '23', grupo: '', zona: 'LAS PALMAS-CANARIAS' });
   });
 
-  it('lee el fichero REAL de Ángeles (docs/requerimientos) sin duplicar ni colar cabeceras', async () => {
-    const ruta = join(__dirname, '../../../docs/requerimientos/REGISTRO HORARIO PRUEBA.xlsx');
-    const fichas = await leerFichasDesdeBuffer(readFileSync(ruta));
+  // El Excel real de Ángeles lleva PII (DNIs de personas reales) → NO se versiona; el test se salta si no está en local.
+  const RUTA_REAL = join(__dirname, '../../../docs/requerimientos/REGISTRO HORARIO PRUEBA.xlsx');
+  (existsSync(RUTA_REAL) ? it : it.skip)('lee el fichero REAL de Ángeles (docs/requerimientos) sin duplicar ni colar cabeceras', async () => {
+    const fichas = await leerFichasDesdeBuffer(readFileSync(RUTA_REAL));
 
     expect(fichas).toHaveLength(18); // 3 (Sistemas) + 6 (Ulanka) + 9 (2ª tienda)
     // Ninguna "ficha" es en realidad una cabecera o un total.

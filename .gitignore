@@ -44,3 +44,6 @@ coverage/
 !.claude/skills/bug-tarea/
 !.claude/skills/requerimiento-tarea/
 uploads/
+
+# PII de RRHH (DNIs de empleados) — no versionar (REQ-012)
+docs/requerimientos/REGISTRO HORARIO PRUEBA.xlsx
