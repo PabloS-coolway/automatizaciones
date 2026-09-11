@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AppShell } from './layout/AppShell';
 import { InicioPage } from './pages/InicioPage';
+import { GuiaPage } from './pages/GuiaPage';
 import { EtiquetasPage } from './pages/EtiquetasPage';
 import { BaseDatosPage } from './pages/BaseDatosPage';
 import { ComingSoonPage } from './pages/ComingSoonPage';
@@ -28,6 +29,7 @@ export function App() {
             <Route element={<AppShell />}>
               <Route index element={<Navigate to="/inicio" replace />} />
               <Route path="/inicio" element={<InicioPage />} />
+              <Route path="/guia" element={<GuiaPage />} />
               <Route element={<RequireFeature feature="etiquetas.ver" />}>
                 <Route path="/etiquetas" element={<EtiquetasPage />} />
               </Route>

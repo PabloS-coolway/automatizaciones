@@ -12,6 +12,7 @@ import {
   Key,
   People,
   PersonCircle,
+  QuestionCircle,
   Scissors,
   ShieldLock,
   Tags,
@@ -45,7 +46,12 @@ interface NavGroup {
 }
 
 const NAV: NavGroup[] = [
-  { items: [{ to: '/inicio', label: 'Inicio', icon: <HouseDoorFill />, ready: true }] },
+  {
+    items: [
+      { to: '/inicio', label: 'Inicio', icon: <HouseDoorFill />, ready: true },
+      { to: '/guia', label: 'Guía de uso', icon: <QuestionCircle />, ready: true },
+    ],
+  },
   {
     title: 'Etiquetas y colección',
     items: [
