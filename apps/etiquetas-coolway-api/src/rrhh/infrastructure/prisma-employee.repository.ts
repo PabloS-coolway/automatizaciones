@@ -2,12 +2,17 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { RrhhRole } from '@yorga/contracts';
 import { PrismaService } from '../../infrastructure/db/prisma.service';
-import { EmpleadoUpdate, EmployeeRepository, EmployeeRow, NuevoEmpleado } from '../application/ports';
+import { EmpleadoUpdate, EmployeeRepository, EmployeeRow, NuevoEmpleado, RrhhCatalogos } from '../application/ports';
 
 const INCLUDE = {
   user: { select: { email: true } },
   department: { select: { name: true } },
   center: { select: { name: true, brand: true } },
+  // REQ-012 · capa organizativa e identidad de ficha
+  company: { select: { name: true } },
+  categoria: { select: { name: true } },
+  contractTypeRef: { select: { code: true, name: true } },
+  seccion: { select: { code: true, name: true } },
 } as const;
 
 type ConRelaciones = {
@@ -25,9 +30,20 @@ type ConRelaciones = {
   birthDate: Date | null;
   hideBirthday: boolean;
   fichajeDesde: Date | null;
+  companyId: number | null;
+  employeeCode: string | null;
+  dni: string | null;
+  categoriaId: number | null;
+  contractTypeId: number | null;
+  seccionId: number | null;
+  fechaAntiguedad: Date | null;
   user: { email: string };
   department: { name: string } | null;
   center: { name: string; brand: string } | null;
+  company: { name: string } | null;
+  categoria: { name: string } | null;
+  contractTypeRef: { code: string; name: string | null } | null;
+  seccion: { code: string; name: string | null } | null;
 };
 
 function toRow(e: ConRelaciones): EmployeeRow {
@@ -50,7 +66,25 @@ function toRow(e: ConRelaciones): EmployeeRow {
     birthDate: e.birthDate ? e.birthDate.toISOString().slice(0, 10) : null,
     hideBirthday: e.hideBirthday,
     fichajeDesde: e.fichajeDesde ? e.fichajeDesde.toISOString().slice(0, 10) : null,
+    company: e.company?.name ?? null,
+    companyId: e.companyId,
+    employeeCode: e.employeeCode,
+    dni: e.dni,
+    categoria: e.categoria?.name ?? null,
+    categoriaId: e.categoriaId,
+    contrato: e.contractTypeRef ? (e.contractTypeRef.name ?? e.contractTypeRef.code) : null,
+    contractTypeId: e.contractTypeId,
+    seccion: e.seccion ? (e.seccion.name ?? e.seccion.code) : null,
+    seccionId: e.seccionId,
+    fechaAntiguedad: e.fechaAntiguedad ? e.fechaAntiguedad.toISOString().slice(0, 10) : null,
   };
+}
+
+/** YYYY-MM-DD → Date (medianoche UTC), o null/undefined tal cual. */
+function fecha(v: string | null | undefined): Date | null | undefined {
+  if (v === undefined) return undefined;
+  if (v === null || v === '') return null;
+  return new Date(`${v}T00:00:00Z`);
 }
 
 /** Adapter: plantilla RRHH sobre Postgres (Prisma). */
@@ -93,6 +127,14 @@ export class PrismaEmployeeRepository implements EmployeeRepository {
         birthDate: nuevo.birthDate ? new Date(`${nuevo.birthDate}T00:00:00Z`) : undefined,
         hideBirthday: nuevo.hideBirthday ?? undefined,
         fichajeDesde: nuevo.fichajeDesde ? new Date(`${nuevo.fichajeDesde}T00:00:00Z`) : undefined,
+        // REQ-012
+        companyId: nuevo.companyId ?? undefined,
+        employeeCode: nuevo.employeeCode ?? undefined,
+        dni: nuevo.dni ?? undefined,
+        categoriaId: nuevo.categoriaId ?? undefined,
+        contractTypeId: nuevo.contractTypeId ?? undefined,
+        seccionId: nuevo.seccionId ?? undefined,
+        fechaAntiguedad: fecha(nuevo.fechaAntiguedad) ?? undefined,
       },
       include: INCLUDE,
     });
@@ -115,9 +157,27 @@ export class PrismaEmployeeRepository implements EmployeeRepository {
         ...(data.hideBirthday !== undefined ? { hideBirthday: data.hideBirthday } : {}),
         ...(data.fichajeDesde !== undefined ? { fichajeDesde: data.fichajeDesde ? new Date(`${data.fichajeDesde}T00:00:00Z`) : null } : {}),
         ...(data.active !== undefined ? { active: data.active, terminatedAt: data.active ? null : new Date() } : {}),
+        // REQ-012
+        ...(data.companyId !== undefined ? { companyId: data.companyId } : {}),
+        ...(data.employeeCode !== undefined ? { employeeCode: data.employeeCode } : {}),
+        ...(data.dni !== undefined ? { dni: data.dni } : {}),
+        ...(data.categoriaId !== undefined ? { categoriaId: data.categoriaId } : {}),
+        ...(data.contractTypeId !== undefined ? { contractTypeId: data.contractTypeId } : {}),
+        ...(data.seccionId !== undefined ? { seccionId: data.seccionId } : {}),
+        ...(data.fechaAntiguedad !== undefined ? { fechaAntiguedad: fecha(data.fechaAntiguedad) } : {}),
       },
       include: INCLUDE,
     });
     return toRow(e);
+  }
+
+  async catalogos(): Promise<RrhhCatalogos> {
+    const [empresas, categorias, contratos, secciones] = await Promise.all([
+      this.prisma.company.findMany({ orderBy: { name: 'asc' }, select: { id: true, code: true, name: true } }),
+      this.prisma.categoria.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true } }),
+      this.prisma.contractType.findMany({ orderBy: { code: 'asc' }, select: { id: true, code: true, name: true } }),
+      this.prisma.seccion.findMany({ orderBy: { code: 'asc' }, select: { id: true, code: true, name: true } }),
+    ]);
+    return { empresas, categorias, contratos, secciones };
   }
 }

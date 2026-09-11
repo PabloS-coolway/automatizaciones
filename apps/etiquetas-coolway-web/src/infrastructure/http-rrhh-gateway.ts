@@ -1,5 +1,7 @@
 import type {
   CenterDto,
+  RrhhCatalogosDto,
+  EmpleadoPermisosDto,
   CreateCenterDto,
   CreateDepartmentDto,
   AbsenceDto,
@@ -109,6 +111,20 @@ export class HttpRrhhGateway {
   async listCentros(): Promise<CenterDto[]> {
     const res = await apiFetch('/rrhh/centros');
     if (!res.ok) throw new Error(await errorMessage(res, 'No se pudieron cargar los centros.'));
+    return res.json();
+  }
+
+  // REQ-012 · catálogos maestros para los selects de la ficha (empresas/categorías/contratos/secciones).
+  async catalogos(): Promise<RrhhCatalogosDto> {
+    const res = await apiFetch('/rrhh/catalogos');
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudieron cargar los catálogos.'));
+    return res.json();
+  }
+
+  // REQ-012 · permisos efectivos de un empleado (zona → convenio → permisos, con fallback global).
+  async permisosEmpleado(id: number): Promise<EmpleadoPermisosDto> {
+    const res = await apiFetch(`/rrhh/empleados/${id}/permisos`);
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudieron cargar los permisos del empleado.'));
     return res.json();
   }
 

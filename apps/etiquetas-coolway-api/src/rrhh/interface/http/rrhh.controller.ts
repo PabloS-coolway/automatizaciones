@@ -32,6 +32,7 @@ import {
   RrhhMeDto,
   SaldoVacacionesDto,
   UsuarioSinFichaDto,
+  RrhhCatalogosDto,
   SolicitarAusenciaDto,
   TimeEntryDto,
   UpdateAbsenceTypeDto,
@@ -78,6 +79,17 @@ function toDto(e: EmployeeRow): EmployeeDto {
     birthDate: e.birthDate,
     hideBirthday: e.hideBirthday,
     fichajeDesde: e.fichajeDesde,
+    company: e.company,
+    companyId: e.companyId,
+    employeeCode: e.employeeCode,
+    dni: e.dni,
+    categoria: e.categoria,
+    categoriaId: e.categoriaId,
+    contrato: e.contrato,
+    contractTypeId: e.contractTypeId,
+    seccion: e.seccion,
+    seccionId: e.seccionId,
+    fechaAntiguedad: e.fechaAntiguedad,
   };
 }
 
@@ -206,6 +218,14 @@ export class RrhhController {
   async usuariosSinFicha(@RrhhActor() actor: EmployeeRow): Promise<UsuarioSinFichaDto[]> {
     exigeGestion(actor);
     return this.service.usuariosSinFicha();
+  }
+
+  // REQ-012 · Catálogos maestros (empresas, categorías, contratos, secciones) para poblar los selects de la ficha.
+  @Get('catalogos')
+  @UseGuards(RrhhGuard)
+  async catalogos(@RrhhActor() actor: EmployeeRow): Promise<RrhhCatalogosDto> {
+    exigeGestion(actor);
+    return this.service.catalogos();
   }
 
   @Get('cumpleanos')

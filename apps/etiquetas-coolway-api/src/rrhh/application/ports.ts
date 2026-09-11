@@ -28,9 +28,32 @@ export interface EmployeeRow {
   hideBirthday: boolean;
   /** Desde qué día se le exige fichar (YYYY-MM-DD); antes no cuenta como falta. `null` = sin control. */
   fichajeDesde: string | null;
+  // REQ-012 · Capa organizativa e identidad de ficha (nombres resueltos + ids).
+  company: string | null;
+  companyId: number | null;
+  employeeCode: string | null;
+  dni: string | null;
+  categoria: string | null;
+  categoriaId: number | null;
+  contrato: string | null;
+  contractTypeId: number | null;
+  seccion: string | null;
+  seccionId: number | null;
+  fechaAntiguedad: string | null;
 }
 
-export interface NuevoEmpleado {
+/** REQ-012 · Campos de ficha que llegan del formulario (además de la identidad). */
+export interface CamposFichaRrhh {
+  companyId?: number | null;
+  employeeCode?: string | null;
+  dni?: string | null;
+  categoriaId?: number | null;
+  contractTypeId?: number | null;
+  seccionId?: number | null;
+  fechaAntiguedad?: string | null;
+}
+
+export interface NuevoEmpleado extends CamposFichaRrhh {
   userId: number;
   fullName: string;
   rrhhRole: RrhhRole;
@@ -46,7 +69,7 @@ export interface NuevoEmpleado {
 }
 
 /** Cambios sobre una ficha (edición / baja / reactivación). Sólo los campos presentes se tocan. */
-export interface EmpleadoUpdate {
+export interface EmpleadoUpdate extends CamposFichaRrhh {
   fullName?: string;
   position?: string | null;
   rrhhRole?: RrhhRole;
@@ -61,6 +84,14 @@ export interface EmpleadoUpdate {
   active?: boolean;
 }
 
+/** REQ-012 · Catálogos maestros para poblar los selects de la ficha. */
+export interface RrhhCatalogos {
+  empresas: { id: number; code: string; name: string }[];
+  categorias: { id: number; name: string }[];
+  contratos: { id: number; code: string; name: string | null }[];
+  secciones: { id: number; code: string; name: string | null }[];
+}
+
 /** Puerto: plantilla (Postgres). El enlace de identidad se resuelve por `userId` (1:1 con el login). */
 export interface EmployeeRepository {
   findByUserId(userId: number): Promise<EmployeeRow | null>;
@@ -71,6 +102,8 @@ export interface EmployeeRepository {
   findUserIdByEmail(email: string): Promise<number | null>;
   create(nuevo: NuevoEmpleado, tx?: Prisma.TransactionClient): Promise<EmployeeRow>;
   update(id: number, data: EmpleadoUpdate, tx?: Prisma.TransactionClient): Promise<EmployeeRow>;
+  /** REQ-012 · Catálogos maestros (empresas, categorías, contratos, secciones) para los selects de la ficha. */
+  catalogos(): Promise<RrhhCatalogos>;
 }
 
 export const TIME_ENTRY_REPOSITORY = Symbol('TIME_ENTRY_REPOSITORY');

@@ -36,6 +36,21 @@ export interface EmployeeDto {
   hideBirthday: boolean;
   /** Desde qué día se le exige fichar (YYYY-MM-DD); antes no se marca "falta fichar". `null` = sin control. */
   fichajeDesde: string | null;
+  // REQ-012 · Capa organizativa e identidad de ficha. Nombres resueltos (pintar) + ids (editar).
+  /** Sociedad jurídica (VANYOR SAU…). Distinta de la marca del centro. */
+  company: string | null;
+  companyId: number | null;
+  /** Código de empleado de RRHH. La clave de negocio es (empresa + código). */
+  employeeCode: string | null;
+  dni: string | null;
+  categoria: string | null;
+  categoriaId: number | null;
+  contrato: string | null;
+  contractTypeId: number | null;
+  seccion: string | null;
+  seccionId: number | null;
+  /** Fecha de antigüedad reconocida (YYYY-MM-DD), separada del alta. */
+  fechaAntiguedad: string | null;
 }
 
 /**
@@ -55,6 +70,14 @@ export interface CreateEmployeeDto {
   birthDate?: string | null;
   hideBirthday?: boolean;
   fichajeDesde?: string | null;
+  // REQ-012
+  companyId?: number | null;
+  employeeCode?: string | null;
+  dni?: string | null;
+  categoriaId?: number | null;
+  contractTypeId?: number | null;
+  seccionId?: number | null;
+  fechaAntiguedad?: string | null;
 }
 
 /** Edición de una ficha (Fase 1). Todo opcional; sólo lo presente se cambia. El correo/usuario no se cambia. */
@@ -70,6 +93,22 @@ export interface UpdateEmployeeDto {
   birthDate?: string | null;
   hideBirthday?: boolean;
   fichajeDesde?: string | null;
+  // REQ-012
+  companyId?: number | null;
+  employeeCode?: string | null;
+  dni?: string | null;
+  categoriaId?: number | null;
+  contractTypeId?: number | null;
+  seccionId?: number | null;
+  fechaAntiguedad?: string | null;
+}
+
+/** REQ-012 · Catálogos para poblar los selects de la ficha (todo lo maestro que el empleado referencia). */
+export interface RrhhCatalogosDto {
+  empresas: { id: number; code: string; name: string }[];
+  categorias: { id: number; name: string }[];
+  contratos: { id: number; code: string; name: string | null }[];
+  secciones: { id: number; code: string; name: string | null }[];
 }
 
 /** Un centro/tienda del grupo. La `brand` (enseña) es la que **segmenta el organigrama** (multimarca). */
