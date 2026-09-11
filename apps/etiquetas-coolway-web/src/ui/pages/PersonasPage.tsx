@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Alert, Badge, Button, Card, Form, Modal, Nav, Spinner } from 'react-bootstrap';
-import { Diagram3, Download, PencilSquare, PersonDash, PersonCheck, PlusLg, Building, ClockHistory, ListUl, Search, FileEarmarkArrowUp } from 'react-bootstrap-icons';
+import { Diagram3, Download, PencilSquare, PersonDash, PersonCheck, PlusLg, Building, ClockHistory, ListUl, Search, FileEarmarkArrowUp, Collection } from 'react-bootstrap-icons';
 import {
   RRHH_ROLE_LABELS,
   RRHH_ROLES,
@@ -17,6 +17,7 @@ import { useRrhh } from '../rrhh/RrhhContext';
 import { Column, DataTable, useMemoryTable } from '../components/table';
 import { OrganigramaLienzo } from './personas/OrganigramaLienzo';
 import { EstructuraManager } from './personas/EstructuraManager';
+import { MaestrosRrhhManager } from './personas/MaestrosRrhhManager';
 import { PanelFichajes } from './personas/PanelFichajes';
 import { ActividadRrhh } from './personas/ActividadRrhh';
 import { Skeleton, SkeletonTable } from '../components/Skeleton';
@@ -24,7 +25,7 @@ import { plantillaACsv } from '../../domain/plantilla-csv';
 import { ImportFichasModal } from './ImportFichasModal';
 
 const VACIO = { email: '', fullName: '', rrhhRole: 'EMPLEADO' as RrhhRole, position: '', managerId: '', centerId: '', departmentId: '', weeklyHours: '', annualLeaveDays: '', birthDate: '', hideBirthday: false, fichajeDesde: '', companyId: '', employeeCode: '', dni: '', categoriaId: '', contractTypeId: '', seccionId: '', fechaAntiguedad: '' };
-type Vista = 'plantilla' | 'organigrama' | 'fichajes' | 'estructura' | 'actividad';
+type Vista = 'plantilla' | 'organigrama' | 'fichajes' | 'estructura' | 'maestros' | 'actividad';
 
 /**
  * REQ-008 · Personas. El empleado ve su ficha y (según su rol RRHH) la plantilla que le corresponde. RRHH/Admin
@@ -359,6 +360,9 @@ export function PersonasPage() {
               <Nav.Item><Nav.Link eventKey="estructura"><Building className="me-1" />Centros y departamentos</Nav.Link></Nav.Item>
             )}
             {puedeGestionar && (
+              <Nav.Item><Nav.Link eventKey="maestros"><Collection className="me-1" />Maestros</Nav.Link></Nav.Item>
+            )}
+            {puedeGestionar && (
               <Nav.Item><Nav.Link eventKey="actividad"><ListUl className="me-1" />Actividad</Nav.Link></Nav.Item>
             )}
           </Nav>
@@ -403,6 +407,8 @@ export function PersonasPage() {
           {vista === 'estructura' && puedeGestionar && (
             <EstructuraManager centros={centros} departamentos={departamentos} onChange={reload} />
           )}
+
+          {vista === 'maestros' && puedeGestionar && <MaestrosRrhhManager />}
 
           {vista === 'actividad' && puedeGestionar && <ActividadRrhh />}
         </>

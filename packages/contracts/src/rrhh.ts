@@ -470,7 +470,23 @@ export interface HolidaysBulkResultDto {
 
 // ---- REQ-008 · Panel de actividad RRHH (auditoría, solo lectura) ----
 
-export const RRHH_ACTIVITY_ENTITIES = ['EMPLEADO', 'CENTRO', 'DEPARTAMENTO', 'FICHAJE', 'AUSENCIA', 'TIPO_AUSENCIA', 'FESTIVO'] as const;
+export const RRHH_ACTIVITY_ENTITIES = [
+  'EMPLEADO',
+  'CENTRO',
+  'DEPARTAMENTO',
+  'FICHAJE',
+  'AUSENCIA',
+  'TIPO_AUSENCIA',
+  'FESTIVO',
+  // REQ-012 · Bloque 3 · Gestión maestra.
+  'EMPRESA',
+  'ZONA',
+  'CONVENIO',
+  'CONVENIO_PERMISO',
+  'CATEGORIA',
+  'TIPO_CONTRATO',
+  'SECCION',
+] as const;
 export type RrhhActivityEntity = (typeof RRHH_ACTIVITY_ENTITIES)[number];
 
 export const RRHH_ACTIVITY_ENTITY_LABELS: Record<RrhhActivityEntity, string> = {
@@ -481,6 +497,13 @@ export const RRHH_ACTIVITY_ENTITY_LABELS: Record<RrhhActivityEntity, string> = {
   AUSENCIA: 'Ausencia',
   TIPO_AUSENCIA: 'Tipo de ausencia',
   FESTIVO: 'Festivo',
+  EMPRESA: 'Empresa',
+  ZONA: 'Zona',
+  CONVENIO: 'Convenio',
+  CONVENIO_PERMISO: 'Permisos de convenio',
+  CATEGORIA: 'Categoría',
+  TIPO_CONTRATO: 'Tipo de contrato',
+  SECCION: 'Sección',
 };
 
 export const RRHH_ACTIVITY_ACTION_LABELS: Record<string, string> = {

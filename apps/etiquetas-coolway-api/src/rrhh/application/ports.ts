@@ -300,3 +300,111 @@ export interface StructureRepository {
   deleteDepartment(id: number, tx?: Prisma.TransactionClient): Promise<void>;
   findDepartment(id: number): Promise<DepartmentRow | null>;
 }
+
+export const RRHH_MAESTROS_REPOSITORY = Symbol('RRHH_MAESTROS_REPOSITORY');
+
+/** REQ-012 · Bloque 3 · Filas de la capa organizativa, con el conteo de uso (para avisar antes de borrar). */
+export interface CompanyRow {
+  id: number;
+  code: string;
+  name: string;
+  /** Nº de empleados de la sociedad. */
+  employees: number;
+}
+
+export interface ZoneRow {
+  id: number;
+  name: string;
+  convenioId: number | null;
+  convenioName: string | null;
+  /** Nº de centros que usan la zona. */
+  centers: number;
+}
+
+export interface ConvenioRow {
+  id: number;
+  code: string | null;
+  name: string;
+  /** Nº de zonas que usan el convenio. */
+  zonas: number;
+}
+
+/** Fila de un catálogo simple (categoría / tipo de contrato / sección), con el nº de empleados que lo usan. */
+export interface CatalogoRow {
+  id: number;
+  code: string | null;
+  name: string | null;
+  employees: number;
+}
+
+/** Un permiso concedido por un convenio (tipo de ausencia + parámetros), resuelto con el nombre del tipo. */
+export interface ConvenioPermisoRow {
+  absenceTypeId: number;
+  name: string;
+  diasMax: number | null;
+  remunerado: boolean | null;
+}
+
+/** Un permiso a persistir en el set de un convenio (ya normalizado por el servicio). */
+export interface ConvenioPermisoSet {
+  absenceTypeId: number;
+  diasMax: number | null;
+  remunerado: boolean | null;
+}
+
+/**
+ * REQ-012 · Bloque 3 · Puerto de la gestión maestra: CRUD de empresas, zonas, convenios y los catálogos
+ * (categoría / tipo de contrato / sección), más el editor de permisos de un convenio. El borrado se bloquea
+ * (en el servicio) según los conteos de uso que traen las filas. El set de permisos se reemplaza de forma
+ * idempotente en el adapter.
+ */
+export interface MaestrosRepository {
+  // ---- Empresas ----
+  listCompanies(): Promise<CompanyRow[]>;
+  findCompany(id: number): Promise<CompanyRow | null>;
+  createCompany(data: { code: string; name: string }, tx?: Prisma.TransactionClient): Promise<CompanyRow>;
+  updateCompany(id: number, data: { code?: string; name?: string }, tx?: Prisma.TransactionClient): Promise<CompanyRow>;
+  deleteCompany(id: number, tx?: Prisma.TransactionClient): Promise<void>;
+
+  // ---- Zonas ----
+  listZones(): Promise<ZoneRow[]>;
+  findZone(id: number): Promise<ZoneRow | null>;
+  createZone(data: { name: string; convenioId: number | null }, tx?: Prisma.TransactionClient): Promise<ZoneRow>;
+  updateZone(id: number, data: { name?: string; convenioId?: number | null }, tx?: Prisma.TransactionClient): Promise<ZoneRow>;
+  deleteZone(id: number, tx?: Prisma.TransactionClient): Promise<void>;
+
+  // ---- Convenios ----
+  listConvenios(): Promise<ConvenioRow[]>;
+  findConvenio(id: number): Promise<ConvenioRow | null>;
+  createConvenio(data: { code: string | null; name: string }, tx?: Prisma.TransactionClient): Promise<ConvenioRow>;
+  updateConvenio(id: number, data: { code?: string | null; name?: string }, tx?: Prisma.TransactionClient): Promise<ConvenioRow>;
+  deleteConvenio(id: number, tx?: Prisma.TransactionClient): Promise<void>;
+
+  // ---- Catálogos: categorías ----
+  listCategorias(): Promise<CatalogoRow[]>;
+  findCategoria(id: number): Promise<CatalogoRow | null>;
+  createCategoria(data: { code: string | null; name: string }, tx?: Prisma.TransactionClient): Promise<CatalogoRow>;
+  updateCategoria(id: number, data: { code?: string | null; name?: string }, tx?: Prisma.TransactionClient): Promise<CatalogoRow>;
+  deleteCategoria(id: number, tx?: Prisma.TransactionClient): Promise<void>;
+
+  // ---- Catálogos: tipos de contrato ----
+  listContractTypes(): Promise<CatalogoRow[]>;
+  findContractType(id: number): Promise<CatalogoRow | null>;
+  createContractType(data: { code: string; name: string | null }, tx?: Prisma.TransactionClient): Promise<CatalogoRow>;
+  updateContractType(id: number, data: { code?: string; name?: string | null }, tx?: Prisma.TransactionClient): Promise<CatalogoRow>;
+  deleteContractType(id: number, tx?: Prisma.TransactionClient): Promise<void>;
+
+  // ---- Catálogos: secciones ----
+  listSecciones(): Promise<CatalogoRow[]>;
+  findSeccion(id: number): Promise<CatalogoRow | null>;
+  createSeccion(data: { code: string; name: string | null }, tx?: Prisma.TransactionClient): Promise<CatalogoRow>;
+  updateSeccion(id: number, data: { code?: string; name?: string | null }, tx?: Prisma.TransactionClient): Promise<CatalogoRow>;
+  deleteSeccion(id: number, tx?: Prisma.TransactionClient): Promise<void>;
+
+  // ---- Permisos de un convenio ----
+  listConvenioPermisos(convenioId: number): Promise<ConvenioPermisoRow[]>;
+  /** De entre los ids pedidos, cuáles existen como tipo de ausencia (para validar el set). */
+  existingAbsenceTypeIds(ids: number[]): Promise<Set<number>>;
+  /** Reemplaza el set completo de permisos de un convenio (borra sobrantes, upsert nuevos). Idempotente. */
+  replaceConvenioPermisos(convenioId: number, permisos: ConvenioPermisoSet[], tx?: Prisma.TransactionClient): Promise<ConvenioPermisoRow[]>;
+}

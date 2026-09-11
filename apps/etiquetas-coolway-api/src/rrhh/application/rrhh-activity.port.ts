@@ -6,7 +6,22 @@ export const RRHH_ACTIVITY_RECORDER = Symbol('RRHH_ACTIVITY_RECORDER');
 export interface RrhhActivityRecord {
   actorEmail: string;
   action: 'CREATE' | 'UPDATE' | 'DELETE';
-  entity: 'EMPLEADO' | 'CENTRO' | 'DEPARTAMENTO' | 'FICHAJE' | 'AUSENCIA' | 'TIPO_AUSENCIA' | 'FESTIVO';
+  entity:
+    | 'EMPLEADO'
+    | 'CENTRO'
+    | 'DEPARTAMENTO'
+    | 'FICHAJE'
+    | 'AUSENCIA'
+    | 'TIPO_AUSENCIA'
+    | 'FESTIVO'
+    // REQ-012 · Bloque 3 · Gestión maestra.
+    | 'EMPRESA'
+    | 'ZONA'
+    | 'CONVENIO'
+    | 'CONVENIO_PERMISO'
+    | 'CATEGORIA'
+    | 'TIPO_CONTRATO'
+    | 'SECCION';
   entityId: string;
   before?: unknown;
   after?: unknown;
