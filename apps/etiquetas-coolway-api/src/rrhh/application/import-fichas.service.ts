@@ -8,6 +8,15 @@ import { FICHAS_IMPORT_REPOSITORY, FichaEmpleadoData, FichasImportRepository } f
 /** Rol de login por defecto de las fichas importadas (rol de sistema, siempre existe). */
 const ROL_DEFECTO = 'operador';
 
+/**
+ * ¿El grupo del Excel es una TIENDA (→ centro) o un DEPARTAMENTO (→ department)? Un centro es una tienda física;
+ * un grupo como "SISTEMAS" es un departamento, no un centro. Heurística por el nombre del grupo (a confirmar con
+ * Ángeles en la pregunta abierta de jerarquía): "TIENDA"/"SUC." = tienda; el resto = departamento.
+ */
+function esTienda(grupo: string): boolean {
+  return /tienda|\bsuc\.?/i.test(grupo);
+}
+
 /** Convierte una fecha YYYY-MM-DD (o `null`) a Date en UTC, para persistirla sin desfase de zona horaria. */
 function aFecha(iso: string | null): Date | null {
   return iso ? new Date(`${iso}T00:00:00.000Z`) : null;
@@ -41,10 +50,13 @@ export class ImportFichasService {
       if (!f.nombre) { saltar('sin nombre de empleado'); continue; }
 
       try {
-        // Estructura y catálogos (idempotentes por su clave).
+        // Estructura y catálogos (idempotentes por su clave). El grupo del Excel es una tienda (→ centro, con su
+        // zona) o un departamento (→ department, p.ej. SISTEMAS). Un grupo no puede ser ambos a la vez.
         const company = await this.repo.upsertCompany(f.empresaCodigo, f.empresaNombre || f.empresaCodigo);
-        const zone = f.zona ? await this.repo.upsertZone(f.zona) : null;
-        const center = f.grupo ? await this.repo.upsertCenter(f.grupo, f.grupo, zone?.id ?? null) : null;
+        const esCentro = !!f.grupo && esTienda(f.grupo);
+        const zone = esCentro && f.zona ? await this.repo.upsertZone(f.zona) : null;
+        const center = esCentro ? await this.repo.upsertCenter(f.grupo, f.grupo, zone?.id ?? null) : null;
+        const department = f.grupo && !esCentro ? await this.repo.upsertDepartment(f.grupo) : null;
         const contractType = f.contrato ? await this.repo.upsertContractType(f.contrato) : null;
         const seccion = f.seccion ? await this.repo.upsertSeccion(f.seccion) : null;
         const categoria = f.categoria ? await this.repo.upsertCategoria(f.categoria) : null;
@@ -58,6 +70,7 @@ export class ImportFichasService {
           companyId: company.id,
           employeeCode: f.empleadoCodigo,
           centerId: center?.id ?? null,
+          departmentId: department?.id ?? null,
           hiredAt: aFecha(f.fechaAlta),
           fechaAntiguedad: aFecha(f.fechaAntiguedad),
         };

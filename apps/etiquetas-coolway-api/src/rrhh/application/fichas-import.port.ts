@@ -16,6 +16,8 @@ export interface FichaEmpleadoData {
   companyId: number;
   employeeCode: string;
   centerId: number | null;
+  /** Departamento (para grupos que no son tienda, p.ej. SISTEMAS). Tienda→centro; dept→department. */
+  departmentId: number | null;
   /** Fecha de alta (col E). */
   hiredAt: Date | null;
   /** Fecha de antigüedad (col I). */
@@ -32,6 +34,8 @@ export interface FichasImportRepository {
    * (dato provisional: el Excel no trae la enseña, RRHH la ajusta luego).
    */
   upsertCenter(name: string, brand: string, zoneId: number | null): Promise<{ id: number }>;
+  /** Departamento por `name` (para grupos que no son tienda, como SISTEMAS). */
+  upsertDepartment(name: string): Promise<{ id: number }>;
   /** Tipo de contrato por `code`. */
   upsertContractType(code: string): Promise<{ id: number }>;
   /** Sección por `code`. */

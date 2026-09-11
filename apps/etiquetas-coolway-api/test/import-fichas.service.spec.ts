@@ -8,6 +8,7 @@ class FakeRepo implements FichasImportRepository {
   companies = new Map<string, { id: number }>();
   zones = new Map<string, { id: number }>();
   centers = new Map<string, { id: number; zoneId: number | null }>();
+  departments = new Map<string, { id: number }>();
   contractTypes = new Map<string, { id: number }>();
   secciones = new Map<string, { id: number }>();
   categorias = new Map<string, { id: number }>();
@@ -33,6 +34,7 @@ class FakeRepo implements FichasImportRepository {
     this.centers.set(name, nuevo);
     return { id: nuevo.id };
   }
+  upsertDepartment(name: string) { return this.upsert(this.departments, name); }
   upsertContractType(code: string) { return this.upsert(this.contractTypes, code); }
   upsertSeccion(code: string) { return this.upsert(this.secciones, code); }
   upsertCategoria(name: string) { return this.upsert(this.categorias, name); }
@@ -130,6 +132,26 @@ describe('ImportFichasService · idempotencia', () => {
       'sin código de empleado',
       'sin correo: no se puede crear el login del empleado',
     ]);
+  });
+
+  it('una tienda va a CENTRO (con zona) y un grupo que no es tienda (SISTEMAS) va a DEPARTAMENTO', async () => {
+    const repo = new FakeRepo();
+    const service = new ImportFichasService(repo, hasher);
+    await service.importar([
+      ficha({ empresaCodigo: '16', empleadoCodigo: '20', nombre: 'ROBERT', email: 'robert@y.com', grupo: 'SISTEMAS', zona: '' }),
+      ficha({ empresaCodigo: '105', empleadoCodigo: '36', nombre: 'DAVID', email: 'david@y.com', grupo: 'TIENDA SUC.01 ULANKA', zona: 'VALENCIA' }),
+    ]);
+    const robert = repo.employees.get('1::20') ?? [...repo.employees.values()].find((e) => e.data.employeeCode === '20')!;
+    const david = [...repo.employees.values()].find((e) => e.data.employeeCode === '36')!;
+    // SISTEMAS → departamento, sin centro.
+    expect(robert.data.departmentId).not.toBeNull();
+    expect(robert.data.centerId).toBeNull();
+    expect(repo.departments.has('SISTEMAS')).toBe(true);
+    expect(repo.centers.has('SISTEMAS')).toBe(false);
+    // Tienda → centro, sin departamento.
+    expect(david.data.centerId).not.toBeNull();
+    expect(david.data.departmentId).toBeNull();
+    expect(repo.centers.has('TIENDA SUC.01 ULANKA')).toBe(true);
   });
 
   it('no crea una 2ª ficha para un correo que ya tiene empleado (respeta el 1:1)', async () => {

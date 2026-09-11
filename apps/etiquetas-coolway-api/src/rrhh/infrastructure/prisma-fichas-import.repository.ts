@@ -33,6 +33,10 @@ export class PrismaFichasImportRepository implements FichasImportRepository {
     return this.prisma.center.create({ data: { name, brand, zoneId: zoneId ?? undefined }, select: { id: true } });
   }
 
+  async upsertDepartment(name: string): Promise<{ id: number }> {
+    return this.prisma.department.upsert({ where: { name }, update: {}, create: { name }, select: { id: true } });
+  }
+
   async upsertContractType(code: string): Promise<{ id: number }> {
     return this.prisma.contractType.upsert({ where: { code }, update: {}, create: { code }, select: { id: true } });
   }
@@ -80,6 +84,7 @@ export class PrismaFichasImportRepository implements FichasImportRepository {
       companyId: d.companyId,
       employeeCode: d.employeeCode,
       centerId: d.centerId,
+      departmentId: d.departmentId,
       hiredAt: d.hiredAt,
       fechaAntiguedad: d.fechaAntiguedad,
     };
