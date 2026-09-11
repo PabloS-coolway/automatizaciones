@@ -116,3 +116,17 @@ Diseño único recomendado (arriba). La única bifurcación real —empresa per-
 1. **Validar este diseño** (Pablo / y con Ángeles el bloque convenio→permisos).
 2. Implementar en rama `feat/req-012-rrhh-multiempresa`: schema + migración + contracts + importador + tests.
 3. Cargar sus datos reales (Sistemas + 2 tiendas) y verificar de verdad (API/DB).
+
+## Avance 11-sep (autónomo, rama sin pushear)
+- ✅ **Schema + migración + contracts + importador de fichas + tests** (commits `c184c78`→`d9eea32`).
+- ✅ **Resolver convenio→permisos** (commit `6b87bf8`): la lógica que *consume* el andamiaje. `GET
+  /rrhh/empleados/:id/permisos` → permisos efectivos del trabajador vía `center.zone.convenio`, con **fallback al
+  catálogo global** cuando el convenio aún no está relleno (cero regresión con REQ-008). Regla pura en
+  `domain/convenio-permisos`, 6 unit tests + **verificación real contra Postgres** (repo Prisma ejercido en
+  transacción con rollback, 10/10). typecheck + 379 tests + build en verde.
+- ⏳ **Export "a requerimiento" (retención 6 años):** NO implementado a propósito. La retención estructural ya está
+  (baja = soft-delete, el dato se conserva). El export legal es **formato-sensible** (registro de jornada tiene
+  requisitos legales) → construirlo a ciegas arriesga rework. Fuente de datos lista: `fichaje.historico(emp,
+  desde, hasta)`. **Formato propuesto** (CSV, mínimo legal): empresa · nº empleado · nombre · DNI · centro · fecha
+  · hora entrada · hora salida · minutos trabajados. Pendiente de un OK de Pablo/Ángeles sobre las columnas antes
+  de codificarlo (añadir columnas a un CSV luego es trivial, no "rehacer").
