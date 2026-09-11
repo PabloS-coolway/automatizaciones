@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Alert, Badge, Button, Card, Form, Modal, Nav, Spinner } from 'react-bootstrap';
-import { Diagram3, Download, PencilSquare, PersonDash, PersonCheck, PlusLg, Building, ClockHistory, ListUl, Search } from 'react-bootstrap-icons';
+import { Diagram3, Download, PencilSquare, PersonDash, PersonCheck, PlusLg, Building, ClockHistory, ListUl, Search, FileEarmarkArrowUp } from 'react-bootstrap-icons';
 import {
   RRHH_ROLE_LABELS,
   RRHH_ROLES,
@@ -21,6 +21,7 @@ import { PanelFichajes } from './personas/PanelFichajes';
 import { ActividadRrhh } from './personas/ActividadRrhh';
 import { Skeleton, SkeletonTable } from '../components/Skeleton';
 import { plantillaACsv } from '../../domain/plantilla-csv';
+import { ImportFichasModal } from './ImportFichasModal';
 
 const VACIO = { email: '', fullName: '', rrhhRole: 'EMPLEADO' as RrhhRole, position: '', managerId: '', centerId: '', departmentId: '', weeklyHours: '', annualLeaveDays: '', birthDate: '', hideBirthday: false, fichajeDesde: '', companyId: '', employeeCode: '', dni: '', categoriaId: '', contractTypeId: '', seccionId: '', fechaAntiguedad: '' };
 type Vista = 'plantilla' | 'organigrama' | 'fichajes' | 'estructura' | 'actividad';
@@ -40,6 +41,7 @@ export function PersonasPage() {
   const [catalogos, setCatalogos] = useState<RrhhCatalogosDto>({ empresas: [], categorias: [], contratos: [], secciones: [] });
   const [permisos, setPermisos] = useState<EmpleadoPermisosDto | null>(null);
   const [permisosCargando, setPermisosCargando] = useState(false);
+  const [importFichas, setImportFichas] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -324,10 +326,16 @@ export function PersonasPage() {
           <p className="text-secondary mb-0">Gestión de personal del grupo. Cada empleado entra con su usuario del panel.</p>
         </div>
         {puedeGestionar && employee && (
-          <Button className="btn-brand flex-shrink-0" onClick={abrirAlta}>
-            <PlusLg className="me-1" />
-            Nuevo empleado
-          </Button>
+          <div className="d-flex gap-2 flex-shrink-0">
+            <Button variant="outline-secondary" onClick={() => setImportFichas(true)}>
+              <FileEarmarkArrowUp className="me-1" />
+              Importar fichas
+            </Button>
+            <Button className="btn-brand" onClick={abrirAlta}>
+              <PlusLg className="me-1" />
+              Nuevo empleado
+            </Button>
+          </div>
         )}
       </header>
 
@@ -587,6 +595,13 @@ export function PersonasPage() {
           </Modal.Footer>
         </Form>
       </Modal>
+
+      {importFichas && (
+        <ImportFichasModal
+          onClose={() => setImportFichas(false)}
+          onImported={() => reload()}
+        />
+      )}
     </div>
   );
 }

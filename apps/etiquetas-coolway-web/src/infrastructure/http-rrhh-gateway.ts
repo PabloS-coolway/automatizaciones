@@ -2,6 +2,7 @@ import type {
   CenterDto,
   RrhhCatalogosDto,
   EmpleadoPermisosDto,
+  ImportFichasResultDto,
   CreateCenterDto,
   CreateDepartmentDto,
   AbsenceDto,
@@ -111,6 +112,15 @@ export class HttpRrhhGateway {
   async listCentros(): Promise<CenterDto[]> {
     const res = await apiFetch('/rrhh/centros');
     if (!res.ok) throw new Error(await errorMessage(res, 'No se pudieron cargar los centros.'));
+    return res.json();
+  }
+
+  // REQ-012 · importar fichas de RRHH desde el Excel agrupado de Ángeles (multipart).
+  async importarFichas(file: File): Promise<ImportFichasResultDto> {
+    const fd = new FormData();
+    fd.append('file', file);
+    const res = await apiFetch('/rrhh/import-fichas', { method: 'POST', body: fd });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo importar el Excel de fichas.'));
     return res.json();
   }
 
