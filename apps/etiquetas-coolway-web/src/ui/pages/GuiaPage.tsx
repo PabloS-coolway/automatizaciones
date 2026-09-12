@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Badge, Button, Card, Form, ListGroup, ProgressBar } from 'react-bootstrap';
-import { ChevronLeft, ChevronRight, Book, BoxArrowUpRight } from 'react-bootstrap-icons';
+import {
+  ChevronLeft, ChevronRight, Book, BoxArrowUpRight, GeoAltFill,
+  HouseDoorFill, Tags, Database, Scissors, BoxSeamFill, GeoAlt, ClockHistory,
+  CalendarCheck, Bell, PersonCircle, People, ShieldLock, Activity, PersonBadge,
+} from 'react-bootstrap-icons';
+import type { ReactElement } from 'react';
 import type { Feature } from '@yorga/contracts';
 import { useAuth } from '../auth/AuthContext';
 import { useRrhh } from '../rrhh/RrhhContext';
@@ -58,16 +63,17 @@ interface Capitulo {
 
 const CAPITULOS: Capitulo[] = [
   {
-    id: 'bienvenida', grupo: 'Introducción', titulo: 'Bienvenida a la guía',
+    id: 'bienvenida', grupo: 'Introducción', titulo: '¡Hola! Empecemos por aquí',
     intro:
-      'Esta guía explica, módulo a módulo, qué hace el panel de Coolway y cómo usarlo. Usa el índice de la izquierda para saltar a un capítulo, o los botones «Anterior» y «Siguiente» para leerla como un libro. En tu menú solo aparecen los módulos para los que tienes permiso; aquí puedes conocerlos todos.',
+      'No hace falta saber de informática para usar el panel: esta guía te lleva de la mano, apartado por apartado, contándote para qué sirve cada cosa y qué puedes hacer, con una foto de cada pantalla. Tómatelo con calma y ve leyendo a tu ritmo.',
     notas: [
-      'Cada capítulo indica quién puede usar el módulo y dónde está en el menú.',
-      'El capítulo de Personas (RRHH) es el más detallado: es el que más se usa en el día a día.',
+      'Puedes ir capítulo a capítulo con los botones «Anterior» y «Siguiente», o saltar a lo que te interese desde la lista de la izquierda.',
+      'En cada capítulo verás para quién es y dónde encontrarlo en el menú. Y con el botón «Abrir» vas directa a esa pantalla.',
+      'Lo que más se usa en el día a día es «Personas»: ahí está tu capítulo más completo, paso a paso.',
     ],
   },
   {
-    id: 'inicio', ruta: '/inicio', grupo: 'Empezar aquí', titulo: 'Inicio', menu: 'Inicio', quien: 'Todos', img: inicioImg,
+    id: 'inicio', ruta: '/inicio', grupo: 'Empezar aquí', titulo: 'Inicio', menu: 'Inicio', quien: 'Para todo el mundo', img: inicioImg,
     intro: 'Tu pantalla de bienvenida: se adapta a tu rol y te lleva con un clic a todo lo que puedes usar.',
     acciones: [
       'Fichar y ver tu jornada de hoy sin salir de aquí (si eres empleado).',
@@ -78,7 +84,7 @@ const CAPITULOS: Capitulo[] = [
     notas: ['Lo que ves cambia según tu rol y tus permisos: si algo no te aparece, es que tu usuario no tiene acceso a ese módulo.'],
   },
   {
-    id: 'etiquetas', ruta: '/etiquetas', feature: 'etiquetas.ver', grupo: 'Etiquetas y colección', titulo: 'Etiquetas', menu: 'Etiquetas y colección → Etiquetas', quien: 'Operador y Admin · permiso «ver etiquetas»', img: etiquetasImg,
+    id: 'etiquetas', ruta: '/etiquetas', feature: 'etiquetas.ver', grupo: 'Etiquetas y colección', titulo: 'Etiquetas', menu: 'Etiquetas y colección → Etiquetas', quien: 'Para el equipo de etiquetas', img: etiquetasImg,
     intro: 'Generar el fichero de etiquetas de uno o varios pedidos de compra de SAP.',
     acciones: [
       'Elegir el Destino (el badge muestra qué códigos imprime) y el «Importado por».',
@@ -93,7 +99,7 @@ const CAPITULOS: Capitulo[] = [
     ],
   },
   {
-    id: 'maestro', ruta: '/maestro', feature: 'maestro.ver', grupo: 'Etiquetas y colección', titulo: 'Base de datos (maestro)', menu: 'Etiquetas y colección → Base de datos', quien: 'Consulta: «ver maestro» · Cargar: solo Admin', img: maestroImg,
+    id: 'maestro', ruta: '/maestro', feature: 'maestro.ver', grupo: 'Etiquetas y colección', titulo: 'Base de datos (maestro)', menu: 'Etiquetas y colección → Base de datos', quien: 'Consulta: todo el equipo · Cargar datos: administración', img: maestroImg,
     intro: 'El maestro de códigos Coolway (EAN/UPC por talla): la fuente de verdad de la que todo lo demás bebe.',
     acciones: [
       'Buscar por modelo, color, referencia, SKU o código y filtrar/ordenar.',
@@ -108,7 +114,7 @@ const CAPITULOS: Capitulo[] = [
     ],
   },
   {
-    id: 'poda', ruta: '/poda', feature: 'maestro.cargar', grupo: 'Etiquetas y colección', titulo: 'Podar SAP', menu: 'Etiquetas y colección → Podar SAP', quien: 'Admin · permiso «cargar maestro»', img: podaImg,
+    id: 'poda', ruta: '/poda', feature: 'maestro.cargar', grupo: 'Etiquetas y colección', titulo: 'Podar SAP', menu: 'Etiquetas y colección → Podar SAP', quien: 'Para administración', img: podaImg,
     intro: 'Dejar los ficheros que saca SAP con solo lo realmente comprado; el resto de líneas se anulan.',
     acciones: [
       'Subir el borrador de prepedidos (el Excel de la compra, con la columna «Suma»).',
@@ -122,7 +128,7 @@ const CAPITULOS: Capitulo[] = [
     ],
   },
   {
-    id: 'surtidos', ruta: '/surtidos', feature: 'maestro.cargar', grupo: 'Etiquetas y colección', titulo: 'Surtidos', menu: 'Etiquetas y colección → Surtidos', quien: 'Admin · permiso «cargar maestro»', img: surtidosImg,
+    id: 'surtidos', ruta: '/surtidos', feature: 'maestro.cargar', grupo: 'Etiquetas y colección', titulo: 'Surtidos', menu: 'Etiquetas y colección → Surtidos', quien: 'Para administración', img: surtidosImg,
     intro: 'El catálogo de qué surtidos conservar por grupo de referencia cuando se poda.',
     acciones: [
       'Ver los surtidos por grupo (p. ej. chica 76 / chico 86).',
@@ -132,7 +138,7 @@ const CAPITULOS: Capitulo[] = [
     notas: ['Solo tiene efecto al podar si allí marcas «Aplicar surtidos».'],
   },
   {
-    id: 'destinos', ruta: '/destinos', feature: 'destinos.gestionar', grupo: 'Etiquetas y colección', titulo: 'Destinos', menu: 'Etiquetas y colección → Destinos', quien: 'Permiso «gestionar destinos»', img: destinosImg,
+    id: 'destinos', ruta: '/destinos', feature: 'destinos.gestionar', grupo: 'Etiquetas y colección', titulo: 'Destinos', menu: 'Etiquetas y colección → Destinos', quien: 'Para quien gestiona los envíos', img: destinosImg,
     intro: 'Los destinos que se pueden elegir al generar etiquetas: qué códigos imprime cada uno y su «importado por».',
     acciones: [
       '«Nuevo destino»: código, nombre, «importado por» y qué códigos de barras imprime.',
@@ -145,7 +151,7 @@ const CAPITULOS: Capitulo[] = [
     ],
   },
   {
-    id: 'fichar', ruta: '/fichar', soloEmpleado: true, grupo: 'Personas (RRHH)', titulo: 'Fichar', menu: 'Personas → Fichar', quien: 'Empleados (con ficha)', img: ficharImg,
+    id: 'fichar', ruta: '/fichar', soloEmpleado: true, grupo: 'Personas (RRHH)', titulo: 'Fichar', menu: 'Personas → Fichar', quien: 'Para el personal', img: ficharImg,
     intro: 'Fichar tu jornada (entrada, salida y pausas) y ver la de hoy.',
     acciones: [
       'Marcar entrada, salida e inicio/fin de pausa según tu estado.',
@@ -159,7 +165,7 @@ const CAPITULOS: Capitulo[] = [
     ],
   },
   {
-    id: 'ausencias', ruta: '/ausencias', soloEmpleado: true, grupo: 'Personas (RRHH)', titulo: 'Ausencias y vacaciones', menu: 'Personas → Ausencias', quien: 'Empleados · aprobar: responsables/RRHH', img: ausenciasImg,
+    id: 'ausencias', ruta: '/ausencias', soloEmpleado: true, grupo: 'Personas (RRHH)', titulo: 'Ausencias y vacaciones', menu: 'Personas → Ausencias', quien: 'Para el personal (y quien aprueba)', img: ausenciasImg,
     intro: 'Solicitar ausencias y vacaciones, ver su estado y (según tu rol) aprobarlas o administrarlas.',
     acciones: [
       '«Solicitar ausencia»: tipo, fechas, medio día, motivo y justificante (opcional).',
@@ -173,13 +179,13 @@ const CAPITULOS: Capitulo[] = [
     ],
   },
   {
-    id: 'avisos', ruta: '/avisos', soloEmpleado: true, grupo: 'Personas (RRHH)', titulo: 'Avisos', menu: 'Personas → Avisos', quien: 'Empleados (con ficha)', img: avisosImg,
+    id: 'avisos', ruta: '/avisos', soloEmpleado: true, grupo: 'Personas (RRHH)', titulo: 'Avisos', menu: 'Personas → Avisos', quien: 'Para el personal', img: avisosImg,
     intro: 'Las notificaciones del módulo de personal (solicitudes por aprobar, decisiones sobre tus ausencias…).',
     acciones: ['Ver tus avisos (los no leídos van marcados).', 'Marcar un aviso como leído.', 'Marcar todos como leídos.'],
     notas: ['El menú muestra un contador con los avisos sin leer.'],
   },
   {
-    id: 'personas', ruta: '/personas', soloEmpleado: true, grupo: 'Personas (RRHH)', titulo: 'Personas', menu: 'Personas → Personas', quien: 'Empleados ven lo básico · RRHH/Admin gestiona', img: personasImg,
+    id: 'personas', ruta: '/personas', soloEmpleado: true, grupo: 'Personas (RRHH)', titulo: 'Personas', menu: 'Personas → Personas', quien: 'Consulta: el personal · Gestión: RRHH', img: personasImg,
     intro:
       'El núcleo del día a día: la gestión completa del personal del grupo. Aquí llevas la plantilla, la ficha de cada persona, el organigrama, el control de fichajes y los maestros de RRHH (empresas, zonas y convenios). Este capítulo lo vemos con más detalle por ser el que más se usa.',
     acciones: [
@@ -231,7 +237,7 @@ const CAPITULOS: Capitulo[] = [
     ],
   },
   {
-    id: 'usuarios', ruta: '/usuarios', feature: 'usuarios.gestionar', grupo: 'Administración', titulo: 'Usuarios', menu: 'Administración → Usuarios', quien: 'Admin · permiso «gestionar usuarios»',
+    id: 'usuarios', ruta: '/usuarios', feature: 'usuarios.gestionar', grupo: 'Administración', titulo: 'Usuarios', menu: 'Administración → Usuarios', quien: 'Para administración',
     intro: 'Dar de alta y gestionar quién accede a la herramienta.',
     acciones: [
       '«Nuevo usuario»: nombre, email, contraseña y rol; puedes crear a la vez su ficha de empleado.',
@@ -244,7 +250,7 @@ const CAPITULOS: Capitulo[] = [
     ],
   },
   {
-    id: 'roles', ruta: '/roles', feature: 'roles.gestionar', grupo: 'Administración', titulo: 'Roles', menu: 'Administración → Roles', quien: 'Admin · permiso «gestionar roles»', img: rolesImg,
+    id: 'roles', ruta: '/roles', feature: 'roles.gestionar', grupo: 'Administración', titulo: 'Roles', menu: 'Administración → Roles', quien: 'Para administración', img: rolesImg,
     intro: 'Definir qué puede hacer cada rol marcando permisos; cada usuario ve y usa solo lo que su rol permite.',
     acciones: [
       '«Nuevo rol»: código, nombre y los permisos (checkboxes).',
@@ -257,7 +263,7 @@ const CAPITULOS: Capitulo[] = [
     ],
   },
   {
-    id: 'actividad', ruta: '/actividad', feature: 'actividad.ver', grupo: 'Administración', titulo: 'Actividad', menu: 'Administración → Actividad', quien: 'Permiso «ver actividad»', img: actividadImg,
+    id: 'actividad', ruta: '/actividad', feature: 'actividad.ver', grupo: 'Administración', titulo: 'Actividad', menu: 'Administración → Actividad', quien: 'Para administración', img: actividadImg,
     intro: 'El registro de auditoría: quién hizo qué sobre usuarios, roles, destinos y las cargas del maestro.',
     acciones: [
       'Ver los movimientos con fecha, usuario, acción y resumen.',
@@ -267,6 +273,24 @@ const CAPITULOS: Capitulo[] = [
     notas: ['El registro es inmutable: no se puede editar ni borrar.'],
   },
 ];
+
+// Icono por módulo (los mismos del menú, para que se reconozcan de un vistazo).
+const ICONOS: Record<string, ReactElement> = {
+  bienvenida: <Book />,
+  inicio: <HouseDoorFill />,
+  etiquetas: <Tags />,
+  maestro: <Database />,
+  poda: <Scissors />,
+  surtidos: <BoxSeamFill />,
+  destinos: <GeoAlt />,
+  fichar: <ClockHistory />,
+  ausencias: <CalendarCheck />,
+  avisos: <Bell />,
+  personas: <PersonCircle />,
+  usuarios: <People />,
+  roles: <ShieldLock />,
+  actividad: <Activity />,
+};
 
 function Figura({ src, titulo }: { src: string; titulo: string }) {
   return (
@@ -386,7 +410,7 @@ export function GuiaPage() {
                       ref={i === idx ? (activeItemRef as never) : undefined}
                       className="d-flex align-items-center gap-2 border-0 rounded px-2 py-1" style={{ cursor: 'pointer' }}
                     >
-                      <span className="text-secondary small" style={{ fontFamily: 'var(--bs-font-monospace, monospace)', minWidth: '1.6em' }}>{String(i).padStart(2, '0')}</span>
+                      <span className={`d-inline-flex ${i === idx ? '' : 'text-brand'}`} aria-hidden="true">{ICONOS[c.id]}</span>
                       <span>{c.titulo}</span>
                       {puedeAbrir(c) && (
                         <Link
@@ -415,7 +439,16 @@ export function GuiaPage() {
                 {idx === 0 ? 'Introducción' : `Capítulo ${idx} · ${cap.grupo}`}
               </div>
               <div className="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
-                <h2 className="mb-0">{cap.titulo}</h2>
+                <div className="d-flex align-items-center gap-3" style={{ minWidth: 0 }}>
+                  <span
+                    className="d-inline-flex align-items-center justify-content-center flex-shrink-0"
+                    style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--kpi-bg)', color: 'var(--brand)', fontSize: 22 }}
+                    aria-hidden="true"
+                  >
+                    {ICONOS[cap.id]}
+                  </span>
+                  <h2 className="mb-0">{cap.titulo}</h2>
+                </div>
                 {cap.ruta && (
                   puedeAbrir(cap) ? (
                     <Link to={cap.ruta} className="btn btn-brand flex-shrink-0">
@@ -430,9 +463,17 @@ export function GuiaPage() {
               </div>
 
               {(cap.quien || cap.menu) && (
-                <div className="d-flex flex-wrap align-items-center gap-2 mb-4">
-                  {cap.quien && <Badge bg="secondary-subtle" text="secondary" style={{ whiteSpace: 'normal' }}>{cap.quien}</Badge>}
-                  {cap.menu && <span className="text-secondary small" style={{ fontFamily: 'var(--bs-font-monospace, monospace)' }}>{cap.menu}</span>}
+                <div className="d-flex flex-wrap align-items-center gap-3 mb-4 text-secondary small">
+                  {cap.quien && (
+                    <span className="d-inline-flex align-items-center gap-1">
+                      <PersonBadge aria-hidden="true" /> <strong className="fw-semibold text-body">{cap.quien}</strong>
+                    </span>
+                  )}
+                  {cap.menu && (
+                    <span className="d-inline-flex align-items-center gap-1">
+                      <GeoAltFill aria-hidden="true" /> En el menú: <strong className="fw-semibold text-body">{cap.menu}</strong>
+                    </span>
+                  )}
                 </div>
               )}
 
