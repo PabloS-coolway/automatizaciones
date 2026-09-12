@@ -100,7 +100,7 @@ const CAPITULOS: Capitulo[] = [
   },
   {
     id: 'maestro', ruta: '/maestro', feature: 'maestro.ver', grupo: 'Etiquetas y colección', titulo: 'Base de datos (maestro)', menu: 'Etiquetas y colección → Base de datos', quien: 'Consulta: todo el equipo · Cargar datos: administración', img: maestroImg,
-    intro: 'El maestro de códigos Coolway (EAN/UPC por talla): la fuente de verdad de la que todo lo demás bebe.',
+    intro: 'El maestro de códigos Coolway (EAN/UPC por talla): la fuente de verdad de la que parte todo lo demás.',
     acciones: [
       'Buscar por modelo, color, referencia, SKU o código y filtrar/ordenar.',
       'Exportar a Excel exactamente lo que ves («lo filtrado» o «todo»).',
@@ -197,7 +197,7 @@ const CAPITULOS: Capitulo[] = [
     secciones: [
       {
         titulo: '1. Importar las fichas desde Excel',
-        texto: 'En vez de dar de alta a la gente una a una, sube tu Excel de RRHH (el de las 12 columnas) con el botón «Importar fichas». Verás un informe de creadas / actualizadas / saltadas, y podrás descargar un CSV con las contraseñas temporales de las altas nuevas.',
+        texto: 'En vez de dar de alta a cada persona una a una, sube tu Excel de RRHH (el de las 12 columnas) con el botón «Importar fichas». Verás un informe de creadas / actualizadas / saltadas, y podrás descargar un CSV con las contraseñas temporales de las altas nuevas.',
         pasos: [
           'Pulsa «Importar fichas» (arriba a la derecha) y elige el .xlsx.',
           'Revisa el informe: creadas, actualizadas y saltadas con su motivo.',
@@ -226,7 +226,7 @@ const CAPITULOS: Capitulo[] = [
           'Marca los tipos de permiso que concede.',
           'Indica los días máximos y si es remunerado, y guarda.',
         ],
-        nota: 'Mientras un convenio no tenga permisos definidos, el sistema usa el catálogo general como respaldo: puedes ir rellenando convenio a convenio a tu ritmo, sin que nada se rompa.',
+        nota: 'Mientras un convenio no tenga permisos definidos, el sistema usa el catálogo general como respaldo: puedes completar los convenios de forma progresiva, sin que nada se rompa.',
         img: personasPermisosImg,
       },
     ],
