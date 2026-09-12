@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Badge, Button, Card, ListGroup } from 'react-bootstrap';
 import { ChevronLeft, ChevronRight, Book } from 'react-bootstrap-icons';
 
@@ -14,12 +14,24 @@ import avisosImg from '../../assets/guia/cap-avisos.png';
 import personasImg from '../../assets/guia/cap-personas.png';
 import rolesImg from '../../assets/guia/cap-roles.png';
 import actividadImg from '../../assets/guia/cap-actividad.png';
+import personasFichaImg from '../../assets/guia/cap-personas-ficha.png';
+import personasImportarImg from '../../assets/guia/cap-personas-importar.png';
+import personasMaestrosImg from '../../assets/guia/cap-personas-maestros.png';
+import personasPermisosImg from '../../assets/guia/cap-personas-permisos.png';
 
 /**
  * Guía de uso en formato «ebook»: capítulos con índice, imagen del módulo real y navegación anterior/siguiente.
- * Es informativa (no toca datos) y visible para todos; en el menú cada uno solo ve los módulos para los que tiene
- * permiso, pero aquí puede leer sobre todos. El contenido se mantiene como datos (CAPITULOS).
+ * A ancho completo (texto e imagen en dos columnas). El capítulo de Personas (RRHH) es el más detallado, con
+ * sub-secciones, por ser el núcleo del día a día. Informativa (no toca datos) y visible para todos.
  */
+
+interface Seccion {
+  titulo: string;
+  texto?: string;
+  pasos?: string[];
+  nota?: string;
+  img?: string;
+}
 
 interface Capitulo {
   id: string;
@@ -31,18 +43,17 @@ interface Capitulo {
   acciones?: string[];
   notas?: string[];
   img?: string;
+  secciones?: Seccion[];
 }
 
 const CAPITULOS: Capitulo[] = [
   {
-    id: 'bienvenida',
-    grupo: 'Introducción',
-    titulo: 'Bienvenida a la guía',
+    id: 'bienvenida', grupo: 'Introducción', titulo: 'Bienvenida a la guía',
     intro:
       'Esta guía explica, módulo a módulo, qué hace el panel de Coolway y cómo usarlo. Usa el índice de la izquierda para saltar a un capítulo, o los botones «Anterior» y «Siguiente» para leerla como un libro. En tu menú solo aparecen los módulos para los que tienes permiso; aquí puedes conocerlos todos.',
     notas: [
       'Cada capítulo indica quién puede usar el módulo y dónde está en el menú.',
-      'El módulo de Personas (RRHH) tiene además una guía dedicada con más detalle.',
+      'El capítulo de Personas (RRHH) es el más detallado: es el que más se usa en el día a día.',
     ],
   },
   {
@@ -159,17 +170,54 @@ const CAPITULOS: Capitulo[] = [
   },
   {
     id: 'personas', grupo: 'Personas (RRHH)', titulo: 'Personas', menu: 'Personas → Personas', quien: 'Empleados ven lo básico · RRHH/Admin gestiona', img: personasImg,
-    intro: 'La gestión del personal del grupo: plantilla, fichas, organigrama, control de fichajes y los maestros de RRHH.',
+    intro:
+      'El núcleo del día a día: la gestión completa del personal del grupo. Aquí llevas la plantilla, la ficha de cada persona, el organigrama, el control de fichajes y los maestros de RRHH (empresas, zonas y convenios). Este capítulo lo vemos con más detalle por ser el que más se usa.',
     acciones: [
       'Buscar en la plantilla y ver la ficha de cada persona.',
-      '(RRHH/Admin) «Nuevo empleado» e «Importar fichas» (Excel), editar, dar de baja o reactivar.',
+      '(RRHH/Admin) Dar de alta, importar fichas, editar, dar de baja o reactivar.',
       'Ver el organigrama y exportar la plantilla a CSV.',
-      '(RRHH/Admin) Pestaña «Maestros»: empresas, zonas, convenios y catálogos, con el editor de convenio→permisos.',
+      '(RRHH/Admin) Gestionar empresas, zonas, convenios y los permisos de cada convenio.',
+    ],
+    secciones: [
+      {
+        titulo: '1. Importar las fichas desde Excel',
+        texto: 'En vez de dar de alta a la gente una a una, sube tu Excel de RRHH (el de las 12 columnas) con el botón «Importar fichas». Verás un informe de creadas / actualizadas / saltadas, y podrás descargar un CSV con las contraseñas temporales de las altas nuevas.',
+        pasos: [
+          'Pulsa «Importar fichas» (arriba a la derecha) y elige el .xlsx.',
+          'Revisa el informe: creadas, actualizadas y saltadas con su motivo.',
+          'Descarga el CSV de credenciales para repartir las contraseñas temporales.',
+        ],
+        nota: 'Puedes reimportar el mismo archivo: no duplica. Cada ficha se reconoce por empresa + código, así que reimportar solo actualiza lo que cambió.',
+        img: personasImportarImg,
+      },
+      {
+        titulo: '2. La ficha de cada persona',
+        texto: 'Pulsa una persona en la plantilla para abrir su ficha, a tamaño grande. Arriba sus datos generales (puesto, jornada, vacaciones, responsable, centro, departamento) y debajo el bloque de empresa: sociedad, código de empleado, DNI, categoría, tipo de contrato, sección y antigüedad.',
+        nota: 'Al final de la ficha aparece «Permisos por convenio» (solo lectura): los permisos que le corresponden hoy según su zona y convenio. El distintivo «según convenio» significa que salen del convenio configurado; «catálogo global» significa que ese convenio aún no está relleno.',
+        img: personasFichaImg,
+      },
+      {
+        titulo: '3. Maestros: empresas, zonas y convenios',
+        texto: 'En la pestaña «Maestros» gestionas la capa organizativa que usa RRHH: empresas (sociedades), zonas (cada una con su convenio), convenios, y los catálogos de categorías, contratos y secciones. A cada zona le asignas su convenio: así todas las personas de las tiendas de esa zona heredan ese convenio automáticamente.',
+        nota: 'No podrás borrar una empresa, zona, convenio o catálogo que esté en uso: el sistema te avisa con cuántas personas o tiendas lo están usando, para no dejar fichas huérfanas.',
+        img: personasMaestrosImg,
+      },
+      {
+        titulo: '4. Definir los permisos de cada convenio',
+        texto: 'Es la parte clave: decir qué permisos concede cada convenio. Desde «Maestros → Convenios», abre el editor de permisos de un convenio, marca los tipos de ausencia que concede e indica sus días máximos y si son remunerados. Eso es lo que verá cada trabajador en su ficha.',
+        pasos: [
+          'En «Maestros → Convenios», pulsa «Permisos» en el convenio.',
+          'Marca los tipos de permiso que concede.',
+          'Indica los días máximos y si es remunerado, y guarda.',
+        ],
+        nota: 'Mientras un convenio no tenga permisos definidos, el sistema usa el catálogo general como respaldo: puedes ir rellenando convenio a convenio a tu ritmo, sin que nada se rompa.',
+        img: personasPermisosImg,
+      },
     ],
     notas: [
       'Cada empleado se enlaza a un usuario que ya existe (por su correo). Si no existe, créalo antes en Usuarios.',
-      'La ficha incluye empresa, código, DNI, categoría, contrato, sección y antigüedad, y muestra los permisos por convenio.',
-      'Los empleados se dan de baja/reactivan, no se borran. Este módulo tiene una guía dedicada paso a paso.',
+      'Los empleados se dan de baja/reactivan, no se borran.',
+      'Este módulo tiene además una guía dedicada, paso a paso, pensada para RRHH.',
     ],
   },
   {
@@ -210,17 +258,37 @@ const CAPITULOS: Capitulo[] = [
   },
 ];
 
+function Figura({ src, titulo }: { src: string; titulo: string }) {
+  return (
+    <figure className="mb-0">
+      <img
+        src={src}
+        alt={`Captura de ${titulo}`}
+        className="w-100"
+        style={{ height: 'auto', borderRadius: 12, border: '1px solid var(--bs-border-color, #dee2e6)', boxShadow: '0 8px 24px rgba(0,0,0,.08)' }}
+      />
+    </figure>
+  );
+}
+
+function Nota({ children }: { children: ReactNode }) {
+  return (
+    <div className="mt-3 p-3 rounded" style={{ background: 'var(--bs-secondary-bg, #f1f3f5)' }}>
+      <div className="text-uppercase small fw-semibold mb-1" style={{ letterSpacing: '.06em' }}>Ten en cuenta</div>
+      <div className="text-secondary mb-0">{children}</div>
+    </div>
+  );
+}
+
 export function GuiaPage() {
   const [idx, setIdx] = useState(0);
   const topRef = useRef<HTMLDivElement>(null);
   const cap = CAPITULOS[idx];
 
-  // Al cambiar de capítulo, sube al principio del lector.
   useEffect(() => {
     topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [idx]);
 
-  // Índice agrupado (respeta el orden de aparición de los grupos).
   const grupos = useMemo(() => {
     const orden: string[] = [];
     const map = new Map<string, { i: number; c: Capitulo }[]>();
@@ -232,7 +300,7 @@ export function GuiaPage() {
   }, []);
 
   return (
-    <div className="page" ref={topRef}>
+    <div className="page page-full" ref={topRef}>
       <header className="page-head mb-4 d-flex align-items-center gap-2">
         <Book className="text-secondary" size={22} />
         <div>
@@ -243,7 +311,7 @@ export function GuiaPage() {
 
       <div className="d-flex flex-column flex-lg-row gap-4 align-items-start">
         {/* Índice */}
-        <nav aria-label="Índice de la guía" className="w-100" style={{ maxWidth: 300, flex: '0 0 auto' }}>
+        <nav aria-label="Índice de la guía" style={{ flex: '0 0 auto', width: '100%', maxWidth: 300 }}>
           <div style={{ position: 'sticky', top: 16 }}>
             {grupos.map((g) => (
               <div key={g.grupo} className="mb-3">
@@ -251,12 +319,8 @@ export function GuiaPage() {
                 <ListGroup variant="flush">
                   {g.items.map(({ i, c }) => (
                     <ListGroup.Item
-                      key={c.id}
-                      action
-                      active={i === idx}
-                      onClick={() => setIdx(i)}
-                      className="d-flex align-items-baseline gap-2 border-0 rounded px-2 py-1"
-                      style={{ cursor: 'pointer' }}
+                      key={c.id} action active={i === idx} onClick={() => setIdx(i)}
+                      className="d-flex align-items-baseline gap-2 border-0 rounded px-2 py-1" style={{ cursor: 'pointer' }}
                     >
                       <span className="text-secondary small" style={{ fontFamily: 'var(--bs-font-monospace, monospace)', minWidth: '1.6em' }}>{String(i).padStart(2, '0')}</span>
                       <span>{c.titulo}</span>
@@ -268,8 +332,8 @@ export function GuiaPage() {
           </div>
         </nav>
 
-        {/* Lector */}
-        <article className="flex-grow-1 w-100" style={{ minWidth: 0, maxWidth: 760 }}>
+        {/* Lector — ocupa el resto del ancho */}
+        <article className="flex-grow-1" style={{ minWidth: 0, width: '100%' }}>
           <Card>
             <Card.Body className="p-4 p-md-5">
               <div className="text-uppercase small fw-semibold mb-2" style={{ letterSpacing: '.08em', color: 'var(--bs-secondary-color, #6c757d)' }}>
@@ -278,43 +342,56 @@ export function GuiaPage() {
               <h2 className="mb-2">{cap.titulo}</h2>
 
               {(cap.quien || cap.menu) && (
-                <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
+                <div className="d-flex flex-wrap align-items-center gap-2 mb-4">
                   {cap.quien && <Badge bg="secondary-subtle" text="secondary" style={{ whiteSpace: 'normal' }}>{cap.quien}</Badge>}
                   {cap.menu && <span className="text-secondary small" style={{ fontFamily: 'var(--bs-font-monospace, monospace)' }}>{cap.menu}</span>}
                 </div>
               )}
 
-              {cap.img && (
-                <figure className="mb-4">
-                  <img
-                    src={cap.img}
-                    alt={`Captura del módulo ${cap.titulo}`}
-                    className="w-100"
-                    style={{ height: 'auto', borderRadius: 12, border: '1px solid var(--bs-border-color, #dee2e6)', boxShadow: '0 8px 24px rgba(0,0,0,.08)' }}
-                  />
-                  <figcaption className="text-secondary small mt-2">Así se ve «{cap.titulo}» en el panel.</figcaption>
-                </figure>
-              )}
-
-              <p className="fs-5">{cap.intro}</p>
-
-              {cap.acciones && cap.acciones.length > 0 && (
-                <>
-                  <h3 className="h6 fw-semibold mt-4 mb-2">Qué puedes hacer</h3>
-                  <ul className="ps-3">
-                    {cap.acciones.map((a, i) => <li key={i} className="mb-2">{a}</li>)}
-                  </ul>
-                </>
-              )}
-
-              {cap.notas && cap.notas.length > 0 && (
-                <div className="mt-4 p-3 rounded" style={{ background: 'var(--bs-secondary-bg, #f1f3f5)' }}>
-                  <div className="text-uppercase small fw-semibold mb-2" style={{ letterSpacing: '.06em' }}>Ten en cuenta</div>
-                  <ul className="ps-3 mb-0 text-secondary">
-                    {cap.notas.map((n, i) => <li key={i} className="mb-1">{n}</li>)}
-                  </ul>
+              {/* Intro + acciones a la izquierda, imagen a la derecha (a ancho completo en pantallas grandes) */}
+              <div className="row g-4 align-items-start">
+                <div className={cap.img ? 'col-lg-6' : 'col-12'} style={{ maxWidth: cap.img ? undefined : '72ch' }}>
+                  <p className="fs-5">{cap.intro}</p>
+                  {cap.acciones && cap.acciones.length > 0 && (
+                    <>
+                      <h3 className="h6 fw-semibold mt-4 mb-2">Qué puedes hacer</h3>
+                      <ul className="ps-3 mb-0">
+                        {cap.acciones.map((a, i) => <li key={i} className="mb-2">{a}</li>)}
+                      </ul>
+                    </>
+                  )}
+                  {cap.notas && cap.notas.length > 0 && (
+                    <Nota>
+                      <ul className="ps-3 mb-0">{cap.notas.map((n, i) => <li key={i} className="mb-1">{n}</li>)}</ul>
+                    </Nota>
+                  )}
                 </div>
-              )}
+                {cap.img && (
+                  <div className="col-lg-6">
+                    <Figura src={cap.img} titulo={cap.titulo} />
+                    <figcaption className="text-secondary small mt-2">Así se ve «{cap.titulo}» en el panel.</figcaption>
+                  </div>
+                )}
+              </div>
+
+              {/* Sub-secciones detalladas (Personas): texto + imagen alternando */}
+              {cap.secciones && cap.secciones.map((s, si) => (
+                <section key={si} className="mt-5 pt-4" style={{ borderTop: '1px solid var(--bs-border-color, #dee2e6)' }}>
+                  <h3 className="h5 mb-3">{s.titulo}</h3>
+                  <div className="row g-4 align-items-start">
+                    <div className="col-lg-6">
+                      {s.texto && <p>{s.texto}</p>}
+                      {s.pasos && s.pasos.length > 0 && (
+                        <ol className="ps-3 mb-0">{s.pasos.map((p, pi) => <li key={pi} className="mb-2">{p}</li>)}</ol>
+                      )}
+                      {s.nota && <Nota>{s.nota}</Nota>}
+                    </div>
+                    {s.img && (
+                      <div className="col-lg-6"><Figura src={s.img} titulo={s.titulo} /></div>
+                    )}
+                  </div>
+                </section>
+              ))}
             </Card.Body>
           </Card>
 
