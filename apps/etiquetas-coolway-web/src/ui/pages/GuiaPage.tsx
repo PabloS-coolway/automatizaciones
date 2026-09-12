@@ -63,13 +63,13 @@ interface Capitulo {
 
 const CAPITULOS: Capitulo[] = [
   {
-    id: 'bienvenida', grupo: 'Introducción', titulo: '¡Hola! Empecemos por aquí',
+    id: 'bienvenida', grupo: 'Introducción', titulo: 'Cómo usar esta guía',
     intro:
-      'No hace falta saber de informática para usar el panel: esta guía te lleva de la mano, apartado por apartado, contándote para qué sirve cada cosa y qué puedes hacer, con una foto de cada pantalla. Tómatelo con calma y ve leyendo a tu ritmo.',
+      'Una referencia del panel, apartado por apartado: qué es cada cosa, qué puedes hacer y una imagen de cada pantalla. Puedes leerla entera o ir directamente a lo que necesites desde el índice.',
     notas: [
-      'Puedes ir capítulo a capítulo con los botones «Anterior» y «Siguiente», o saltar a lo que te interese desde la lista de la izquierda.',
-      'En cada capítulo verás para quién es y dónde encontrarlo en el menú. Y con el botón «Abrir» vas directa a esa pantalla.',
-      'Lo que más se usa en el día a día es «Personas»: ahí está tu capítulo más completo, paso a paso.',
+      'Avanza con «Anterior» y «Siguiente», o salta a cualquier apartado desde la lista de la izquierda.',
+      'Cada capítulo indica para quién es y dónde está en el menú; con «Abrir» vas directamente a esa pantalla.',
+      '«Personas» es el apartado más completo, por ser el de uso diario.',
     ],
   },
   {
