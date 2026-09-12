@@ -614,3 +614,65 @@ button, a, [role='button'], .form-control, .form-select { touch-action: manipula
 .estado-punto.pausa { background: #d97706; }
 @keyframes pulso { 0% { box-shadow: 0 0 0 0 rgba(22,163,74,.45);} 70% { box-shadow: 0 0 0 8px rgba(22,163,74,0);} 100% { box-shadow: 0 0 0 0 rgba(22,163,74,0);} }
 .text-brand { color: var(--brand-2) !important; }
+
+/* ============================================================
+   Estilo común: tarjetas y listados (lenguaje visual del panel)
+   Refinado a nivel de CSS compartido para que TODOS los módulos
+   mejoren a la vez, sin tocar cada página. Criterio: neutros ya
+   definidos por tema, sombras sutiles, jerarquía clara, un solo
+   acento (marca) para hover/activo, y píldoras de estado.
+   ============================================================ */
+
+/* — Tarjetas: borde hairline + una sombra sutil (no dos pesadas). */
+.card {
+  box-shadow: 0 1px 2px rgba(20, 20, 40, 0.04), 0 6px 18px rgba(20, 20, 40, 0.05);
+}
+.card > .card-body { padding: 1.2rem 1.35rem; }
+.card-title { font-size: 1.05rem; }
+
+/* — Listados (DataTable dentro de .labels-preview): look moderno y legible.
+     Bootstrap 5.3 pinta zebra/hover con estas variables → las afinamos por tema. */
+.labels-preview .table {
+  --bs-table-bg: transparent;
+  --bs-table-color: var(--ink);
+  --bs-table-border-color: var(--border);
+  --bs-table-striped-bg: color-mix(in srgb, var(--ink) 3%, transparent);
+  --bs-table-striped-color: var(--ink);
+  --bs-table-hover-bg: color-mix(in srgb, var(--brand) 8%, transparent);
+  --bs-table-hover-color: var(--ink);
+}
+/* Cabecera: etiqueta discreta en mayúsculas, no un bloque pesado. */
+.labels-preview thead th {
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 12px;
+  white-space: nowrap;
+}
+/* Filas: separador horizontal fino (sin rejilla vertical) y algo más de aire. */
+.labels-preview tbody td {
+  border-top: 0;
+  border-bottom: 1px solid var(--border);
+  padding: 11px 12px;
+  vertical-align: middle;
+}
+.labels-preview tbody tr:last-child td { border-bottom: 0; }
+/* Primera columna = identidad de la fila: un pelín más de peso. */
+.labels-preview tbody td:first-child { font-weight: 500; }
+
+/* — Píldoras de estado (activo/inactivo, roles, permisos): forma consistente. */
+.badge { border-radius: 999px; font-weight: 600; padding: 0.36em 0.72em; letter-spacing: 0.01em; }
+
+/* — Elemento activo de las listas (índice de la guía, etc.): color de marca,
+     coherente con la navegación, en vez del azul por defecto de Bootstrap. */
+.list-group-item.active {
+  background-color: var(--brand);
+  border-color: var(--brand);
+}
+
+/* — Barra de progreso en color de marca (coherente con navegación y activos). */
+.progress-bar { background-color: var(--brand); }
