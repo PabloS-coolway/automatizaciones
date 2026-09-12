@@ -326,7 +326,15 @@ button, a, [role='button'], .form-control, .form-select { touch-action: manipula
   display: flex;
   align-items: center;
 }
-.sidebar-nav { padding: 8px; display: flex; flex-direction: column; gap: 2px; flex: 1; overflow-y: auto; min-height: 0; }
+.sidebar-nav { padding: 8px; display: flex; flex-direction: column; gap: 2px; flex: 1; overflow-y: auto; min-height: 0; scrollbar-gutter: stable; overscroll-behavior: contain; }
+/* Scrollbar del menú: fino y sutil, se marca al pasar el ratón (más amable que el scrollbar del sistema). */
+.sidebar-nav { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+.sidebar-nav:hover { scrollbar-color: rgba(255, 255, 255, 0.28) transparent; }
+.sidebar-nav::-webkit-scrollbar { width: 8px; }
+.sidebar-nav::-webkit-scrollbar-track { background: transparent; }
+.sidebar-nav::-webkit-scrollbar-thumb { background: transparent; border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; transition: background-color 0.2s ease; }
+.sidebar-nav:hover::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.22); background-clip: padding-box; }
+.sidebar-nav::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.4); background-clip: padding-box; }
 /* MEJ-003 · Grupos de navegación por módulo. */
 .nav-group { display: flex; flex-direction: column; gap: 2px; }
 .nav-group + .nav-group { margin-top: 12px; }
