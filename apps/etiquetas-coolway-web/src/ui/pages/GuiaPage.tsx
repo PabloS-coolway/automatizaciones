@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { Badge, Button, Card, ListGroup } from 'react-bootstrap';
+import { Badge, Button, Card, Form, ListGroup, ProgressBar } from 'react-bootstrap';
 import { ChevronLeft, ChevronRight, Book, BoxArrowUpRight } from 'react-bootstrap-icons';
 import type { Feature } from '@yorga/contracts';
 import { useAuth } from '../auth/AuthContext';
@@ -290,19 +290,49 @@ function Nota({ children }: { children: ReactNode }) {
   );
 }
 
+const STORAGE_KEY = 'guia-capitulo';
+
 export function GuiaPage() {
-  const [idx, setIdx] = useState(0);
+  // Recuerda por dónde iba el usuario (si el índice guardado ya no existe, empieza de cero).
+  const [idx, setIdx] = useState(() => {
+    try {
+      const n = Number(localStorage.getItem(STORAGE_KEY));
+      return Number.isInteger(n) && n >= 0 && n < CAPITULOS.length ? n : 0;
+    } catch {
+      return 0;
+    }
+  });
   const topRef = useRef<HTMLDivElement>(null);
+  const activeItemRef = useRef<HTMLElement>(null);
   const cap = CAPITULOS[idx];
+  const prev = idx > 0 ? CAPITULOS[idx - 1] : null;
+  const next = idx < CAPITULOS.length - 1 ? CAPITULOS[idx + 1] : null;
   const { hasFeature } = useAuth();
   const { esEmpleado } = useRrhh();
 
   // ¿El usuario puede abrir el módulo de este capítulo? (respeta permiso y ficha de empleado).
   const puedeAbrir = (c: Capitulo) => !!c.ruta && (!c.feature || hasFeature(c.feature)) && (!c.soloEmpleado || esEmpleado);
 
+  const ir = (n: number) => setIdx(Math.max(0, Math.min(CAPITULOS.length - 1, n)));
+
+  // Al cambiar de capítulo: subir al principio, recordar la posición y mantener el índice a la vista.
   useEffect(() => {
     topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    try { localStorage.setItem(STORAGE_KEY, String(idx)); } catch { /* almacenamiento no disponible */ }
+    activeItemRef.current?.scrollIntoView({ block: 'nearest' });
   }, [idx]);
+
+  // Navegación con las flechas del teclado (← anterior / → siguiente), salvo si se escribe en un campo.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+      if (e.key === 'ArrowRight') setIdx((i) => Math.min(CAPITULOS.length - 1, i + 1));
+      else if (e.key === 'ArrowLeft') setIdx((i) => Math.max(0, i - 1));
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   const grupos = useMemo(() => {
     const orden: string[] = [];
@@ -324,9 +354,27 @@ export function GuiaPage() {
         </div>
       </header>
 
+      {/* Progreso de lectura */}
+      <div className="d-flex align-items-center gap-3 mb-3">
+        <ProgressBar now={((idx + 1) / CAPITULOS.length) * 100} style={{ height: 6, flex: 1 }} aria-label="Progreso de la guía" />
+        <span className="text-secondary small flex-shrink-0" style={{ fontVariantNumeric: 'tabular-nums' }}>{idx + 1} / {CAPITULOS.length}</span>
+      </div>
+
+      {/* Selector de capítulo (solo móvil / pantallas pequeñas) */}
+      <Form.Select
+        className="d-lg-none mb-3"
+        aria-label="Elegir capítulo"
+        value={idx}
+        onChange={(e) => ir(Number(e.target.value))}
+      >
+        {CAPITULOS.map((c, i) => (
+          <option key={c.id} value={i}>{String(i).padStart(2, '0')} · {c.titulo}</option>
+        ))}
+      </Form.Select>
+
       <div className="d-flex flex-column flex-lg-row gap-4 align-items-start">
         {/* Índice */}
-        <nav aria-label="Índice de la guía" style={{ flex: '0 0 auto', width: '100%', maxWidth: 300 }}>
+        <nav aria-label="Índice de la guía" className="d-none d-lg-block" style={{ flex: '0 0 auto', width: '100%', maxWidth: 300 }}>
           <div style={{ position: 'sticky', top: 16 }}>
             {grupos.map((g) => (
               <div key={g.grupo} className="mb-3">
@@ -335,6 +383,7 @@ export function GuiaPage() {
                   {g.items.map(({ i, c }) => (
                     <ListGroup.Item
                       key={c.id} action active={i === idx} onClick={() => setIdx(i)}
+                      ref={i === idx ? (activeItemRef as never) : undefined}
                       className="d-flex align-items-center gap-2 border-0 rounded px-2 py-1" style={{ cursor: 'pointer' }}
                     >
                       <span className="text-secondary small" style={{ fontFamily: 'var(--bs-font-monospace, monospace)', minWidth: '1.6em' }}>{String(i).padStart(2, '0')}</span>
@@ -434,14 +483,26 @@ export function GuiaPage() {
             </Card.Body>
           </Card>
 
-          {/* Navegación anterior / siguiente */}
-          <div className="d-flex justify-content-between align-items-center gap-2 mt-3">
-            <Button variant="outline-secondary" disabled={idx === 0} onClick={() => setIdx((i) => Math.max(0, i - 1))}>
-              <ChevronLeft className="me-1" /> Anterior
+          {/* Navegación anterior / siguiente (con el nombre del capítulo) */}
+          <div className="d-flex justify-content-between align-items-stretch gap-2 mt-3">
+            <Button variant="outline-secondary" className="text-start" disabled={!prev} onClick={() => ir(idx - 1)} style={{ maxWidth: '47%' }}>
+              <div className="d-flex align-items-center gap-2" style={{ minWidth: 0 }}>
+                <ChevronLeft className="flex-shrink-0" />
+                <span style={{ minWidth: 0 }}>
+                  <span className="d-block small text-secondary">Anterior</span>
+                  <span className="d-block text-truncate">{prev?.titulo ?? '—'}</span>
+                </span>
+              </div>
             </Button>
-            <span className="text-secondary small">{idx + 1} de {CAPITULOS.length}</span>
-            <Button variant="outline-secondary" disabled={idx === CAPITULOS.length - 1} onClick={() => setIdx((i) => Math.min(CAPITULOS.length - 1, i + 1))}>
-              Siguiente <ChevronRight className="ms-1" />
+            <span className="text-secondary small d-none d-sm-flex align-items-center text-nowrap px-2">Usa ← → para navegar</span>
+            <Button variant="outline-secondary" className="text-end" disabled={!next} onClick={() => ir(idx + 1)} style={{ maxWidth: '47%' }}>
+              <div className="d-flex align-items-center justify-content-end gap-2" style={{ minWidth: 0 }}>
+                <span style={{ minWidth: 0 }}>
+                  <span className="d-block small text-secondary">Siguiente</span>
+                  <span className="d-block text-truncate">{next?.titulo ?? '—'}</span>
+                </span>
+                <ChevronRight className="flex-shrink-0" />
+              </div>
             </Button>
           </div>
         </article>
