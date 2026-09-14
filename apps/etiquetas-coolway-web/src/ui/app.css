@@ -326,7 +326,15 @@ button, a, [role='button'], .form-control, .form-select { touch-action: manipula
   display: flex;
   align-items: center;
 }
-.sidebar-nav { padding: 8px; display: flex; flex-direction: column; gap: 2px; flex: 1; overflow-y: auto; min-height: 0; }
+.sidebar-nav { padding: 8px; display: flex; flex-direction: column; gap: 2px; flex: 1; overflow-y: auto; min-height: 0; scrollbar-gutter: stable; overscroll-behavior: contain; }
+/* Scrollbar del menú: fino y sutil, se marca al pasar el ratón (más amable que el scrollbar del sistema). */
+.sidebar-nav { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+.sidebar-nav:hover { scrollbar-color: rgba(255, 255, 255, 0.28) transparent; }
+.sidebar-nav::-webkit-scrollbar { width: 8px; }
+.sidebar-nav::-webkit-scrollbar-track { background: transparent; }
+.sidebar-nav::-webkit-scrollbar-thumb { background: transparent; border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; transition: background-color 0.2s ease; }
+.sidebar-nav:hover::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.22); background-clip: padding-box; }
+.sidebar-nav::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.4); background-clip: padding-box; }
 /* MEJ-003 · Grupos de navegación por módulo. */
 .nav-group { display: flex; flex-direction: column; gap: 2px; }
 .nav-group + .nav-group { margin-top: 12px; }
@@ -606,3 +614,76 @@ button, a, [role='button'], .form-control, .form-select { touch-action: manipula
 .estado-punto.pausa { background: #d97706; }
 @keyframes pulso { 0% { box-shadow: 0 0 0 0 rgba(22,163,74,.45);} 70% { box-shadow: 0 0 0 8px rgba(22,163,74,0);} 100% { box-shadow: 0 0 0 0 rgba(22,163,74,0);} }
 .text-brand { color: var(--brand-2) !important; }
+
+/* ============================================================
+   Estilo común: tarjetas y listados (lenguaje visual del panel)
+   Refinado a nivel de CSS compartido para que TODOS los módulos
+   mejoren a la vez, sin tocar cada página. Criterio: neutros ya
+   definidos por tema, sombras sutiles, jerarquía clara, un solo
+   acento (marca) para hover/activo, y píldoras de estado.
+   ============================================================ */
+
+/* — Tarjetas: borde hairline + una sombra sutil (no dos pesadas). */
+.card {
+  box-shadow: 0 1px 2px rgba(20, 20, 40, 0.04), 0 6px 18px rgba(20, 20, 40, 0.05);
+}
+.card > .card-body { padding: 1.2rem 1.35rem; }
+.card-title { font-size: 1.05rem; }
+
+/* — Listados: UN solo lenguaje para TODAS las tablas del panel (usen DataTable o <Table> plano).
+     Bootstrap 5.3 pinta zebra/hover con estas variables → las afinamos por tema. */
+.page .table {
+  --bs-table-bg: transparent;
+  --bs-table-color: var(--ink);
+  --bs-table-border-color: var(--border);
+  --bs-table-striped-bg: color-mix(in srgb, var(--ink) 3%, transparent);
+  --bs-table-striped-color: var(--ink);
+  --bs-table-hover-bg: color-mix(in srgb, var(--brand) 8%, transparent);
+  --bs-table-hover-color: var(--ink);
+  margin-bottom: 0;
+}
+/* Cabecera: banda clara con la etiqueta en mayúsculas y discreta. */
+.page .table thead th {
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--muted);
+  background: var(--kpi-bg);
+  border-bottom: 1px solid var(--border);
+  padding: 11px 12px;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+/* Que la etiqueta herede el estilo aunque vaya dentro del botón de ordenar. */
+.page .table thead th .btn,
+.page .table thead th span {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  color: var(--muted);
+}
+/* Filas: separador horizontal fino (sin rejilla vertical), más aire y hover de marca. */
+.page .table tbody td {
+  border-top: 0;
+  border-bottom: 1px solid var(--border);
+  padding: 11px 12px;
+  vertical-align: middle;
+}
+.page .table tbody tr:last-child td { border-bottom: 0; }
+.page .table tbody td:first-child { font-weight: 500; }
+/* Hover con tinte de marca aunque la tabla no lleve la clase .table-hover de Bootstrap. */
+.page .table tbody tr:hover > * { background: color-mix(in srgb, var(--brand) 8%, transparent); }
+
+/* — Píldoras de estado (activo/inactivo, roles, permisos): forma consistente. */
+.badge { border-radius: 999px; font-weight: 600; padding: 0.36em 0.72em; letter-spacing: 0.01em; }
+
+/* — Elemento activo de las listas (índice de la guía, etc.): color de marca,
+     coherente con la navegación, en vez del azul por defecto de Bootstrap. */
+.list-group-item.active {
+  background-color: var(--brand);
+  border-color: var(--brand);
+}
+
+/* — Barra de progreso en color de marca (coherente con navegación y activos). */
+.progress-bar { background-color: var(--brand); }

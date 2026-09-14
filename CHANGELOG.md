@@ -3,6 +3,34 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-09-14] REQ-012 · RRHH Fase 2 (multi-sociedad, zona→convenio→permisos) + Guía de uso + rediseño visual
+
+### Añadido
+- **RRHH Fase 2 (REQ-012)**: capa organizativa multi-sociedad. Entidades Company/Zone/Convenio/ConvenioPermiso/
+  Categoria/ContractType/Seccion; Employee += empresa+código (clave de negocio), DNI, categoría, contrato,
+  sección, antigüedad; Center += zona y código. **Migración additiva** (todo nullable, sin DROP/NOT NULL).
+- **Resolver de permisos por convenio** (`GET /rrhh/empleados/:id/permisos`): zona→convenio→permisos, con
+  fallback al catálogo global si el convenio está vacío (cero regresión con REQ-008).
+- **Importador de fichas** (`POST /rrhh/import-fichas`): Excel agrupado de 12 columnas, upsert idempotente por
+  (empresa+código); distingue tienda (centro) de departamento (SISTEMAS).
+- **Gestión maestra** (`/rrhh/maestros/*`): CRUD de empresas, zonas (con convenio), convenios (con editor de
+  permisos) y catálogos, con guardas de borrado (no borrar en uso).
+- **Front RRHH**: ficha de empleado completa (campos REQ-012 + permisos por convenio), pantalla de importación
+  y pestaña «Maestros».
+- **Guía de uso** (`/guia`): manual del panel en formato ebook con imágenes reales de cada módulo, índice,
+  navegación, accesos directos a las herramientas y capítulo de Personas detallado.
+- **Rediseño visual común**: lenguaje coherente de tarjetas y listados (cabeceras, filas, píldoras, hover de
+  marca) en todo el panel.
+
+### Verificado
+- typecheck + **API 398 tests** + build en verde.
+- Smoke en vivo por API: importador (18 altas, reimport idempotente), editor de permisos reflejado por el
+  resolver, guardas de borrado a 400.
+
+### Pendiente
+- Contenido de negocio de Ángeles (mapa zona→convenio y permisos de cada convenio): el andamiaje está montado y
+  vacío. Export legal «a requerimiento» a la espera de confirmar formato.
+
 ## [2026-08-12] MEJ · Feature «cambiar la contraseña de usuarios» (REQ-006), sumada al admin
 
 El reset de contraseña de OTROS usuarios pasa a ser un **permiso propio y granulable**, no algo atado a

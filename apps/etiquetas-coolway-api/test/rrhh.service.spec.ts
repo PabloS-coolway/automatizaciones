@@ -22,6 +22,17 @@ const fila = (p: Partial<EmployeeRow>): EmployeeRow => ({
   birthDate: null,
   hideBirthday: false,
   fichajeDesde: null,
+  company: null,
+  companyId: null,
+  employeeCode: null,
+  dni: null,
+  categoria: null,
+  categoriaId: null,
+  contrato: null,
+  contractTypeId: null,
+  seccion: null,
+  seccionId: null,
+  fechaAntiguedad: null,
   ...p,
 });
 
@@ -33,6 +44,7 @@ function repo(over: Partial<EmployeeRepository> = {}): EmployeeRepository {
     findUserIdByEmail: async () => null,
     create: async (n) => fila({ id: 99, userId: n.userId, fullName: n.fullName, rrhhRole: n.rrhhRole, managerId: n.managerId ?? null }),
     update: async (id, d: EmpleadoUpdate) => fila({ id, ...d, position: d.position ?? null, managerId: d.managerId ?? null }),
+    catalogos: async () => ({ empresas: [], categorias: [], contratos: [], secciones: [] }),
     ...over,
   };
 }

@@ -10,33 +10,33 @@ datasource db {
 /// Maestro de referencias Coolway (fuente de verdad de los códigos de barra).
 /// Una fila por SKU = (ref, size). Solo la app escribe; los consumidores leen.
 model Reference {
-  id           Int      @id @default(autoincrement())
-  style        String
-  color        String
-  ref          String
-  size         String
-  sku          String
+  id                   Int       @id @default(autoincrement())
+  style                String
+  color                String
+  ref                  String
+  size                 String
+  sku                  String
   /// REQ-003 · Un SKU tiene hasta TRES tallas y confundirlas imprime el código de otro producto:
   /// `size` es la que se IMPRIME (40 · S · 36-38 · U), `tallaSap` la que viene en el PDF del pedido
   /// (40 · 31 · C01) y `tallaTiendas` la que va al CÓDIGO DE BARRAS (40 · 11 · 35).
   /// En calzado las tres coinciden y estas dos van vacías.
-  tallaSap     String?  @map("talla_sap")
-  tallaTiendas String?  @map("talla_tiendas")
+  tallaSap             String?   @map("talla_sap")
+  tallaTiendas         String?   @map("talla_tiendas")
   /// El EAN13 NO es único: un producto re-referenciado en SAP conserva su código en la ref vieja
   /// y en la nueva (mismo modelo+color, dos refs). La identidad del SKU es (ref, size).
   /// Si un mismo EAN aparece en productos DISTINTOS, es un error del maestro: la carga lo AVISA
   /// (no lo rechaza) para que se corrija en origen. Ver SeedMasterUseCase.
-  ean13        String?
-  upc          String?
-  colorNameWeb String?  @map("color_name_web")
+  ean13                String?
+  upc                  String?
+  colorNameWeb         String?   @map("color_name_web")
   /// REQ-009 · Si el "color web" se editó a mano desde la web, deja de ser dueño el Excel: la
   /// reimportación NO lo pisa. `manual=true` marca esa fila; editedBy/At dejan el rastro de quién y cuándo.
   colorNameWebManual   Boolean   @default(false) @map("color_name_web_manual")
   colorNameWebEditedBy String?   @map("color_name_web_edited_by")
   colorNameWebEditedAt DateTime? @map("color_name_web_edited_at")
-  season       String?
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  season               String?
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
 
   @@unique([ref, size]) // un SKU por talla de cada referencia
   @@index([style, color])
@@ -83,25 +83,25 @@ model Role {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  users     User[]
+  users User[]
 
   @@map("role")
 }
 
 /// Usuarios internos de la herramienta. Alta/baja por un admin (no hay registro abierto).
 model User {
-  id           Int      @id @default(autoincrement())
-  email        String   @unique
+  id           Int       @id @default(autoincrement())
+  email        String    @unique
   name         String
-  passwordHash String   @map("password_hash")
+  passwordHash String    @map("password_hash")
   /// Clave del rol (FK a role.key). Se conserva la columna `role` de antes.
-  role         String   @default("operador")
-  roleRef      Role     @relation(fields: [role], references: [key])
-  active       Boolean  @default(true)
+  role         String    @default("operador")
+  roleRef      Role      @relation(fields: [role], references: [key])
+  active       Boolean   @default(true)
   /// REQ-008 · Enlace 1:1 con su ficha de empleado (RRHH). El módulo RRHH comparte SÓLO la identidad.
   employee     Employee?
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
 
   @@map("app_user")
 }
@@ -113,6 +113,11 @@ model Center {
   name      String
   /// Marca/enseña del grupo Yorga (COOLWAY, …). Segmenta el organigrama y los permisos.
   brand     String
+  /// REQ-012 · Zona/área del centro. El convenio del empleado se deriva por `center.zone.convenio`.
+  zoneId    Int?       @map("zone_id")
+  zone      Zone?      @relation(fields: [zoneId], references: [id])
+  /// REQ-012 · Código de sucursal (SUC.01…) del maestro de RRHH, si consta.
+  code      String?
   employees Employee[]
   holidays  Holiday[]
 
@@ -145,51 +150,151 @@ model Department {
   @@map("hr_department")
 }
 
+/// REQ-012 · Sociedad/empresa jurídica del grupo (VANYOR SAU, YORGA SAU, MAYUKA SLU…). Distinta de la MARCA
+/// (Center.brand). La identidad de negocio del empleado es (empresa + código de empleado).
+model Company {
+  id        Int        @id @default(autoincrement())
+  /// Número/código de empresa que usa RRHH (16, 12, 105, 120…). Clave estable.
+  code      String     @unique
+  name      String
+  employees Employee[]
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  @@map("hr_company")
+}
+
+/// REQ-012 · Zona/área geográfica (VALENCIA, LAS PALMAS-CANARIAS…). Determina el convenio aplicable; el
+/// convenio determina los permisos del trabajador. Se asigna al centro (tienda).
+model Zone {
+  id         Int       @id @default(autoincrement())
+  name       String    @unique
+  convenioId Int?      @map("convenio_id")
+  convenio   Convenio? @relation(fields: [convenioId], references: [id])
+  centers    Center[]
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  @@map("hr_zone")
+}
+
+/// REQ-012 · Convenio colectivo. Estructura vacía hasta que RRHH la rellene; `ConvenioPermiso` define qué concede.
+model Convenio {
+  id        Int               @id @default(autoincrement())
+  code      String?
+  name      String            @unique
+  zones     Zone[]
+  permisos  ConvenioPermiso[]
+  createdAt DateTime          @default(now()) @map("created_at")
+
+  @@map("hr_convenio")
+}
+
+/// REQ-012 · Qué permisos (tipos de ausencia) concede un convenio, con parámetros. Si un convenio no tiene filas,
+/// se usa el catálogo global de AbsenceType (compat hacia atrás). Se rellena con Ángeles.
+model ConvenioPermiso {
+  id            Int         @id @default(autoincrement())
+  convenioId    Int         @map("convenio_id")
+  convenio      Convenio    @relation(fields: [convenioId], references: [id], onDelete: Cascade)
+  absenceTypeId Int         @map("absence_type_id")
+  absenceType   AbsenceType @relation(fields: [absenceTypeId], references: [id])
+  diasMax       Int?        @map("dias_max")
+  remunerado    Boolean?
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  @@unique([convenioId, absenceTypeId])
+  @@map("hr_convenio_permiso")
+}
+
+/// REQ-012 · Catálogo de categorías profesionales (AUX.INFORM, DEPENDIENT, ENCARGAD., JEFE ZONA…).
+model Categoria {
+  id        Int        @id @default(autoincrement())
+  code      String?
+  name      String     @unique
+  employees Employee[]
+
+  @@map("hr_categoria")
+}
+
+/// REQ-012 · Catálogo de tipos/códigos de contrato (100, 200, 500, 502, 510…).
+model ContractType {
+  id        Int        @id @default(autoincrement())
+  code      String     @unique
+  name      String?
+  employees Employee[]
+
+  @@map("hr_contract_type")
+}
+
+/// REQ-012 · Catálogo de secciones (código de sección del maestro de RRHH).
+model Seccion {
+  id        Int        @id @default(autoincrement())
+  code      String     @unique
+  name      String?
+  employees Employee[]
+
+  @@map("hr_seccion")
+}
+
 /// REQ-008 · Empleado. Dominio RRHH INDEPENDIENTE; comparte con el panel sólo la identidad (`userId` 1:1 con
 /// `User`, por correo). `rrhhRole` es el rol DENTRO del módulo (no reutiliza REQ-006). `managerId` sostiene el
 /// organigrama y la visibilidad jerárquica. Baja = `active=false` (archiva, no borra).
 model Employee {
-  id           Int         @id @default(autoincrement())
+  id              Int              @id @default(autoincrement())
   /// Identidad compartida: el empleado entra con este usuario del login existente.
-  userId       Int         @unique @map("user_id")
-  user         User        @relation(fields: [userId], references: [id])
-  fullName     String      @map("full_name")
-  position     String?
+  userId          Int              @unique @map("user_id")
+  user            User             @relation(fields: [userId], references: [id])
+  fullName        String           @map("full_name")
+  position        String?
   /// EMPLEADO | MANAGER | RRHH | ADMIN (rol del módulo RRHH, jerárquico).
-  rrhhRole     String      @default("EMPLEADO") @map("rrhh_role")
+  rrhhRole        String           @default("EMPLEADO") @map("rrhh_role")
   /// Responsable directo → organigrama automático.
-  managerId    Int?        @map("manager_id")
-  manager      Employee?   @relation("Org", fields: [managerId], references: [id])
-  reports      Employee[]  @relation("Org")
-  departmentId Int?        @map("department_id")
-  department   Department? @relation(fields: [departmentId], references: [id])
-  centerId     Int?        @map("center_id")
-  center       Center?     @relation(fields: [centerId], references: [id])
-  contractType String?     @map("contract_type")
+  managerId       Int?             @map("manager_id")
+  manager         Employee?        @relation("Org", fields: [managerId], references: [id])
+  reports         Employee[]       @relation("Org")
+  departmentId    Int?             @map("department_id")
+  department      Department?      @relation(fields: [departmentId], references: [id])
+  centerId        Int?             @map("center_id")
+  center          Center?          @relation(fields: [centerId], references: [id])
+  contractType    String?          @map("contract_type")
+  /// REQ-012 · Sociedad jurídica del empleado (per-empleado y autoritativo; distinta de la marca del centro).
+  companyId       Int?             @map("company_id")
+  company         Company?         @relation(fields: [companyId], references: [id])
+  /// REQ-012 · Código de empleado que usa RRHH. La clave de negocio es (empresa + código).
+  employeeCode    String?          @map("employee_code")
+  dni             String?
+  categoriaId     Int?             @map("categoria_id")
+  categoria       Categoria?       @relation(fields: [categoriaId], references: [id])
+  contractTypeId  Int?             @map("contract_type_id")
+  contractTypeRef ContractType?    @relation(fields: [contractTypeId], references: [id])
+  seccionId       Int?             @map("seccion_id")
+  seccion         Seccion?         @relation(fields: [seccionId], references: [id])
+  /// REQ-012 · Fecha de antigüedad reconocida (separada de `hiredAt`/fecha de alta).
+  fechaAntiguedad DateTime?        @map("fecha_antiguedad") @db.Date
   /// Jornada teórica semanal en minutos (p.ej. 2400 = 40 h/semana). `null` = sin horario definido → no se
   /// computan horas extra. La diaria teórica se deriva repartiendo entre los días laborables (L–V).
-  weeklyMinutes Int?       @map("weekly_minutes")
+  weeklyMinutes   Int?             @map("weekly_minutes")
   /// Días de vacaciones que devenga al año (para el saldo). `null` = sin cupo definido.
-  annualLeaveDays Int?     @map("annual_leave_days")
+  annualLeaveDays Int?             @map("annual_leave_days")
   /// Desde qué día se le exige fichar: antes de esta fecha NO se marca "falta fichar" (no existía o no
   /// fichaba). Por defecto, el día de alta. `null` = no se controla la asistencia por faltas.
-  fichajeDesde DateTime?   @map("fichaje_desde") @db.Date
+  fichajeDesde    DateTime?        @map("fichaje_desde") @db.Date
   /// Datos bancarios opcionales, preparados para una futura nómina (no se usan en Fase 1).
-  iban         String?
+  iban            String?
   /// Fecha de nacimiento (para los próximos cumpleaños del equipo). Sólo la fecha, sin hora.
-  birthDate    DateTime?   @map("birth_date") @db.Date
+  birthDate       DateTime?        @map("birth_date") @db.Date
   /// Privacidad: si el empleado no quiere que su cumpleaños se muestre al equipo. No borra la fecha
   /// (RRHH la necesita), sólo la oculta de los próximos cumpleaños.
-  hideBirthday Boolean     @default(false) @map("hide_birthday")
-  active       Boolean     @default(true)
-  hiredAt      DateTime?   @map("hired_at")
-  terminatedAt DateTime?   @map("terminated_at")
-  createdAt    DateTime    @default(now()) @map("created_at")
-  updatedAt    DateTime    @updatedAt @map("updated_at")
-  timeEntries  TimeEntry[]
-  absences     Absence[]
-  notifications HrNotification[]
+  hideBirthday    Boolean          @default(false) @map("hide_birthday")
+  active          Boolean          @default(true)
+  hiredAt         DateTime?        @map("hired_at")
+  terminatedAt    DateTime?        @map("terminated_at")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  timeEntries     TimeEntry[]
+  absences        Absence[]
+  notifications   HrNotification[]
 
+  @@unique([companyId, employeeCode])
   @@index([managerId])
   @@map("hr_employee")
 }
@@ -212,16 +317,18 @@ model HrNotification {
 /// REQ-008 Fase 3 · Tipo de ausencia configurable (vacaciones, baja médica, permiso, asuntos propios…). Cada
 /// tipo define sus reglas: si computa saldo de vacaciones, si requiere aprobación y si exige justificante.
 model AbsenceType {
-  id               Int       @id @default(autoincrement())
-  name             String    @unique
+  id                 Int               @id @default(autoincrement())
+  name               String            @unique
   /// ¿Descuenta del saldo anual de vacaciones? (Fase 3b usa esto para los saldos.)
-  computesBalance  Boolean   @default(false) @map("computes_balance")
+  computesBalance    Boolean           @default(false) @map("computes_balance")
   /// ¿Necesita aprobación del responsable/RRHH, o es sólo un aviso?
-  requiresApproval Boolean   @default(true) @map("requires_approval")
+  requiresApproval   Boolean           @default(true) @map("requires_approval")
   /// ¿Exige adjuntar justificante? (informativo en Fase 3a).
-  requiresAttachment Boolean @default(false) @map("requires_attachment")
-  active           Boolean   @default(true)
-  absences         Absence[]
+  requiresAttachment Boolean           @default(false) @map("requires_attachment")
+  active             Boolean           @default(true)
+  absences           Absence[]
+  /// REQ-012 · Convenios que conceden este permiso (con sus parámetros). Vacío = catálogo global.
+  convenios          ConvenioPermiso[]
 
   @@map("hr_absence_type")
 }
@@ -229,28 +336,28 @@ model AbsenceType {
 /// REQ-008 Fase 3 · Solicitud de ausencia de un empleado. Estado PENDING → APPROVED/REJECTED. La decisión deja
 /// traza (quién, cuándo, nota). Rango de días [startDate, endDate]; `halfDay` = medio día (mismo día).
 model Absence {
-  id            Int         @id @default(autoincrement())
-  employeeId    Int         @map("employee_id")
-  employee      Employee    @relation(fields: [employeeId], references: [id])
-  typeId        Int         @map("type_id")
-  type          AbsenceType @relation(fields: [typeId], references: [id])
-  startDate     DateTime    @map("start_date") @db.Date
-  endDate       DateTime    @map("end_date") @db.Date
-  halfDay       Boolean     @default(false) @map("half_day")
+  id             Int         @id @default(autoincrement())
+  employeeId     Int         @map("employee_id")
+  employee       Employee    @relation(fields: [employeeId], references: [id])
+  typeId         Int         @map("type_id")
+  type           AbsenceType @relation(fields: [typeId], references: [id])
+  startDate      DateTime    @map("start_date") @db.Date
+  endDate        DateTime    @map("end_date") @db.Date
+  halfDay        Boolean     @default(false) @map("half_day")
   /// Si es medio día (`halfDay` y un solo día), en qué mitad: FIRST (mañana) | SECOND (tarde). `null` en
   /// ausencias de día completo. Es informativo para el equipo (a efectos de saldo, medio día = 0,5).
-  halfDayPart   String?     @map("half_day_part")
-  reason        String?
+  halfDayPart    String?     @map("half_day_part")
+  reason         String?
   /// PENDING | APPROVED | REJECTED.
-  status        String      @default("PENDING")
-  decidedByEmail String?    @map("decided_by_email")
-  decidedAt     DateTime?   @map("decided_at")
-  decisionNote  String?     @map("decision_note")
+  status         String      @default("PENDING")
+  decidedByEmail String?     @map("decided_by_email")
+  decidedAt      DateTime?   @map("decided_at")
+  decisionNote   String?     @map("decision_note")
   /// Justificante (Fase 3): clave del objeto en el almacenamiento (Spaces/local) y nombre original del fichero.
   /// El fichero se sirve siempre por la API con control de acceso (dato sensible: no hay URL pública).
-  attachmentKey  String?    @map("attachment_key")
-  attachmentName String?    @map("attachment_name")
-  createdAt     DateTime    @default(now()) @map("created_at")
+  attachmentKey  String?     @map("attachment_key")
+  attachmentName String?     @map("attachment_name")
+  createdAt      DateTime    @default(now()) @map("created_at")
 
   @@index([employeeId, startDate])
   @@map("hr_absence")
@@ -313,11 +420,11 @@ model ActivityEntry {
   /// Quién lo hizo. `actorUserId` puede quedar null si el usuario se borró; el email es un snapshot.
   actorUserId Int?     @map("actor_user_id")
   actorEmail  String   @map("actor_email")
-  action      String   // CREATE | UPDATE | DELETE
-  entity      String   // USER | ROLE | DESTINATION | MASTER_IMPORT
+  action      String // CREATE | UPDATE | DELETE
+  entity      String // USER | ROLE | DESTINATION | MASTER_IMPORT
   entityId    String   @map("entity_id")
-  before      Json?    // null en CREATE
-  after       Json?    // null en DELETE
+  before      Json? // null en CREATE
+  after       Json? // null en DELETE
   summary     String
 
   @@index([createdAt])

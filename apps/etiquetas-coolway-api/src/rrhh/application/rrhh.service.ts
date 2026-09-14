@@ -1,11 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CreateEmployeeDto, UpdateEmployeeDto } from '@yorga/contracts';
 import {
+  CamposFichaRrhh,
   EMPLOYEE_REPOSITORY,
   EmpleadoUpdate,
   EmployeeRepository,
   EmployeeRow,
   RRHH_STRUCTURE_REPOSITORY,
+  RrhhCatalogos,
   StructureRepository,
 } from './ports';
 import { crearíaCiclo, empleadosVisibles, esRrhhRole } from '../domain/rrhh-org';
@@ -106,6 +108,7 @@ export class RrhhService {
           hideBirthday: dto.hideBirthday ?? undefined,
           // Por defecto se empieza a exigir fichar el día del alta (así no salen faltas de antes de existir).
           fichajeDesde: dto.fichajeDesde ?? new Date().toISOString().slice(0, 10),
+          ...this.camposFicha(dto),
         },
         tx,
       );
@@ -175,6 +178,7 @@ export class RrhhService {
       }
       data.fichajeDesde = dto.fichajeDesde;
     }
+    Object.assign(data, this.camposFicha(dto)); // REQ-012 · empresa/código/DNI/categoría/contrato/sección/antigüedad
 
     return this.prisma.$transaction(async (tx) => {
       const actualizado = await this.repo.update(id, data, tx);
@@ -184,6 +188,33 @@ export class RrhhService {
       );
       return actualizado;
     });
+  }
+
+  /** REQ-012 · Catálogos maestros (empresas, categorías, contratos, secciones) para los selects de la ficha. */
+  catalogos(): Promise<RrhhCatalogos> {
+    return this.repo.catalogos();
+  }
+
+  /**
+   * REQ-012 · Extrae y normaliza los campos de ficha del DTO (solo los presentes). Empresa/categoría/contrato/
+   * sección se guardan por id (el front los ofrece de los catálogos); DNI/código se triman; la antigüedad valida
+   * formato. La clave de negocio (empresa+código) la garantiza el índice único de la BD.
+   */
+  private camposFicha(dto: CamposFichaRrhh): CamposFichaRrhh {
+    const out: CamposFichaRrhh = {};
+    if (dto.companyId !== undefined) out.companyId = dto.companyId;
+    if (dto.employeeCode !== undefined) out.employeeCode = dto.employeeCode?.trim() || null;
+    if (dto.dni !== undefined) out.dni = dto.dni?.trim() || null;
+    if (dto.categoriaId !== undefined) out.categoriaId = dto.categoriaId;
+    if (dto.contractTypeId !== undefined) out.contractTypeId = dto.contractTypeId;
+    if (dto.seccionId !== undefined) out.seccionId = dto.seccionId;
+    if (dto.fechaAntiguedad !== undefined) {
+      if (dto.fechaAntiguedad !== null && !/^\d{4}-\d{2}-\d{2}$/.test(dto.fechaAntiguedad)) {
+        throw new RrhhError('La fecha de antigüedad debe ser YYYY-MM-DD.');
+      }
+      out.fechaAntiguedad = dto.fechaAntiguedad;
+    }
+    return out;
   }
 
   darDeBaja(id: number, actor: RrhhActor): Promise<EmployeeRow> {

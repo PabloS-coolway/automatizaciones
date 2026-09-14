@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get, HttpCode, Param, Patch, Post, Query, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get, HttpCode, Param, Patch, Post, Put, Query, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import type { Response } from 'express';
@@ -32,18 +32,40 @@ import {
   RrhhMeDto,
   SaldoVacacionesDto,
   UsuarioSinFichaDto,
+  RrhhCatalogosDto,
   SolicitarAusenciaDto,
   TimeEntryDto,
   UpdateAbsenceTypeDto,
   UpdateCenterDto,
   UpdateDepartmentDto,
   UpdateEmployeeDto,
+  CompanyDto,
+  ZoneDto,
+  ConvenioDto,
+  CategoriaDto,
+  ContractTypeDto,
+  SeccionDto,
+  CreateCompanyDto,
+  UpdateCompanyDto,
+  CreateZoneDto,
+  UpdateZoneDto,
+  CreateConvenioDto,
+  UpdateConvenioDto,
+  CreateCategoriaDto,
+  UpdateCategoriaDto,
+  CreateContractTypeDto,
+  UpdateContractTypeDto,
+  CreateSeccionDto,
+  UpdateSeccionDto,
+  ConvenioPermisoDto,
+  SetConvenioPermisosDto,
 } from '@yorga/contracts';
 import { CurrentUser } from '../../../auth/interface/http/decorators';
 import { JwtPayload } from '../../../auth/application/auth.service';
-import { CenterRow, DepartmentRow, EmployeeRow, TimeEntryRow } from '../../application/ports';
+import { CatalogoRow, CenterRow, CompanyRow, ConvenioPermisoRow, ConvenioRow, DepartmentRow, EmployeeRow, TimeEntryRow, ZoneRow } from '../../application/ports';
 import { RrhhError, RrhhService } from '../../application/rrhh.service';
 import { RrhhStructureService } from '../../application/rrhh-structure.service';
+import { RrhhMaestrosService } from '../../application/rrhh-maestros.service';
 import { DiaDetalle, DiaJornada, FichajeService, Jornada, Panel } from '../../application/fichaje.service';
 import { AusenciaService } from '../../application/ausencia.service';
 import { FestivoService } from '../../application/festivo.service';
@@ -78,11 +100,30 @@ function toDto(e: EmployeeRow): EmployeeDto {
     birthDate: e.birthDate,
     hideBirthday: e.hideBirthday,
     fichajeDesde: e.fichajeDesde,
+    company: e.company,
+    companyId: e.companyId,
+    employeeCode: e.employeeCode,
+    dni: e.dni,
+    categoria: e.categoria,
+    categoriaId: e.categoriaId,
+    contrato: e.contrato,
+    contractTypeId: e.contractTypeId,
+    seccion: e.seccion,
+    seccionId: e.seccionId,
+    fechaAntiguedad: e.fechaAntiguedad,
   };
 }
 
 const toCenterDto = (c: CenterRow): CenterDto => ({ id: c.id, name: c.name, brand: c.brand, employees: c.employees });
 const toDeptDto = (d: DepartmentRow): DepartmentDto => ({ id: d.id, name: d.name, employees: d.employees });
+// REQ-012 · Bloque 3 · Gestión maestra.
+const toCompanyDto = (c: CompanyRow): CompanyDto => ({ id: c.id, code: c.code, name: c.name, employees: c.employees });
+const toZoneDto = (z: ZoneRow): ZoneDto => ({ id: z.id, name: z.name, convenioId: z.convenioId, convenioName: z.convenioName, centers: z.centers });
+const toConvenioDto = (c: ConvenioRow): ConvenioDto => ({ id: c.id, code: c.code, name: c.name, zonas: c.zonas });
+const toCategoriaDto = (c: CatalogoRow): CategoriaDto => ({ id: c.id, code: c.code, name: c.name ?? '', employees: c.employees });
+const toContractTypeDto = (c: CatalogoRow): ContractTypeDto => ({ id: c.id, code: c.code ?? '', name: c.name, employees: c.employees });
+const toSeccionDto = (c: CatalogoRow): SeccionDto => ({ id: c.id, code: c.code ?? '', name: c.name, employees: c.employees });
+const toConvenioPermisoDto = (p: ConvenioPermisoRow): ConvenioPermisoDto => ({ absenceTypeId: p.absenceTypeId, name: p.name, diasMax: p.diasMax, remunerado: p.remunerado });
 const toEntryDto = (e: TimeEntryRow): TimeEntryDto => ({ id: e.id, kind: e.kind as TimeEntryDto['kind'], at: e.at.toISOString(), source: e.source, note: e.note });
 const toJornadaDto = (j: Jornada, jornadaTeoricaMin: number): JornadaHoyDto => ({
   fecha: j.fecha.toISOString().slice(0, 10),
@@ -182,6 +223,7 @@ export class RrhhController {
   constructor(
     private readonly service: RrhhService,
     private readonly estructura: RrhhStructureService,
+    private readonly maestros: RrhhMaestrosService,
     private readonly fichaje: FichajeService,
     private readonly ausencias: AusenciaService,
     private readonly festivos: FestivoService,
@@ -206,6 +248,14 @@ export class RrhhController {
   async usuariosSinFicha(@RrhhActor() actor: EmployeeRow): Promise<UsuarioSinFichaDto[]> {
     exigeGestion(actor);
     return this.service.usuariosSinFicha();
+  }
+
+  // REQ-012 · Catálogos maestros (empresas, categorías, contratos, secciones) para poblar los selects de la ficha.
+  @Get('catalogos')
+  @UseGuards(RrhhGuard)
+  async catalogos(@RrhhActor() actor: EmployeeRow): Promise<RrhhCatalogosDto> {
+    exigeGestion(actor);
+    return this.service.catalogos();
   }
 
   @Get('cumpleanos')
@@ -692,5 +742,221 @@ export class RrhhController {
   async borrarDepartamento(@RrhhActor() actor: EmployeeRow, @Param('id') id: string): Promise<void> {
     exigeGestion(actor);
     await this.estructura.borrarDepartamento(Number(id), { email: actor.email }).catch(traducir);
+  }
+
+  // ==================== REQ-012 · Bloque 3 · Gestión maestra (sólo RRHH/Admin) ====================
+  // CRUD de la capa organizativa que hoy sólo nacía por el importador: empresas, zonas (con convenio),
+  // convenios (con su editor de permisos) y los catálogos (categoría / tipo de contrato / sección).
+
+  // ---- Empresas ----
+
+  @Get('maestros/empresas')
+  @UseGuards(RrhhGuard)
+  async empresas(@RrhhActor() actor: EmployeeRow): Promise<CompanyDto[]> {
+    exigeGestion(actor);
+    return (await this.maestros.listEmpresas()).map(toCompanyDto);
+  }
+
+  @Post('maestros/empresas')
+  @UseGuards(RrhhGuard)
+  async crearEmpresa(@RrhhActor() actor: EmployeeRow, @Body() dto: CreateCompanyDto): Promise<CompanyDto> {
+    exigeGestion(actor);
+    return toCompanyDto(await this.maestros.crearEmpresa(dto, { email: actor.email }).catch(traducir));
+  }
+
+  @Patch('maestros/empresas/:id')
+  @UseGuards(RrhhGuard)
+  async editarEmpresa(@RrhhActor() actor: EmployeeRow, @Param('id') id: string, @Body() dto: UpdateCompanyDto): Promise<CompanyDto> {
+    exigeGestion(actor);
+    return toCompanyDto(await this.maestros.editarEmpresa(Number(id), dto, { email: actor.email }).catch(traducir));
+  }
+
+  @Delete('maestros/empresas/:id')
+  @HttpCode(204)
+  @UseGuards(RrhhGuard)
+  async borrarEmpresa(@RrhhActor() actor: EmployeeRow, @Param('id') id: string): Promise<void> {
+    exigeGestion(actor);
+    await this.maestros.borrarEmpresa(Number(id), { email: actor.email }).catch(traducir);
+  }
+
+  // ---- Zonas ----
+
+  @Get('maestros/zonas')
+  @UseGuards(RrhhGuard)
+  async zonas(@RrhhActor() actor: EmployeeRow): Promise<ZoneDto[]> {
+    exigeGestion(actor);
+    return (await this.maestros.listZonas()).map(toZoneDto);
+  }
+
+  @Post('maestros/zonas')
+  @UseGuards(RrhhGuard)
+  async crearZona(@RrhhActor() actor: EmployeeRow, @Body() dto: CreateZoneDto): Promise<ZoneDto> {
+    exigeGestion(actor);
+    return toZoneDto(await this.maestros.crearZona(dto, { email: actor.email }).catch(traducir));
+  }
+
+  @Patch('maestros/zonas/:id')
+  @UseGuards(RrhhGuard)
+  async editarZona(@RrhhActor() actor: EmployeeRow, @Param('id') id: string, @Body() dto: UpdateZoneDto): Promise<ZoneDto> {
+    exigeGestion(actor);
+    return toZoneDto(await this.maestros.editarZona(Number(id), dto, { email: actor.email }).catch(traducir));
+  }
+
+  @Delete('maestros/zonas/:id')
+  @HttpCode(204)
+  @UseGuards(RrhhGuard)
+  async borrarZona(@RrhhActor() actor: EmployeeRow, @Param('id') id: string): Promise<void> {
+    exigeGestion(actor);
+    await this.maestros.borrarZona(Number(id), { email: actor.email }).catch(traducir);
+  }
+
+  // ---- Convenios ----
+
+  @Get('maestros/convenios')
+  @UseGuards(RrhhGuard)
+  async convenios(@RrhhActor() actor: EmployeeRow): Promise<ConvenioDto[]> {
+    exigeGestion(actor);
+    return (await this.maestros.listConvenios()).map(toConvenioDto);
+  }
+
+  @Post('maestros/convenios')
+  @UseGuards(RrhhGuard)
+  async crearConvenio(@RrhhActor() actor: EmployeeRow, @Body() dto: CreateConvenioDto): Promise<ConvenioDto> {
+    exigeGestion(actor);
+    return toConvenioDto(await this.maestros.crearConvenio(dto, { email: actor.email }).catch(traducir));
+  }
+
+  @Patch('maestros/convenios/:id')
+  @UseGuards(RrhhGuard)
+  async editarConvenio(@RrhhActor() actor: EmployeeRow, @Param('id') id: string, @Body() dto: UpdateConvenioDto): Promise<ConvenioDto> {
+    exigeGestion(actor);
+    return toConvenioDto(await this.maestros.editarConvenio(Number(id), dto, { email: actor.email }).catch(traducir));
+  }
+
+  @Delete('maestros/convenios/:id')
+  @HttpCode(204)
+  @UseGuards(RrhhGuard)
+  async borrarConvenio(@RrhhActor() actor: EmployeeRow, @Param('id') id: string): Promise<void> {
+    exigeGestion(actor);
+    await this.maestros.borrarConvenio(Number(id), { email: actor.email }).catch(traducir);
+  }
+
+  // ---- Permisos de un convenio (el editor convenio→permisos) ----
+
+  @Get('maestros/convenios/:id/permisos')
+  @UseGuards(RrhhGuard)
+  async permisosConvenio(@RrhhActor() actor: EmployeeRow, @Param('id') id: string): Promise<ConvenioPermisoDto[]> {
+    exigeGestion(actor);
+    return (await this.maestros.permisosDeConvenio(Number(id)).catch(traducir)).map(toConvenioPermisoDto);
+  }
+
+  @Put('maestros/convenios/:id/permisos')
+  @UseGuards(RrhhGuard)
+  async setPermisosConvenio(@RrhhActor() actor: EmployeeRow, @Param('id') id: string, @Body() dto: SetConvenioPermisosDto): Promise<ConvenioPermisoDto[]> {
+    exigeGestion(actor);
+    return (await this.maestros.setPermisosDeConvenio(Number(id), dto, { email: actor.email }).catch(traducir)).map(toConvenioPermisoDto);
+  }
+
+  // ---- Tipos de ausencia (para poblar el editor de permisos) ----
+
+  @Get('maestros/tipos-ausencia')
+  @UseGuards(RrhhGuard)
+  async tiposAusenciaMaestros(@RrhhActor() actor: EmployeeRow): Promise<AbsenceTypeDto[]> {
+    exigeGestion(actor);
+    // Todos los tipos (no sólo activos): el editor los ofrece para asignarlos a un convenio.
+    return (await this.ausencias.listTipos(false)).map(toTipoAusenciaDto);
+  }
+
+  // ---- Catálogos: categorías ----
+
+  @Get('maestros/categorias')
+  @UseGuards(RrhhGuard)
+  async categorias(@RrhhActor() actor: EmployeeRow): Promise<CategoriaDto[]> {
+    exigeGestion(actor);
+    return (await this.maestros.listCategorias()).map(toCategoriaDto);
+  }
+
+  @Post('maestros/categorias')
+  @UseGuards(RrhhGuard)
+  async crearCategoria(@RrhhActor() actor: EmployeeRow, @Body() dto: CreateCategoriaDto): Promise<CategoriaDto> {
+    exigeGestion(actor);
+    return toCategoriaDto(await this.maestros.crearCategoria(dto, { email: actor.email }).catch(traducir));
+  }
+
+  @Patch('maestros/categorias/:id')
+  @UseGuards(RrhhGuard)
+  async editarCategoria(@RrhhActor() actor: EmployeeRow, @Param('id') id: string, @Body() dto: UpdateCategoriaDto): Promise<CategoriaDto> {
+    exigeGestion(actor);
+    return toCategoriaDto(await this.maestros.editarCategoria(Number(id), dto, { email: actor.email }).catch(traducir));
+  }
+
+  @Delete('maestros/categorias/:id')
+  @HttpCode(204)
+  @UseGuards(RrhhGuard)
+  async borrarCategoria(@RrhhActor() actor: EmployeeRow, @Param('id') id: string): Promise<void> {
+    exigeGestion(actor);
+    await this.maestros.borrarCategoria(Number(id), { email: actor.email }).catch(traducir);
+  }
+
+  // ---- Catálogos: tipos de contrato ----
+
+  @Get('maestros/contratos')
+  @UseGuards(RrhhGuard)
+  async contratos(@RrhhActor() actor: EmployeeRow): Promise<ContractTypeDto[]> {
+    exigeGestion(actor);
+    return (await this.maestros.listContratos()).map(toContractTypeDto);
+  }
+
+  @Post('maestros/contratos')
+  @UseGuards(RrhhGuard)
+  async crearContrato(@RrhhActor() actor: EmployeeRow, @Body() dto: CreateContractTypeDto): Promise<ContractTypeDto> {
+    exigeGestion(actor);
+    return toContractTypeDto(await this.maestros.crearContrato(dto, { email: actor.email }).catch(traducir));
+  }
+
+  @Patch('maestros/contratos/:id')
+  @UseGuards(RrhhGuard)
+  async editarContrato(@RrhhActor() actor: EmployeeRow, @Param('id') id: string, @Body() dto: UpdateContractTypeDto): Promise<ContractTypeDto> {
+    exigeGestion(actor);
+    return toContractTypeDto(await this.maestros.editarContrato(Number(id), dto, { email: actor.email }).catch(traducir));
+  }
+
+  @Delete('maestros/contratos/:id')
+  @HttpCode(204)
+  @UseGuards(RrhhGuard)
+  async borrarContrato(@RrhhActor() actor: EmployeeRow, @Param('id') id: string): Promise<void> {
+    exigeGestion(actor);
+    await this.maestros.borrarContrato(Number(id), { email: actor.email }).catch(traducir);
+  }
+
+  // ---- Catálogos: secciones ----
+
+  @Get('maestros/secciones')
+  @UseGuards(RrhhGuard)
+  async secciones(@RrhhActor() actor: EmployeeRow): Promise<SeccionDto[]> {
+    exigeGestion(actor);
+    return (await this.maestros.listSecciones()).map(toSeccionDto);
+  }
+
+  @Post('maestros/secciones')
+  @UseGuards(RrhhGuard)
+  async crearSeccion(@RrhhActor() actor: EmployeeRow, @Body() dto: CreateSeccionDto): Promise<SeccionDto> {
+    exigeGestion(actor);
+    return toSeccionDto(await this.maestros.crearSeccion(dto, { email: actor.email }).catch(traducir));
+  }
+
+  @Patch('maestros/secciones/:id')
+  @UseGuards(RrhhGuard)
+  async editarSeccion(@RrhhActor() actor: EmployeeRow, @Param('id') id: string, @Body() dto: UpdateSeccionDto): Promise<SeccionDto> {
+    exigeGestion(actor);
+    return toSeccionDto(await this.maestros.editarSeccion(Number(id), dto, { email: actor.email }).catch(traducir));
+  }
+
+  @Delete('maestros/secciones/:id')
+  @HttpCode(204)
+  @UseGuards(RrhhGuard)
+  async borrarSeccion(@RrhhActor() actor: EmployeeRow, @Param('id') id: string): Promise<void> {
+    exigeGestion(actor);
+    await this.maestros.borrarSeccion(Number(id), { email: actor.email }).catch(traducir);
   }
 }

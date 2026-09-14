@@ -36,6 +36,21 @@ export interface EmployeeDto {
   hideBirthday: boolean;
   /** Desde qué día se le exige fichar (YYYY-MM-DD); antes no se marca "falta fichar". `null` = sin control. */
   fichajeDesde: string | null;
+  // REQ-012 · Capa organizativa e identidad de ficha. Nombres resueltos (pintar) + ids (editar).
+  /** Sociedad jurídica (VANYOR SAU…). Distinta de la marca del centro. */
+  company: string | null;
+  companyId: number | null;
+  /** Código de empleado de RRHH. La clave de negocio es (empresa + código). */
+  employeeCode: string | null;
+  dni: string | null;
+  categoria: string | null;
+  categoriaId: number | null;
+  contrato: string | null;
+  contractTypeId: number | null;
+  seccion: string | null;
+  seccionId: number | null;
+  /** Fecha de antigüedad reconocida (YYYY-MM-DD), separada del alta. */
+  fechaAntiguedad: string | null;
 }
 
 /**
@@ -55,6 +70,14 @@ export interface CreateEmployeeDto {
   birthDate?: string | null;
   hideBirthday?: boolean;
   fichajeDesde?: string | null;
+  // REQ-012
+  companyId?: number | null;
+  employeeCode?: string | null;
+  dni?: string | null;
+  categoriaId?: number | null;
+  contractTypeId?: number | null;
+  seccionId?: number | null;
+  fechaAntiguedad?: string | null;
 }
 
 /** Edición de una ficha (Fase 1). Todo opcional; sólo lo presente se cambia. El correo/usuario no se cambia. */
@@ -70,6 +93,22 @@ export interface UpdateEmployeeDto {
   birthDate?: string | null;
   hideBirthday?: boolean;
   fichajeDesde?: string | null;
+  // REQ-012
+  companyId?: number | null;
+  employeeCode?: string | null;
+  dni?: string | null;
+  categoriaId?: number | null;
+  contractTypeId?: number | null;
+  seccionId?: number | null;
+  fechaAntiguedad?: string | null;
+}
+
+/** REQ-012 · Catálogos para poblar los selects de la ficha (todo lo maestro que el empleado referencia). */
+export interface RrhhCatalogosDto {
+  empresas: { id: number; code: string; name: string }[];
+  categorias: { id: number; name: string }[];
+  contratos: { id: number; code: string; name: string | null }[];
+  secciones: { id: number; code: string; name: string | null }[];
 }
 
 /** Un centro/tienda del grupo. La `brand` (enseña) es la que **segmenta el organigrama** (multimarca). */
@@ -431,7 +470,23 @@ export interface HolidaysBulkResultDto {
 
 // ---- REQ-008 · Panel de actividad RRHH (auditoría, solo lectura) ----
 
-export const RRHH_ACTIVITY_ENTITIES = ['EMPLEADO', 'CENTRO', 'DEPARTAMENTO', 'FICHAJE', 'AUSENCIA', 'TIPO_AUSENCIA', 'FESTIVO'] as const;
+export const RRHH_ACTIVITY_ENTITIES = [
+  'EMPLEADO',
+  'CENTRO',
+  'DEPARTAMENTO',
+  'FICHAJE',
+  'AUSENCIA',
+  'TIPO_AUSENCIA',
+  'FESTIVO',
+  // REQ-012 · Bloque 3 · Gestión maestra.
+  'EMPRESA',
+  'ZONA',
+  'CONVENIO',
+  'CONVENIO_PERMISO',
+  'CATEGORIA',
+  'TIPO_CONTRATO',
+  'SECCION',
+] as const;
 export type RrhhActivityEntity = (typeof RRHH_ACTIVITY_ENTITIES)[number];
 
 export const RRHH_ACTIVITY_ENTITY_LABELS: Record<RrhhActivityEntity, string> = {
@@ -442,6 +497,13 @@ export const RRHH_ACTIVITY_ENTITY_LABELS: Record<RrhhActivityEntity, string> = {
   AUSENCIA: 'Ausencia',
   TIPO_AUSENCIA: 'Tipo de ausencia',
   FESTIVO: 'Festivo',
+  EMPRESA: 'Empresa',
+  ZONA: 'Zona',
+  CONVENIO: 'Convenio',
+  CONVENIO_PERMISO: 'Permisos de convenio',
+  CATEGORIA: 'Categoría',
+  TIPO_CONTRATO: 'Tipo de contrato',
+  SECCION: 'Sección',
 };
 
 export const RRHH_ACTIVITY_ACTION_LABELS: Record<string, string> = {

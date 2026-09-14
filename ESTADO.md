@@ -1,7 +1,7 @@
 # Estado del proyecto · dónde vamos y qué sigue
 
 > Documento de traspaso. Si retomas el trabajo (o cambias de ordenador), **empieza por aquí**.
-> Última actualización: **2026-07-30**. Historial detallado en [`CHANGELOG.md`](CHANGELOG.md).
+> Última actualización: **2026-09-14** (desplegado REQ-012 RRHH Fase 2 + Guía de uso + rediseño visual). Historial detallado en [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Arranque en un ordenador nuevo
 

@@ -1,5 +1,28 @@
 import type {
   CenterDto,
+  RrhhCatalogosDto,
+  EmpleadoPermisosDto,
+  ImportFichasResultDto,
+  CompanyDto,
+  ZoneDto,
+  ConvenioDto,
+  CategoriaDto,
+  ContractTypeDto,
+  SeccionDto,
+  CreateCompanyDto,
+  UpdateCompanyDto,
+  CreateZoneDto,
+  UpdateZoneDto,
+  CreateConvenioDto,
+  UpdateConvenioDto,
+  CreateCategoriaDto,
+  UpdateCategoriaDto,
+  CreateContractTypeDto,
+  UpdateContractTypeDto,
+  CreateSeccionDto,
+  UpdateSeccionDto,
+  ConvenioPermisoDto,
+  SetConvenioPermisosDto,
   CreateCenterDto,
   CreateDepartmentDto,
   AbsenceDto,
@@ -112,6 +135,29 @@ export class HttpRrhhGateway {
     return res.json();
   }
 
+  // REQ-012 · importar fichas de RRHH desde el Excel agrupado de Ángeles (multipart).
+  async importarFichas(file: File): Promise<ImportFichasResultDto> {
+    const fd = new FormData();
+    fd.append('file', file);
+    const res = await apiFetch('/rrhh/import-fichas', { method: 'POST', body: fd });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo importar el Excel de fichas.'));
+    return res.json();
+  }
+
+  // REQ-012 · catálogos maestros para los selects de la ficha (empresas/categorías/contratos/secciones).
+  async catalogos(): Promise<RrhhCatalogosDto> {
+    const res = await apiFetch('/rrhh/catalogos');
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudieron cargar los catálogos.'));
+    return res.json();
+  }
+
+  // REQ-012 · permisos efectivos de un empleado (zona → convenio → permisos, con fallback global).
+  async permisosEmpleado(id: number): Promise<EmpleadoPermisosDto> {
+    const res = await apiFetch(`/rrhh/empleados/${id}/permisos`);
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudieron cargar los permisos del empleado.'));
+    return res.json();
+  }
+
   async crearCentro(input: CreateCenterDto): Promise<CenterDto> {
     const res = await apiFetch('/rrhh/centros', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) });
     if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo crear el centro.'));
@@ -150,6 +196,167 @@ export class HttpRrhhGateway {
   async borrarDepartamento(id: number): Promise<void> {
     const res = await apiFetch(`/rrhh/departamentos/${id}`, { method: 'DELETE' });
     if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo borrar el departamento.'));
+  }
+
+  // ---- REQ-012 · Bloque 3 · Gestión maestra (empresas, zonas, convenios, permisos, catálogos) ----
+
+  async listEmpresas(): Promise<CompanyDto[]> {
+    const res = await apiFetch('/rrhh/maestros/empresas');
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudieron cargar las empresas.'));
+    return res.json();
+  }
+
+  async crearEmpresa(input: CreateCompanyDto): Promise<CompanyDto> {
+    const res = await apiFetch('/rrhh/maestros/empresas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo crear la empresa.'));
+    return res.json();
+  }
+
+  async editarEmpresa(id: number, input: UpdateCompanyDto): Promise<CompanyDto> {
+    const res = await apiFetch(`/rrhh/maestros/empresas/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo guardar la empresa.'));
+    return res.json();
+  }
+
+  async borrarEmpresa(id: number): Promise<void> {
+    const res = await apiFetch(`/rrhh/maestros/empresas/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo borrar la empresa.'));
+  }
+
+  async listZonas(): Promise<ZoneDto[]> {
+    const res = await apiFetch('/rrhh/maestros/zonas');
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudieron cargar las zonas.'));
+    return res.json();
+  }
+
+  async crearZona(input: CreateZoneDto): Promise<ZoneDto> {
+    const res = await apiFetch('/rrhh/maestros/zonas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo crear la zona.'));
+    return res.json();
+  }
+
+  async editarZona(id: number, input: UpdateZoneDto): Promise<ZoneDto> {
+    const res = await apiFetch(`/rrhh/maestros/zonas/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo guardar la zona.'));
+    return res.json();
+  }
+
+  async borrarZona(id: number): Promise<void> {
+    const res = await apiFetch(`/rrhh/maestros/zonas/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo borrar la zona.'));
+  }
+
+  async listConvenios(): Promise<ConvenioDto[]> {
+    const res = await apiFetch('/rrhh/maestros/convenios');
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudieron cargar los convenios.'));
+    return res.json();
+  }
+
+  async crearConvenio(input: CreateConvenioDto): Promise<ConvenioDto> {
+    const res = await apiFetch('/rrhh/maestros/convenios', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo crear el convenio.'));
+    return res.json();
+  }
+
+  async editarConvenio(id: number, input: UpdateConvenioDto): Promise<ConvenioDto> {
+    const res = await apiFetch(`/rrhh/maestros/convenios/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo guardar el convenio.'));
+    return res.json();
+  }
+
+  async borrarConvenio(id: number): Promise<void> {
+    const res = await apiFetch(`/rrhh/maestros/convenios/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo borrar el convenio.'));
+  }
+
+  /** Permisos que concede un convenio (el set actual, para el editor convenio→permisos). */
+  async permisosConvenio(id: number): Promise<ConvenioPermisoDto[]> {
+    const res = await apiFetch(`/rrhh/maestros/convenios/${id}/permisos`);
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudieron cargar los permisos del convenio.'));
+    return res.json();
+  }
+
+  /** Reemplaza el set completo de permisos de un convenio (idempotente). */
+  async setPermisosConvenio(id: number, input: SetConvenioPermisosDto): Promise<ConvenioPermisoDto[]> {
+    const res = await apiFetch(`/rrhh/maestros/convenios/${id}/permisos`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudieron guardar los permisos del convenio.'));
+    return res.json();
+  }
+
+  /** Todos los tipos de ausencia (activos e inactivos) para poblar el editor de permisos. */
+  async tiposAusenciaMaestros(): Promise<AbsenceTypeDto[]> {
+    const res = await apiFetch('/rrhh/maestros/tipos-ausencia');
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudieron cargar los tipos de ausencia.'));
+    return res.json();
+  }
+
+  async listCategorias(): Promise<CategoriaDto[]> {
+    const res = await apiFetch('/rrhh/maestros/categorias');
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudieron cargar las categorías.'));
+    return res.json();
+  }
+
+  async crearCategoria(input: CreateCategoriaDto): Promise<CategoriaDto> {
+    const res = await apiFetch('/rrhh/maestros/categorias', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo crear la categoría.'));
+    return res.json();
+  }
+
+  async editarCategoria(id: number, input: UpdateCategoriaDto): Promise<CategoriaDto> {
+    const res = await apiFetch(`/rrhh/maestros/categorias/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo guardar la categoría.'));
+    return res.json();
+  }
+
+  async borrarCategoria(id: number): Promise<void> {
+    const res = await apiFetch(`/rrhh/maestros/categorias/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo borrar la categoría.'));
+  }
+
+  async listContratos(): Promise<ContractTypeDto[]> {
+    const res = await apiFetch('/rrhh/maestros/contratos');
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudieron cargar los tipos de contrato.'));
+    return res.json();
+  }
+
+  async crearContrato(input: CreateContractTypeDto): Promise<ContractTypeDto> {
+    const res = await apiFetch('/rrhh/maestros/contratos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo crear el tipo de contrato.'));
+    return res.json();
+  }
+
+  async editarContrato(id: number, input: UpdateContractTypeDto): Promise<ContractTypeDto> {
+    const res = await apiFetch(`/rrhh/maestros/contratos/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo guardar el tipo de contrato.'));
+    return res.json();
+  }
+
+  async borrarContrato(id: number): Promise<void> {
+    const res = await apiFetch(`/rrhh/maestros/contratos/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo borrar el tipo de contrato.'));
+  }
+
+  async listSecciones(): Promise<SeccionDto[]> {
+    const res = await apiFetch('/rrhh/maestros/secciones');
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudieron cargar las secciones.'));
+    return res.json();
+  }
+
+  async crearSeccion(input: CreateSeccionDto): Promise<SeccionDto> {
+    const res = await apiFetch('/rrhh/maestros/secciones', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo crear la sección.'));
+    return res.json();
+  }
+
+  async editarSeccion(id: number, input: UpdateSeccionDto): Promise<SeccionDto> {
+    const res = await apiFetch(`/rrhh/maestros/secciones/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo guardar la sección.'));
+    return res.json();
+  }
+
+  async borrarSeccion(id: number): Promise<void> {
+    const res = await apiFetch(`/rrhh/maestros/secciones/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(await errorMessage(res, 'No se pudo borrar la sección.'));
   }
 
   // ---- Fichajes ----

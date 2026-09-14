@@ -17,10 +17,12 @@ import { PrismaDestinationRepository } from './destinos/infrastructure/prisma-de
 import { SURTIDO_REPOSITORY } from './surtidos/application/ports';
 import { SurtidosService } from './surtidos/application/surtidos.service';
 import { PrismaSurtidoRepository } from './surtidos/infrastructure/prisma-surtido.repository';
-import { ABSENCE_REPOSITORY, ABSENCE_TYPE_REPOSITORY, EMPLOYEE_REPOSITORY, HOLIDAY_REPOSITORY, NOTIFICATION_REPOSITORY, RRHH_STRUCTURE_REPOSITORY, TIME_ENTRY_REPOSITORY } from './rrhh/application/ports';
+import { ABSENCE_REPOSITORY, ABSENCE_TYPE_REPOSITORY, EMPLOYEE_REPOSITORY, HOLIDAY_REPOSITORY, NOTIFICATION_REPOSITORY, RRHH_MAESTROS_REPOSITORY, RRHH_STRUCTURE_REPOSITORY, TIME_ENTRY_REPOSITORY } from './rrhh/application/ports';
 import { RRHH_ACTIVITY_RECORDER } from './rrhh/application/rrhh-activity.port';
 import { RrhhService } from './rrhh/application/rrhh.service';
 import { RrhhStructureService } from './rrhh/application/rrhh-structure.service';
+import { RrhhMaestrosService } from './rrhh/application/rrhh-maestros.service';
+import { PrismaMaestrosRepository } from './rrhh/infrastructure/prisma-maestros.repository';
 import { FichajeService } from './rrhh/application/fichaje.service';
 import { AusenciaService } from './rrhh/application/ausencia.service';
 import { FestivoService } from './rrhh/application/festivo.service';
@@ -64,6 +66,8 @@ export const coreProviders: Provider[] = [
   { provide: EMPLOYEE_REPOSITORY, useExisting: PrismaEmployeeRepository },
   PrismaStructureRepository,
   { provide: RRHH_STRUCTURE_REPOSITORY, useExisting: PrismaStructureRepository },
+  PrismaMaestrosRepository,
+  { provide: RRHH_MAESTROS_REPOSITORY, useExisting: PrismaMaestrosRepository },
   PrismaTimeEntryRepository,
   { provide: TIME_ENTRY_REPOSITORY, useExisting: PrismaTimeEntryRepository },
   PrismaAbsenceTypeRepository,
@@ -95,6 +99,7 @@ export const coreProviders: Provider[] = [
   { provide: RRHH_ACTIVITY_RECORDER, useExisting: PrismaRrhhActivityRecorder },
   RrhhService,
   RrhhStructureService,
+  RrhhMaestrosService,
   FichajeService,
   AusenciaService,
   FestivoService,

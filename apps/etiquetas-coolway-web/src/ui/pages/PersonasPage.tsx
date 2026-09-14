@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Alert, Badge, Button, Card, Form, Modal, Nav, Spinner } from 'react-bootstrap';
-import { Diagram3, Download, PencilSquare, PersonDash, PersonCheck, PlusLg, Building, ClockHistory, ListUl, Search } from 'react-bootstrap-icons';
+import { Diagram3, Download, PencilSquare, PersonDash, PersonCheck, PlusLg, Building, ClockHistory, ListUl, Search, FileEarmarkArrowUp, Collection } from 'react-bootstrap-icons';
 import {
   RRHH_ROLE_LABELS,
   RRHH_ROLES,
@@ -9,19 +9,23 @@ import {
   type EmployeeDto,
   type OrgEmployeeDto,
   type RrhhRole,
+  type RrhhCatalogosDto,
+  type EmpleadoPermisosDto,
 } from '@yorga/contracts';
 import { rrhhGateway } from '../composition';
 import { useRrhh } from '../rrhh/RrhhContext';
 import { Column, DataTable, useMemoryTable } from '../components/table';
 import { OrganigramaLienzo } from './personas/OrganigramaLienzo';
 import { EstructuraManager } from './personas/EstructuraManager';
+import { MaestrosRrhhManager } from './personas/MaestrosRrhhManager';
 import { PanelFichajes } from './personas/PanelFichajes';
 import { ActividadRrhh } from './personas/ActividadRrhh';
 import { Skeleton, SkeletonTable } from '../components/Skeleton';
 import { plantillaACsv } from '../../domain/plantilla-csv';
+import { ImportFichasModal } from './ImportFichasModal';
 
-const VACIO = { email: '', fullName: '', rrhhRole: 'EMPLEADO' as RrhhRole, position: '', managerId: '', centerId: '', departmentId: '', weeklyHours: '', annualLeaveDays: '', birthDate: '', hideBirthday: false, fichajeDesde: '' };
-type Vista = 'plantilla' | 'organigrama' | 'fichajes' | 'estructura' | 'actividad';
+const VACIO = { email: '', fullName: '', rrhhRole: 'EMPLEADO' as RrhhRole, position: '', managerId: '', centerId: '', departmentId: '', weeklyHours: '', annualLeaveDays: '', birthDate: '', hideBirthday: false, fichajeDesde: '', companyId: '', employeeCode: '', dni: '', categoriaId: '', contractTypeId: '', seccionId: '', fechaAntiguedad: '' };
+type Vista = 'plantilla' | 'organigrama' | 'fichajes' | 'estructura' | 'maestros' | 'actividad';
 
 /**
  * REQ-008 · Personas. El empleado ve su ficha y (según su rol RRHH) la plantilla que le corresponde. RRHH/Admin
@@ -35,6 +39,10 @@ export function PersonasPage() {
   const [orgEmpleados, setOrgEmpleados] = useState<OrgEmployeeDto[]>([]);
   const [centros, setCentros] = useState<CenterDto[]>([]);
   const [departamentos, setDepartamentos] = useState<DepartmentDto[]>([]);
+  const [catalogos, setCatalogos] = useState<RrhhCatalogosDto>({ empresas: [], categorias: [], contratos: [], secciones: [] });
+  const [permisos, setPermisos] = useState<EmpleadoPermisosDto | null>(null);
+  const [permisosCargando, setPermisosCargando] = useState(false);
+  const [importFichas, setImportFichas] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -59,12 +67,16 @@ export function PersonasPage() {
       puedeGestionar ? rrhhGateway.listCentros() : Promise.resolve([]),
       puedeGestionar ? rrhhGateway.listDepartamentos() : Promise.resolve([]),
       rrhhGateway.organigrama(), // organigrama completo (público), para todos
+      puedeGestionar
+        ? rrhhGateway.catalogos()
+        : Promise.resolve({ empresas: [], categorias: [], contratos: [], secciones: [] } as RrhhCatalogosDto),
     ])
-      .then(([emps, cs, ds, org]) => {
+      .then(([emps, cs, ds, org, cat]) => {
         setEmpleados(emps);
         setCentros(cs);
         setDepartamentos(ds);
         setOrgEmpleados(org);
+        setCatalogos(cat);
       })
       .catch((e) => setError((e as Error).message))
       .finally(() => setLoading(false));
@@ -78,6 +90,7 @@ export function PersonasPage() {
     setEditId(null);
     setForm(VACIO);
     setFormError('');
+    setPermisos(null);
     setAbierto(true);
   }
 
@@ -96,8 +109,23 @@ export function PersonasPage() {
       birthDate: e.birthDate ?? '',
       hideBirthday: e.hideBirthday,
       fichajeDesde: e.fichajeDesde ?? '',
+      companyId: e.companyId != null ? String(e.companyId) : '',
+      employeeCode: e.employeeCode ?? '',
+      dni: e.dni ?? '',
+      categoriaId: e.categoriaId != null ? String(e.categoriaId) : '',
+      contractTypeId: e.contractTypeId != null ? String(e.contractTypeId) : '',
+      seccionId: e.seccionId != null ? String(e.seccionId) : '',
+      fechaAntiguedad: e.fechaAntiguedad ?? '',
     });
     setFormError('');
+    // REQ-012 · permisos efectivos del empleado (zona → convenio → permisos), solo lectura.
+    setPermisos(null);
+    setPermisosCargando(true);
+    rrhhGateway
+      .permisosEmpleado(e.id)
+      .then(setPermisos)
+      .catch(() => setPermisos(null))
+      .finally(() => setPermisosCargando(false));
     setAbierto(true);
   }
 
@@ -113,6 +141,14 @@ export function PersonasPage() {
     const annualLeaveDays = form.annualLeaveDays.trim() ? Math.round(Number(form.annualLeaveDays)) : null;
     const birthDate = form.birthDate.trim() || null;
     const fichajeDesde = form.fichajeDesde.trim() || null;
+    // REQ-012
+    const companyId = form.companyId ? Number(form.companyId) : null;
+    const categoriaId = form.categoriaId ? Number(form.categoriaId) : null;
+    const contractTypeId = form.contractTypeId ? Number(form.contractTypeId) : null;
+    const seccionId = form.seccionId ? Number(form.seccionId) : null;
+    const employeeCode = form.employeeCode.trim() || null;
+    const dni = form.dni.trim() || null;
+    const fechaAntiguedad = form.fechaAntiguedad.trim() || null;
     try {
       if (editId == null) {
         const nuevo = await rrhhGateway.crearEmpleado({
@@ -128,6 +164,13 @@ export function PersonasPage() {
           birthDate,
           hideBirthday: form.hideBirthday,
           fichajeDesde: fichajeDesde ?? undefined,
+          companyId: companyId ?? undefined,
+          employeeCode: employeeCode ?? undefined,
+          dni: dni ?? undefined,
+          categoriaId: categoriaId ?? undefined,
+          contractTypeId: contractTypeId ?? undefined,
+          seccionId: seccionId ?? undefined,
+          fechaAntiguedad: fechaAntiguedad ?? undefined,
         });
         setNotice(`${nuevo.fullName} dado de alta y enlazado a ${nuevo.email}.`);
       } else {
@@ -143,6 +186,13 @@ export function PersonasPage() {
           birthDate,
           hideBirthday: form.hideBirthday,
           fichajeDesde,
+          companyId,
+          employeeCode,
+          dni,
+          categoriaId,
+          contractTypeId,
+          seccionId,
+          fechaAntiguedad,
         });
         setNotice(`Ficha de ${upd.fullName} actualizada.`);
       }
@@ -277,10 +327,16 @@ export function PersonasPage() {
           <p className="text-secondary mb-0">Gestión de personal del grupo. Cada empleado entra con su usuario del panel.</p>
         </div>
         {puedeGestionar && employee && (
-          <Button className="btn-brand flex-shrink-0" onClick={abrirAlta}>
-            <PlusLg className="me-1" />
-            Nuevo empleado
-          </Button>
+          <div className="d-flex gap-2 flex-shrink-0">
+            <Button variant="outline-secondary" onClick={() => setImportFichas(true)}>
+              <FileEarmarkArrowUp className="me-1" />
+              Importar fichas
+            </Button>
+            <Button className="btn-brand" onClick={abrirAlta}>
+              <PlusLg className="me-1" />
+              Nuevo empleado
+            </Button>
+          </div>
         )}
       </header>
 
@@ -302,6 +358,9 @@ export function PersonasPage() {
             )}
             {puedeGestionar && (
               <Nav.Item><Nav.Link eventKey="estructura"><Building className="me-1" />Centros y departamentos</Nav.Link></Nav.Item>
+            )}
+            {puedeGestionar && (
+              <Nav.Item><Nav.Link eventKey="maestros"><Collection className="me-1" />Maestros</Nav.Link></Nav.Item>
             )}
             {puedeGestionar && (
               <Nav.Item><Nav.Link eventKey="actividad"><ListUl className="me-1" />Actividad</Nav.Link></Nav.Item>
@@ -349,11 +408,13 @@ export function PersonasPage() {
             <EstructuraManager centros={centros} departamentos={departamentos} onChange={reload} />
           )}
 
+          {vista === 'maestros' && puedeGestionar && <MaestrosRrhhManager />}
+
           {vista === 'actividad' && puedeGestionar && <ActividadRrhh />}
         </>
       )}
 
-      <Modal show={abierto} onHide={() => setAbierto(false)} centered backdrop="static">
+      <Modal show={abierto} onHide={() => setAbierto(false)} size="xl" fullscreen="lg-down" centered backdrop="static">
         <Form onSubmit={onSubmit}>
           <Modal.Header closeButton>
             <Modal.Title className="h5">{editId == null ? 'Nuevo empleado' : 'Editar ficha'}</Modal.Title>
@@ -370,18 +431,18 @@ export function PersonasPage() {
             )}
             <div className="row g-3">
               <div className="col-12">
-                <Form.Label className="small" htmlFor="e-email">Correo del usuario</Form.Label>
+                <Form.Label className="fw-medium mb-1" htmlFor="e-email">Correo del usuario</Form.Label>
                 <Form.Control id="e-email" type="email" value={form.email} autoFocus={editId == null} required={editId == null}
                   disabled={editId != null}
                   onChange={(ev) => setForm({ ...form, email: ev.target.value })} placeholder="nombre@grupoyorga.com" />
               </div>
               <div className="col-7">
-                <Form.Label className="small" htmlFor="e-name">Nombre completo</Form.Label>
+                <Form.Label className="fw-medium mb-1" htmlFor="e-name">Nombre completo</Form.Label>
                 <Form.Control id="e-name" value={form.fullName} required autoFocus={editId != null}
                   onChange={(ev) => setForm({ ...form, fullName: ev.target.value })} placeholder="Ana García" />
               </div>
               <div className="col-5">
-                <Form.Label className="small" htmlFor="e-role">Rol RRHH</Form.Label>
+                <Form.Label className="fw-medium mb-1" htmlFor="e-role">Rol RRHH</Form.Label>
                 <Form.Select id="e-role" value={form.rrhhRole} onChange={(ev) => setForm({ ...form, rrhhRole: ev.target.value as RrhhRole })}>
                   {RRHH_ROLES.map((r) => (
                     <option key={r} value={r}>{RRHH_ROLE_LABELS[r]}</option>
@@ -389,11 +450,11 @@ export function PersonasPage() {
                 </Form.Select>
               </div>
               <div className="col-6">
-                <Form.Label className="small" htmlFor="e-pos">Puesto (opcional)</Form.Label>
+                <Form.Label className="fw-medium mb-1" htmlFor="e-pos">Puesto (opcional)</Form.Label>
                 <Form.Control id="e-pos" value={form.position} onChange={(ev) => setForm({ ...form, position: ev.target.value })} placeholder="Dependienta" />
               </div>
               <div className="col-6">
-                <Form.Label className="small" htmlFor="e-birth">Nacimiento (opcional)</Form.Label>
+                <Form.Label className="fw-medium mb-1" htmlFor="e-birth">Nacimiento (opcional)</Form.Label>
                 <Form.Control id="e-birth" type="date" value={form.birthDate} onChange={(ev) => setForm({ ...form, birthDate: ev.target.value })} />
                 <Form.Check
                   id="e-hide-birth"
@@ -404,22 +465,22 @@ export function PersonasPage() {
                 />
               </div>
               <div className="col-3">
-                <Form.Label className="small" htmlFor="e-hrs">Jornada (h/sem)</Form.Label>
+                <Form.Label className="fw-medium mb-1" htmlFor="e-hrs">Jornada (h/sem)</Form.Label>
                 <Form.Control id="e-hrs" type="number" min={0} step={0.5} value={form.weeklyHours}
                   onChange={(ev) => setForm({ ...form, weeklyHours: ev.target.value })} placeholder="40" />
               </div>
               <div className="col-3">
-                <Form.Label className="small" htmlFor="e-vac">Vacac. (d/año)</Form.Label>
+                <Form.Label className="fw-medium mb-1" htmlFor="e-vac">Vacac. (d/año)</Form.Label>
                 <Form.Control id="e-vac" type="number" min={0} value={form.annualLeaveDays}
                   onChange={(ev) => setForm({ ...form, annualLeaveDays: ev.target.value })} placeholder="23" />
               </div>
               <div className="col-6">
-                <Form.Label className="small" htmlFor="e-fichaje">Ficha desde</Form.Label>
+                <Form.Label className="fw-medium mb-1" htmlFor="e-fichaje">Ficha desde</Form.Label>
                 <Form.Control id="e-fichaje" type="date" value={form.fichajeDesde} onChange={(ev) => setForm({ ...form, fichajeDesde: ev.target.value })} />
                 <div className="text-secondary small mt-1">Antes de esta fecha no se marca “falta fichar”. Por defecto, el día de alta.</div>
               </div>
               <div className="col-12 col-sm-4">
-                <Form.Label className="small" htmlFor="e-mgr">Responsable</Form.Label>
+                <Form.Label className="fw-medium mb-1" htmlFor="e-mgr">Responsable</Form.Label>
                 <Form.Select id="e-mgr" value={form.managerId} onChange={(ev) => setForm({ ...form, managerId: ev.target.value })}>
                   <option value="">— Sin responsable —</option>
                   {posiblesResponsables.map((e) => (
@@ -428,7 +489,7 @@ export function PersonasPage() {
                 </Form.Select>
               </div>
               <div className="col-12 col-sm-4">
-                <Form.Label className="small" htmlFor="e-center">Centro</Form.Label>
+                <Form.Label className="fw-medium mb-1" htmlFor="e-center">Centro</Form.Label>
                 <Form.Select id="e-center" value={form.centerId} onChange={(ev) => setForm({ ...form, centerId: ev.target.value })}>
                   <option value="">— Sin centro —</option>
                   {centros.map((c) => (
@@ -437,7 +498,7 @@ export function PersonasPage() {
                 </Form.Select>
               </div>
               <div className="col-12 col-sm-4">
-                <Form.Label className="small" htmlFor="e-dept">Departamento</Form.Label>
+                <Form.Label className="fw-medium mb-1" htmlFor="e-dept">Departamento</Form.Label>
                 <Form.Select id="e-dept" value={form.departmentId} onChange={(ev) => setForm({ ...form, departmentId: ev.target.value })}>
                   <option value="">— Sin departamento —</option>
                   {departamentos.map((d) => (
@@ -445,6 +506,91 @@ export function PersonasPage() {
                   ))}
                 </Form.Select>
               </div>
+
+              {/* REQ-012 · Datos de empresa e identidad de ficha */}
+              <div className="col-12">
+                <hr className="my-1" />
+                <div className="text-secondary small text-uppercase fw-semibold">Empresa e identidad de ficha</div>
+              </div>
+              <div className="col-12 col-sm-6 col-lg-4">
+                <Form.Label className="fw-medium mb-1" htmlFor="e-company">Sociedad (empresa)</Form.Label>
+                <Form.Select id="e-company" value={form.companyId} onChange={(ev) => setForm({ ...form, companyId: ev.target.value })}>
+                  <option value="">— Sin empresa —</option>
+                  {catalogos.empresas.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
+                  ))}
+                </Form.Select>
+              </div>
+              <div className="col-6 col-sm-3 col-lg-2">
+                <Form.Label className="fw-medium mb-1" htmlFor="e-code">Cód. empleado</Form.Label>
+                <Form.Control id="e-code" value={form.employeeCode} onChange={(ev) => setForm({ ...form, employeeCode: ev.target.value })} placeholder="105" />
+              </div>
+              <div className="col-6 col-sm-3 col-lg-3">
+                <Form.Label className="fw-medium mb-1" htmlFor="e-dni">DNI</Form.Label>
+                <Form.Control id="e-dni" value={form.dni} onChange={(ev) => setForm({ ...form, dni: ev.target.value })} placeholder="00000000A" />
+              </div>
+              <div className="col-12 col-sm-6 col-lg-3">
+                <Form.Label className="fw-medium mb-1" htmlFor="e-antig">Antigüedad</Form.Label>
+                <Form.Control id="e-antig" type="date" value={form.fechaAntiguedad} onChange={(ev) => setForm({ ...form, fechaAntiguedad: ev.target.value })} />
+              </div>
+              <div className="col-12 col-sm-4">
+                <Form.Label className="fw-medium mb-1" htmlFor="e-cat">Categoría</Form.Label>
+                <Form.Select id="e-cat" value={form.categoriaId} onChange={(ev) => setForm({ ...form, categoriaId: ev.target.value })}>
+                  <option value="">— Sin categoría —</option>
+                  {catalogos.categorias.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </Form.Select>
+              </div>
+              <div className="col-12 col-sm-4">
+                <Form.Label className="fw-medium mb-1" htmlFor="e-contract">Tipo de contrato</Form.Label>
+                <Form.Select id="e-contract" value={form.contractTypeId} onChange={(ev) => setForm({ ...form, contractTypeId: ev.target.value })}>
+                  <option value="">— Sin contrato —</option>
+                  {catalogos.contratos.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name ? `${c.name} (${c.code})` : c.code}</option>
+                  ))}
+                </Form.Select>
+              </div>
+              <div className="col-12 col-sm-4">
+                <Form.Label className="fw-medium mb-1" htmlFor="e-seccion">Sección</Form.Label>
+                <Form.Select id="e-seccion" value={form.seccionId} onChange={(ev) => setForm({ ...form, seccionId: ev.target.value })}>
+                  <option value="">— Sin sección —</option>
+                  {catalogos.secciones.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name ? `${c.name} (${c.code})` : c.code}</option>
+                  ))}
+                </Form.Select>
+              </div>
+
+              {/* REQ-012 · Permisos efectivos por convenio (solo lectura), al editar */}
+              {editId != null && (
+                <div className="col-12">
+                  <hr className="my-1" />
+                  <div className="text-secondary small text-uppercase fw-semibold mb-2">Permisos por convenio</div>
+                  {permisosCargando ? (
+                    <div className="text-secondary small"><Spinner as="span" size="sm" animation="border" /> Cargando permisos…</div>
+                  ) : !permisos ? (
+                    <div className="text-secondary small">No se pudieron cargar los permisos.</div>
+                  ) : (
+                    <>
+                      <div className="small mb-2">
+                        Zona: <strong>{permisos.zona?.name ?? '—'}</strong> · Convenio: <strong>{permisos.convenio?.name ?? '—'}</strong>{' '}
+                        <Badge bg={permisos.fuente === 'convenio' ? 'success-subtle' : 'secondary-subtle'} text={permisos.fuente === 'convenio' ? 'success' : 'secondary'}>
+                          {permisos.fuente === 'convenio' ? 'según convenio' : 'catálogo global'}
+                        </Badge>
+                      </div>
+                      <div className="d-flex flex-wrap gap-2">
+                        {permisos.permisos.map((p) => (
+                          <Badge key={p.absenceTypeId} bg="light" text="dark" className="border">
+                            {p.name}
+                            {p.diasMax != null && <span className="text-secondary"> · {p.diasMax}d</span>}
+                            {p.remunerado != null && <span className="text-secondary"> · {p.remunerado ? 'remun.' : 'no remun.'}</span>}
+                          </Badge>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           </Modal.Body>
           <Modal.Footer>
@@ -455,6 +601,13 @@ export function PersonasPage() {
           </Modal.Footer>
         </Form>
       </Modal>
+
+      {importFichas && (
+        <ImportFichasModal
+          onClose={() => setImportFichas(false)}
+          onImported={() => reload()}
+        />
+      )}
     </div>
   );
 }

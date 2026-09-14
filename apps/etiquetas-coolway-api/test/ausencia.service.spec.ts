@@ -58,7 +58,7 @@ function ausRepo(): AbsenceRepository & { filas: AbsenceRow[] } {
 
 /** Empleados de mentira: por defecto sin responsable (no dispara notificación al jefe). */
 function empFake(managerId: number | null = null): EmployeeRepository {
-  const base = { id: 1, userId: 1, fullName: 'Ana', email: 'ana@y.com', position: null, rrhhRole: 'EMPLEADO' as const, managerId, active: true, department: null, departmentId: null, center: null, centerId: null, brand: null, weeklyMinutes: null, annualLeaveDays: null, birthDate: null, hideBirthday: false, fichajeDesde: null };
+  const base = { id: 1, userId: 1, fullName: 'Ana', email: 'ana@y.com', position: null, rrhhRole: 'EMPLEADO' as const, managerId, active: true, department: null, departmentId: null, center: null, centerId: null, brand: null, weeklyMinutes: null, annualLeaveDays: null, birthDate: null, hideBirthday: false, fichajeDesde: null, company: null, companyId: null, employeeCode: null, dni: null, categoria: null, categoriaId: null, contrato: null, contractTypeId: null, seccion: null, seccionId: null, fechaAntiguedad: null };
   return {
     findByUserId: async () => null,
     findById: async () => base,
@@ -66,6 +66,7 @@ function empFake(managerId: number | null = null): EmployeeRepository {
     findUserIdByEmail: async () => null,
     create: async () => base,
     update: async () => base,
+    catalogos: async () => ({ empresas: [], categorias: [], contratos: [], secciones: [] }),
   };
 }
 
@@ -245,11 +246,12 @@ describe('AusenciaService · aviso sin responsable', () => {
     // empFake sin managerId (null) + findAll con un ADMIN (id 5)
     const emp: EmployeeRepository = {
       findByUserId: async () => null,
-      findById: async () => ({ id: 1, userId: 1, fullName: 'Ana', email: 'ana@y.com', position: null, rrhhRole: 'EMPLEADO', managerId: null, active: true, department: null, departmentId: null, center: null, centerId: null, brand: null, weeklyMinutes: null, annualLeaveDays: null, birthDate: null, hideBirthday: false, fichajeDesde: null }),
-      findAll: async () => [{ id: 5, userId: 5, fullName: 'Jefa RRHH', email: 'r@y.com', position: null, rrhhRole: 'ADMIN', managerId: null, active: true, department: null, departmentId: null, center: null, centerId: null, brand: null, weeklyMinutes: null, annualLeaveDays: null, birthDate: null, hideBirthday: false, fichajeDesde: null }],
+      findById: async () => ({ id: 1, userId: 1, fullName: 'Ana', email: 'ana@y.com', position: null, rrhhRole: 'EMPLEADO', managerId: null, active: true, department: null, departmentId: null, center: null, centerId: null, brand: null, weeklyMinutes: null, annualLeaveDays: null, birthDate: null, hideBirthday: false, fichajeDesde: null, company: null, companyId: null, employeeCode: null, dni: null, categoria: null, categoriaId: null, contrato: null, contractTypeId: null, seccion: null, seccionId: null, fechaAntiguedad: null }),
+      findAll: async () => [{ id: 5, userId: 5, fullName: 'Jefa RRHH', email: 'r@y.com', position: null, rrhhRole: 'ADMIN', managerId: null, active: true, department: null, departmentId: null, center: null, centerId: null, brand: null, weeklyMinutes: null, annualLeaveDays: null, birthDate: null, hideBirthday: false, fichajeDesde: null, company: null, companyId: null, employeeCode: null, dni: null, categoria: null, categoriaId: null, contrato: null, contractTypeId: null, seccion: null, seccionId: null, fechaAntiguedad: null }],
       findUserIdByEmail: async () => null,
       create: async () => ({ id: 1 } as never),
       update: async () => ({ id: 1 } as never),
+      catalogos: async () => ({ empresas: [], categorias: [], contratos: [], secciones: [] }),
     };
     const svc = new AusenciaService(tiposRepo(tipo()), ausRepo(), emp, notif, storageFake(), recorderSpy().recorder, db);
     await svc.solicitar(1, { typeId: 1, startDate: `${dd}01`, endDate: `${dd}03` }, actor);
