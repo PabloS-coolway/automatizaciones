@@ -55,6 +55,11 @@ services:
       - key: JWT_EXPIRES_IN
         value: 12h
         scope: RUN_TIME
+      # MCP de SOLO LECTURA del maestro (/api/mcp) para el agente de consulta. Tokens de servicio separados
+      # por comas (openssl rand -hex 32). Sin valor → /api/mcp responde 503 (deshabilitado, nunca abierto).
+      - key: MCP_TOKENS
+        scope: RUN_TIME
+        type: SECRET
       # Primer admin, creado al arrancar (idempotente). No hay CLI a mano en App Platform.
       # ADMIN_PASSWORD va como SECRET (se pone aparte). Una vez creado el admin, se pueden quitar.
       - key: ADMIN_EMAIL

@@ -3,6 +3,23 @@
 Registro de avances del proyecto de automatizaciones de Yorga.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/).
 
+## [2026-09-23] MEJ · MCP de SOLO LECTURA del maestro (`/api/mcp`) para el agente de consulta (rama `feat/mcp-lectura-maestro`)
+
+### Añadido
+- **Servidor MCP remoto** (Streamable HTTP, sin estado) en `/api/mcp`, registrado por fuera de Nest. Auth por
+  token de servicio (`MCP_TOKENS`, comparación en tiempo constante); sin tokens → 503. GET/DELETE → 405.
+- **6 herramientas de lectura**: `estadisticas_maestro`, `buscar_referencias`, `facetas`, `listar_destinos`,
+  `listar_surtidos`, `skus_maestro` (lista compacta completa hasta 20.000 filas; si hay más, error, no recorte).
+  Instrucciones del servidor: el maestro es la ÚNICA autoridad de códigos; nunca se inventan; lo que falte se reporta.
+- Filtros nuevos del maestro (reutilizados por el MCP, compartidos en `buildWhere`): `season`, `sinEan`, `sinUpc`;
+  facetas por temporada; `season` en las filas de `/maestro/references`.
+
+### Fuera de alcance (a propósito)
+- RRHH, usuarios, roles y actividad: ninguna herramienta los lee (test de alcance que falla si se añade).
+
+### Verificado
+- typecheck + tests (API 54 suites) + build en verde. Smoke real con curl contra una copia local del maestro.
+
 ## [2026-09-14] REQ-012 · RRHH Fase 2 (multi-sociedad, zona→convenio→permisos) + Guía de uso + rediseño visual
 
 ### Añadido
