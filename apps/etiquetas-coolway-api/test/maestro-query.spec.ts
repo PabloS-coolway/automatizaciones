@@ -156,3 +156,50 @@ describe('MaestroQuery · exportación (fase 4)', () => {
     expect(args.take).toBe(MAX_EXPORT); // con tope, para no tumbar el servidor si el maestro crece
   });
 });
+
+describe('MaestroQuery · lectura para el MCP (temporada, sin código, lista compacta)', () => {
+  const prisma = (filas: unknown[] = []) => ({
+    reference: { count: jest.fn().mockResolvedValue(filas.length), findMany: jest.fn().mockResolvedValue(filas), groupBy: jest.fn().mockResolvedValue([]) },
+    $transaction: (ps: Promise<unknown>[]) => Promise.all(ps),
+  });
+
+  it('buildWhere filtra por temporada como las casillas ("(vacío)" = sin temporada)', () => {
+    expect(buildWhere({ season: ['SS26'] })).toEqual({ AND: [{ season: { in: ['SS26'] } }] });
+    expect(buildWhere({ season: [VALOR_VACIO] })).toEqual({ AND: [{ OR: [{ season: null }, { season: '' }] }] });
+  });
+
+  it('sinEan / sinUpc → nulo O vacío (un vacío no es un código)', () => {
+    expect(buildWhere({ sinEan: true })).toEqual({ AND: [{ OR: [{ ean13: null }, { ean13: '' }] }] });
+    expect(buildWhere({ sinUpc: true })).toEqual({ AND: [{ OR: [{ upc: null }, { upc: '' }] }] });
+    expect(buildWhere({ sinEan: false })).toEqual({});
+  });
+
+  it('facets admite la temporada (lista blanca de lectura) e ignora su propio filtro', async () => {
+    const p = prisma();
+    await new MaestroQuery(p as never).facets('season', { season: ['SS26'], style: ['GOAL'] });
+    expect(p.reference.groupBy).toHaveBeenCalledWith(
+      expect.objectContaining({ by: ['season'], where: { AND: [{ style: { in: ['GOAL'] } }] } }),
+    );
+  });
+
+  it('skus pide max+1 filas: si caben, la lista es COMPLETA', async () => {
+    const p = prisma([{ sku: 'A' }, { sku: 'B' }]);
+    const r = await new MaestroQuery(p as never).skus({ season: ['SS26'] }, 5);
+    expect(p.reference.findMany.mock.calls[0][0].take).toBe(6);
+    expect(p.reference.findMany.mock.calls[0][0].select).toEqual({ sku: true, ean13: true, upc: true, style: true, color: true, size: true, season: true });
+    expect(r).toEqual({ total: 2, filas: [{ sku: 'A' }, { sku: 'B' }], completo: true });
+  });
+
+  it('skus: si vuelven más de max, lo DICE (completo=false) en vez de recortar callado', async () => {
+    const p = prisma([{ sku: 'A' }, { sku: 'B' }, { sku: 'C' }]);
+    const r = await new MaestroQuery(p as never).skus({}, 2);
+    expect(r.completo).toBe(false);
+    expect(r.filas).toHaveLength(2);
+  });
+
+  it('count aplica el mismo filtro que la tabla', async () => {
+    const p = prisma();
+    await new MaestroQuery(p as never).count({ sinEan: true });
+    expect(p.reference.count).toHaveBeenCalledWith({ where: { AND: [{ OR: [{ ean13: null }, { ean13: '' }] }] } });
+  });
+});

@@ -122,6 +122,8 @@ export interface ReferenceDto {
   ean13?: string | null;
   upc?: string | null;
   colorNameWeb?: string | null;
+  /** Temporada (p.ej. SS26). Puede venir vacía: el Excel no siempre la trae. */
+  season?: string | null;
 }
 
 /* ─────────────────── Maestro · editar "color web" inline · REQ-009 (permiso por rol) ───────────────────
@@ -191,6 +193,11 @@ export interface ReferenceFiltersDto {
   sku?: string;
   ean13?: string;
   upc?: string;
+  /** Temporada: multivalor, como las casillas (`(vacío)` = sin temporada). La usa el MCP de lectura. */
+  season?: string[];
+  /** Sólo filas SIN código EAN13 / UPC (nulo o vacío): la pregunta "¿qué no puedo etiquetar?". */
+  sinEan?: boolean;
+  sinUpc?: boolean;
   sort?: ReferenceSortColumn;
   dir?: SortDir;
 }
