@@ -101,6 +101,35 @@ A partir de ahí, un admin da altas/bajas desde la web (sección **Usuarios**). 
 
 > **Al desplegar:** define `JWT_SECRET` en el entorno (hoy hay uno de desarrollo por defecto), sirve por **HTTPS** y valora mover el token a cookie `httpOnly` (hoy va en `localStorage`).
 
+## MCP de lectura del maestro (`/api/mcp`)
+
+Servidor **MCP remoto de SOLO LECTURA** (Streamable HTTP, sin estado) para que el agente de consulta del grupo
+("Yorgi") pregunte por referencias, EAN/UPC, temporadas y colores web, y las cruce con Shopify. Código en
+`src/mcp/` (herramientas puras en `application/`, adapter sobre `MaestroQuery` + repos de destinos/surtidos en
+`infrastructure/`, HTTP + SDK en `interface/http/`).
+
+- **URL:** `POST https://<host>/api/mcp` (JSON-RPC; `Accept: application/json, text/event-stream`). Sin sesión:
+  `GET`/`DELETE` responden 405.
+- **Auth:** `Authorization: Bearer <token>`, con los tokens de la variable **`MCP_TOKENS`** (separados por comas;
+  genera uno con `openssl rand -hex 32`). **Sin `MCP_TOKENS` el endpoint responde 503**: nunca queda abierto. No
+  usa el login JWT (es una máquina, no un usuario).
+- **Alcance cerrado:** maestro, destinos y surtidos. **Nada de RRHH, usuarios, roles ni actividad, y nada que
+  escriba** (hay un test que falla si se añade una herramienta fuera de la lista).
+
+| Herramienta | Entrada | Devuelve |
+|---|---|---|
+| `estadisticas_maestro` | — | totales: referencias, modelos, con/sin EAN, con/sin UPC, sin color web, temporadas, filas por modelo |
+| `buscar_referencias` | filtros¹ + `pagina`, `porPagina` (máx 200) | `{ total, totalMaestro, pagina, porPagina, paginas, filas }` |
+| `facetas` | `columna` (style, color, size, colorNameWeb, season) + filtros¹ | valores distintos con nº de filas |
+| `listar_destinos` | `soloActivos?` | code, name, variant, importadoPor, active |
+| `listar_surtidos` | `grupo?` | grupo, codigo |
+| `skus_maestro` | `season?`, `style?` | `{ total, filas: [{ sku, ean13, upc, style, color, size, season }] }` sin paginar, hasta 20.000 (si hay más, error: no se recorta) |
+
+¹ Filtros: `texto` (libre), `style`/`color`/`size`/`colorNameWeb`/`season` (valor exacto o lista; `(vacío)` =
+celda vacía), `ref`/`sku`/`ean13`/`upc` (contiene), `sinEan`, `sinUpc`, `sinColorWeb`.
+
+Conectarlo desde Claude Code: `claude mcp add --transport http maestro-coolway https://<host>/api/mcp --header "Authorization: Bearer <token>"`.
+
 ## Estado
 
 - ✅ **Fase 1** (etiquetas): dominio + adapters (PDF/Excel) + CLI + API HTTP. Validado end-to-end con pedidos reales.

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import {
-  FacetsDto,
+  FacetDto,
   MaestroStatsDto,
   REFERENCE_FACET_COLUMNS,
   REFERENCE_SORT_COLUMNS,
@@ -44,6 +44,10 @@ function porValores(valores: string[] | undefined, campo: string): Prisma.Refere
   return or.length === 1 ? or[0] : { OR: or };
 }
 
+/** Filas SIN el código dado: nulo o cadena vacía (un vacío del Excel es "no lo sé", no un código). */
+const sinCodigo = (activo: boolean | undefined, campo: 'ean13' | 'upc'): Prisma.ReferenceWhereInput | undefined =>
+  activo ? ({ OR: [{ [campo]: null }, { [campo]: '' }] } as Prisma.ReferenceWhereInput) : undefined;
+
 const contiene = (v: string | undefined, campo: string): Prisma.ReferenceWhereInput | undefined =>
   v?.trim() ? ({ [campo]: { contains: v.trim(), mode: 'insensitive' } } as Prisma.ReferenceWhereInput) : undefined;
 
@@ -74,10 +78,13 @@ export function buildWhere(f: ReferenceFiltersDto, excepto?: string): Prisma.Ref
     excepto === 'color' ? undefined : porValores(f.color, 'color'),
     excepto === 'size' ? undefined : porValores(f.size, 'size'),
     excepto === 'colorNameWeb' ? undefined : porValores(f.colorNameWeb, 'colorNameWeb'),
+    excepto === 'season' ? undefined : porValores(f.season, 'season'),
     excepto === 'ref' ? undefined : contiene(f.ref, 'ref'),
     excepto === 'sku' ? undefined : contiene(f.sku, 'sku'),
     excepto === 'ean13' ? undefined : contiene(f.ean13, 'ean13'),
     excepto === 'upc' ? undefined : contiene(f.upc, 'upc'),
+    sinCodigo(f.sinEan, 'ean13'),
+    sinCodigo(f.sinUpc, 'upc'),
   ];
 
   for (const t of trozos) if (t) and.push(t);
@@ -98,6 +105,21 @@ export function buildOrderBy(sort?: string, dir?: string): Prisma.ReferenceOrder
 /** ¿Es una columna con autofiltro de casillas? (evita agrupar por una columna arbitraria) */
 export function esColumnaDeFacetas(col: string): col is ReferenceFacetColumn {
   return (REFERENCE_FACET_COLUMNS as readonly string[]).includes(col);
+}
+
+/** Columnas de facetas que admite el MCP de lectura: las de la UI y, además, la temporada. */
+export const FACET_COLUMNS_LECTURA = [...REFERENCE_FACET_COLUMNS, 'season'] as const;
+export type FacetColumnLectura = (typeof FACET_COLUMNS_LECTURA)[number];
+
+/** Fila COMPACTA del maestro para cruzar en código (p.ej. con Shopify): sólo identidad y códigos. */
+export interface SkuCompacto {
+  sku: string;
+  ean13: string | null;
+  upc: string | null;
+  style: string;
+  color: string;
+  size: string;
+  season: string | null;
 }
 
 /** Consultas de lectura del maestro (Postgres) para la UI. */
@@ -126,7 +148,7 @@ export class MaestroQuery {
         take,
         skip,
         orderBy: buildOrderBy(filters.sort, filters.dir),
-        select: { style: true, color: true, ref: true, size: true, sku: true, ean13: true, upc: true, colorNameWeb: true },
+        select: { style: true, color: true, ref: true, size: true, sku: true, ean13: true, upc: true, colorNameWeb: true, season: true },
       }),
     ]);
     return { total, grandTotal, items };
@@ -145,20 +167,46 @@ export class MaestroQuery {
     });
   }
 
+  /** Cuántas filas cumplen el filtro (para estadísticas: "cuántas sin EAN", "sin color web"…). */
+  count(filters: ReferenceFiltersDto): Promise<number> {
+    return this.prisma.reference.count({ where: buildWhere(filters) });
+  }
+
+  /**
+   * Lista COMPACTA (sku + códigos + producto) de las filas que cumplen el filtro, sin paginar.
+   * Se piden `max + 1` filas: si vuelven más de `max`, `completo` es false y quien llama DEBE avisar
+   * (nunca recortar en silencio: una lista a medias haría creer que faltan SKU que sí existen).
+   */
+  async skus(filters: ReferenceFiltersDto, max: number): Promise<{ total: number; filas: SkuCompacto[]; completo: boolean }> {
+    const where = buildWhere(filters);
+    const [total, filas] = await this.prisma.$transaction([
+      this.prisma.reference.count({ where }),
+      this.prisma.reference.findMany({
+        where,
+        take: max + 1,
+        orderBy: ORDEN_POR_DEFECTO,
+        select: { sku: true, ean13: true, upc: true, style: true, color: true, size: true, season: true },
+      }),
+    ]);
+    const completo = filas.length <= max;
+    return { total, filas: completo ? filas : filas.slice(0, max), completo };
+  }
+
   /**
    * Valores del desplegable de una columna, con los filtros de las DEMÁS ya aplicados (como Excel).
    * No se pueden deducir de la página: con 100 filas en pantalla no se sabe qué colores tiene GOAL.
    */
-  async facets(column: ReferenceFacetColumn, filters: ReferenceFiltersDto): Promise<FacetsDto> {
+  async facets<C extends FacetColumnLectura>(column: C, filters: ReferenceFiltersDto): Promise<{ column: C; values: FacetDto[] }> {
+    const col: FacetColumnLectura = column; // sin genérico para Prisma: su groupBy tipado no lo digiere
     const grupos = await this.prisma.reference.groupBy({
-      by: [column],
-      where: buildWhere(filters, column),
+      by: [col],
+      where: buildWhere(filters, col),
       _count: { _all: true },
     });
 
     const values = grupos
       .map((g) => ({
-        value: (g as Record<string, unknown>)[column] as string | null,
+        value: (g as Record<string, unknown>)[col] as string | null,
         count: (g._count as { _all: number })._all,
       }))
       .map((v) => ({ value: v.value === null || v.value === '' ? VALOR_VACIO : v.value, count: v.count }))

@@ -18,6 +18,11 @@ import {
 } from '../../auth/application/ports';
 import { bootstrapRrhh } from '../../rrhh/bootstrap-rrhh';
 import { EMPLOYEE_REPOSITORY, EmployeeRepository } from '../../rrhh/application/ports';
+import { MaestroQuery } from '../../maestro/application/maestro-query.service';
+import { DESTINATION_REPOSITORY, DestinationRepository } from '../../destinos/application/ports';
+import { SURTIDO_REPOSITORY, SurtidoRepository } from '../../surtidos/application/ports';
+import { LecturaMaestroAdapter } from '../../mcp/infrastructure/lectura-maestro.adapter';
+import { crearManejadorMcp } from '../../mcp/interface/http/mcp-http';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(HttpModule);
@@ -34,6 +39,23 @@ async function bootstrap(): Promise<void> {
    */
   app.set('query parser', (str: string) => qs.parse(str, { arrayLimit: MAX_VALORES_FILTRO }));
   const port = process.env.PORT ?? 3000;
+
+  /**
+   * MCP de SOLO LECTURA del maestro (/api/mcp) para el agente de consulta del grupo. Ruta de Express por
+   * fuera de Nest, registrada ANTES del init para que no la tape el 404 de Nest. No usa el login JWT: exige
+   * un token de servicio de MCP_TOKENS (sin tokens configurados responde 503: nunca queda abierto).
+   */
+  const mcp = crearManejadorMcp({
+    lectura: new LecturaMaestroAdapter(
+      app.get(MaestroQuery, { strict: false }),
+      app.get<DestinationRepository>(DESTINATION_REPOSITORY, { strict: false }),
+      app.get<SurtidoRepository>(SURTIDO_REPOSITORY, { strict: false }),
+    ),
+    leerTokens: () => process.env.MCP_TOKENS,
+    registro: (e) => console.log(`[mcp] ${e.herramienta} ${e.ok ? 'ok' : `ERROR ${e.error}`} ${e.ms}ms`),
+  });
+  app.getHttpAdapter().getInstance().all('/api/mcp', mcp);
+
   await app.listen(port);
   console.log(`API etiquetas-coolway escuchando en http://localhost:${port}/api`);
 
